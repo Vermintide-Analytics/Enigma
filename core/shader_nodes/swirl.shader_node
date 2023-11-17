@@ -1,0 +1,59 @@
+group = "Utility"
+display_name = "Swirl"
+inputs = {
+	"df2c174c-05ad-432c-b716-9b8550bad9b7" = { name = "uv" display_name = "UV" type = "vector2" }
+	"f6a649eb-2826-4c00-b974-a08030f654c5" = { name = "time" display_name = "Time" type = { scalar: ["HAS_TIME"] } is_required = false }
+	"cb2bb60c-be0e-48b2-b16e-167df37a9a31" = { name = "angle" display_name = "Angle" type = { scalar: ["HAS_ANGLE"] } is_required = false }
+	"e44c3155-1a7e-4715-9034-330b2faeefa5" = { name = "size" display_name = "Size" type = { scalar: ["HAS_SIZE"] } is_required = false }
+}
+
+options = {
+	"ee843759-a18d-4dc6-938a-b6873ff201d4" = "ADVANCED"
+}
+
+ui = [
+	{
+		type = "drop_down"
+		display_name = "Swirl Type"
+		options = {
+			"Simple" = "00000000-0000-0000-0000-000000000000"
+			"Advanced" = "ee843759-a18d-4dc6-938a-b6873ff201d4"
+		}
+		default = "00000000-0000-0000-0000-000000000000"
+	}
+]
+
+output = {
+	type = { typeof: "uv" }
+}
+
+code = """
+	#if !defined(HAS_TIME)
+		half time = 0.0;
+	#endif
+	#if !defined(HAS_ANGLE)
+		half angle = 50.24;
+	#endif
+	#if !defined(HAS_SIZE)
+		half size = 0.5;
+	#endif
+
+	half2 a = uv - 0.5;
+	half b = dot(a, a);
+	
+	#if defined(ADVANCED)
+		half c = b * size;
+		half e = pow(2.0, c);
+		half f = e * -angle;
+	#else
+		half f = b * angle;
+	#endif
+
+	// rotation matrix of angle f multiplied by vector a
+	half cos_a = cos(f + time);
+	half sin_a = sin(f + time);
+	half x = a.x * cos_a - a.y * sin_a;
+	half y = a.x * sin_a + a.y * cos_a;
+
+	RESULT(half2(x, y) + 0.5);
+"""

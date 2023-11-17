@@ -1,0 +1,32 @@
+group = "Orientation"
+display_name = "Right Axis"
+depends_on = [
+	"core/stingray_renderer/output_nodes/standard_base", 
+	"core/stingray_renderer/output_nodes/light_base", 
+	"core/stingray_renderer/output_nodes/unlit_base", 
+	"core/stingray_renderer/output_nodes/terrain_base"
+]
+
+defines = ["NEEDS_WORLD_POSE"]
+
+imports = {
+	world = {
+		type = "float4x4"
+		domain = "global"
+		source = "engine"
+	}
+}
+
+output = {
+	type = "float3"
+}
+
+code_blocks = {
+    default = {
+        code = {
+			hlsl = """
+				RESULT(normalize(world._m00_m01_m02));
+			"""
+		}
+	}
+}

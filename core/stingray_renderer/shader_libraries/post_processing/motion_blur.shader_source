@@ -1,0 +1,581 @@
+includes = [ 
+	"core/stingray_renderer/shader_libraries/common/common.shader_source",
+	"core/stingray_renderer/shader_libraries/common/post_processing_common.shader_source"
+]
+
+render_states = {
+	filter = {
+		inherits = "default"
+		states = {
+			z_write_enable = "false"
+			z_enable = "false"
+		}
+	}
+}
+
+hlsl_shaders = {
+	mb_common = {
+		code="""
+			// k in the paper
+			#define MAX_BLUR_RADIUS 10
+			#define HALF_PIX 0.5
+			#define MOTION_BLUR_CURVE_EXPONENT 2.0
+			
+			float2 adjust_velocity(float2 v, out float radius, float motion_blur_amount)
+			{
+				float length_v = length(v);
+				
+				// Convert the velocity to be a radius instead of a diameter, and scale by motion blur amount.
+				radius = 0.5 * length_v * motion_blur_amount;
+				
+				// Dampens the blur filter for slow moving pixels
+				radius = pow(radius/MAX_BLUR_RADIUS, MOTION_BLUR_CURVE_EXPONENT) * MAX_BLUR_RADIUS;
+				
+				radius = clamp(radius, HALF_PIX, float(MAX_BLUR_RADIUS));
+				
+				// Much larger than zero
+				if (length_v >= 0.01) 
+					v = v * (radius / length_v);
+				
+				return v;			
+			}
+
+			float2 adjust_velocity(float2 v, float radius)
+			{
+				float length_v = length(v);
+				
+				// Much larger than zero
+				if (length_v >= 0.01) 
+					v = v * (radius / length_v);
+				
+				return v;			
+			}
+
+			float calculate_radius(float2 v, float motion_blur_amount)
+			{
+				float length_v = length(v);
+				
+				// Convert the velocity to be a radius instead of a diameter, and scale by motion blur amount.
+				float radius = 0.5 * length_v * motion_blur_amount;
+				
+				// Dampens the blur filter for slow moving pixels
+				radius = pow(radius/MAX_BLUR_RADIUS, MOTION_BLUR_CURVE_EXPONENT) * MAX_BLUR_RADIUS;
+						
+				radius = clamp(radius, HALF_PIX, float(MAX_BLUR_RADIUS));
+				
+				return radius;		
+			}
+		"""
+	}
+	
+	mb_tile_max = {		
+		includes = [ "common", "gbuffer_access", "mb_common", "post_processing_common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_point" }
+		}
+
+		code="""
+			#if defined(HORIZONTAL_PASS)
+				#define OFFSET_COMPONENT x
+			#else
+				#define OFFSET_COMPONENT y
+			#endif
+			
+			DECLARE_SAMPLER_2D(input_texture0);
+						
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float2 inv_input_texture0_size;
+				float4x4 world_view_proj;			
+			CBUFFER_END	
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);				
+				o.uv = input.uv;
+				return o;
+			}			
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float2 ps_main(PS_INPUT input) : SV_TARGET0 {
+				float2 largest_vector = float2(0,0);
+				float largest_magnitude = 0.0;
+				
+				// We need to start sampling at the start of a tile to preperly identify the local maximum velocity
+				//                  input.uv
+				// offset              |
+				//   |                 |
+				//   v                 v
+				// | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+				float offset = 0.5 * inv_input_texture0_size.OFFSET_COMPONENT * (1.0 - MAX_BLUR_RADIUS);
+				#if defined(HORIZONTAL_PASS)
+					float2 sample_offset = float2(offset, 0);
+				#elif defined(VERTICAL_PASS)
+					float2 sample_offset = float2(0, offset);
+				#endif
+
+				float2 sample_uv = input.uv;
+				for (int i = 0; i < MAX_BLUR_RADIUS; ++i) {
+					float2 v = TEX2DLOD(input_texture0, sample_uv + sample_offset, 0).VELOCITY_COMPONENTS;
+
+					float v_magnitude = dot(v, v);					
+					if (v_magnitude > largest_magnitude) {
+						largest_magnitude = v_magnitude;
+						largest_vector = v;
+					}
+
+					#if defined(HORIZONTAL_PASS)
+						sample_uv.x += inv_input_texture0_size.x;	
+					#elif defined(VERTICAL_PASS)
+						sample_uv.y += inv_input_texture0_size.y;
+					#endif
+				}
+				return largest_vector;
+			}	
+		"""
+	}
+
+	mb_neighbour_max = {		
+		includes = [ "common", "gbuffer_access", "mb_common", "post_processing_common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_point" }
+		}
+		
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+						
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float2 inv_input_texture0_size;
+				float4x4 world_view_proj;
+				float motion_blur_amount; // exports={ name="Motion Blur Factor" type="scalar" value=1.0 min=0.0 max=5.0 step=0.001 }						
+			CBUFFER_END	
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);				
+				o.uv = input.uv;
+				return o;
+			}
+			
+			void max_velocity_magnitude(float2 uv, float2 offset, inout float2 m, inout float largest_magnitude)
+			{
+				float2 tile_uv = uv + offset * inv_input_texture0_size.xy;
+				float2 tile_velocity = decode_velocity(TEX2DLOD(input_texture0, tile_uv, 0).VELOCITY_COMPONENTS);
+				float tile_velocity_magnitude = dot(tile_velocity, tile_velocity);
+				
+				// Reference http://sourceforge.net/p/g3d/code/HEAD/tree/G3D10/data-files/shader/MotionBlur/MotionBlur_neighborMinMax.pix
+				if (tile_velocity_magnitude > largest_magnitude) {
+					float displacement = abs(offset.x) + abs(offset.y);
+					float2 direction = sign(offset * tile_velocity);
+					float dist = direction.x + direction.y;
+					if (abs(dist) == displacement) {
+						largest_magnitude = tile_velocity_magnitude;
+						m = tile_velocity;
+					}
+				}
+			}
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			half4 ps_main(PS_INPUT input) : SV_TARGET0 
+			{				
+				float2 m = decode_velocity(TEX2D(input_texture0, input.uv).VELOCITY_COMPONENTS);
+				float largest_magnitude = dot(m, m);
+				
+				max_velocity_magnitude(input.uv, float2(-1,-1), m, largest_magnitude);
+				max_velocity_magnitude(input.uv, float2(0,-1), m, largest_magnitude);
+				max_velocity_magnitude(input.uv, float2(1,-1), m, largest_magnitude);
+				max_velocity_magnitude(input.uv, float2(1,0), m, largest_magnitude);
+				max_velocity_magnitude(input.uv, float2(-1,0), m, largest_magnitude);
+				max_velocity_magnitude(input.uv, float2(-1,1), m, largest_magnitude);
+				max_velocity_magnitude(input.uv, float2(0,1), m, largest_magnitude);
+				max_velocity_magnitude(input.uv, float2(1,1), m, largest_magnitude);
+				
+				float radius = 0.0;
+				float2 velocity = adjust_velocity(m * output_rt_size, radius, motion_blur_amount);
+				
+				return half4(velocity, radius, 0);
+			}
+		"""
+	}
+	
+	mb_bake_velocity_depth = {		
+		includes = [ "common", "gbuffer_access", "mb_common", "post_processing_common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_point" }
+			input_texture1 = { sampler_states = "clamp_point" }
+		}
+		
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+			DECLARE_SAMPLER_2D(input_texture1);
+						
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;	
+				float motion_blur_amount; // exports={ name="Motion Blur Factor" type="scalar" value=1.0 min=0.0 max=5.0 step=0.001 }					
+			CBUFFER_END	
+			
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);				
+				o.uv = input.uv;
+				return o;
+			}
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float4 ps_main(PS_INPUT input) : SV_TARGET0 
+			{				
+				float radius = 0.0;
+				float2 velocity = decode_velocity(TEX2D(input_texture0, input.uv).VELOCITY_COMPONENTS);
+				velocity = adjust_velocity(velocity * output_rt_size, radius, motion_blur_amount);
+				float depth = gbuffer_decode_depth(TEX2D(input_texture1, input.uv));
+				
+				return float4(velocity, radius, depth);
+				
+			}
+		"""
+	}
+
+	mb_bake_radius_depth = {		
+		includes = [ "common", "gbuffer_access", "mb_common", "post_processing_common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_point" }
+			input_texture1 = { sampler_states = "clamp_point" }
+		}
+		
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+			DECLARE_SAMPLER_2D(input_texture1);
+						
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;	
+				float motion_blur_amount; // exports={ name="Motion Blur Factor" type="scalar" value=1.0 min=0.0 max=5.0 step=0.001 }					
+			CBUFFER_END	
+			
+			
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);				
+				o.uv = input.uv;
+				return o;
+			}
+			
+			float2 ps_main(PS_INPUT input) : SV_TARGET0 
+			{				
+				float2 velocity = decode_velocity(TEX2D(input_texture0, input.uv).VELOCITY_COMPONENTS);
+				float radius = calculate_radius(velocity * output_rt_size, motion_blur_amount);
+				float depth = gbuffer_decode_depth(TEX2D(input_texture1, input.uv));
+				return float2(radius, depth);
+				
+			}
+		"""
+	}
+	
+	mb_reconstruct_filter_blur	= {		
+		includes = [ "common", "gbuffer_access", "mb_common", "post_processing_common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_point" }
+			input_texture1 = { sampler_states = "clamp_point" }
+			input_texture2 = { sampler_states = "clamp_point" }
+			input_texture3 = { sampler_states = "clamp_point" }
+
+			noise = { sampler_states = "clamp_linear" }
+		}
+		
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+			DECLARE_SAMPLER_2D(input_texture1);
+			DECLARE_SAMPLER_2D(input_texture2);
+			DECLARE_SAMPLER_2D(input_texture3);
+			DECLARE_SAMPLER_2D(noise);
+						
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float2 inv_input_texture0_size;					
+			CBUFFER_END	
+
+			#define NUM_SAMPLES_ODD 9
+			
+			// Measured in pixels
+			// Make this smaller to better hide tile boundaries
+			// Make this bigger to get smoother blur (less noise) 
+			#define VARIANCE_THRESHOLD 1.5
+
+			float soft_depth_compare(float depth_a, float depth_b) {
+				// World space distance over which we are conservative about the classification
+				// of "foreground" vs. "background".  Must be > 0.  
+				// Increase if slanted surfaces aren't blurring enough.
+				// Decrease if the background is bleeding into the foreground.
+				// Fairly insensitive
+				const float SOFT_DEPTH_EXTENT = 0.02;
+				return saturate(1.0 - (depth_b - depth_a)/SOFT_DEPTH_EXTENT);
+			}
+			
+			float cone(float dist, float radius) {
+				return saturate(1- abs(dist)/radius);
+			}
+			
+			float fast_cone(float dist, float inv_radius) {
+				return saturate(1- abs(dist) * inv_radius);
+			}
+
+			float cylinder(float dist, float radius) {
+				// Optimized implementation
+				return sign(radius - abs(dist)) * 0.5 + 0.5;
+				
+				//return 1.0 - smoothstep(radius * 0.95, radius * 1.05, abs(dist));
+			}			
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);				
+				o.uv = input.uv;
+				return o;
+			}
+
+			// TODO: change this to a screen tiled random texture
+			float jitter(int2 c) {
+				return float(int(c.x + c.y) & 1) * 0.5 + 0.25;
+			}
+			
+			#define NOISE_TEXTURE_SIZE 64
+			
+			float jitter_texture(int2 c) {
+				c = int2(c.x & (NOISE_TEXTURE_SIZE - 1), c.y & (NOISE_TEXTURE_SIZE - 1));
+				float2 uv = float2(c) / NOISE_TEXTURE_SIZE;
+				return TEX2DLOD(noise, uv, 0).r;
+			}
+
+			float4 calc_velocity_radius_depth(Sampler2D velocity_texture, Sampler2D radius_depth_texture, float2 uv) {
+				float2 velocity = decode_velocity(TEX2D(velocity_texture, uv).VELOCITY_COMPONENTS);
+				float2 radius_depth = TEX2D(radius_depth_texture, uv).xy;
+				
+				velocity = adjust_velocity(velocity * output_rt_size, radius_depth.x);
+			
+				return float4(velocity, radius_depth);
+			}
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float4 ps_main(PS_INPUT input) : SV_TARGET0 {			
+				const float2 center_uv = input.uv;
+
+				const float3 neighbor_max_velocity_radius = TEX2DLOD(input_texture3, center_uv, 0).xyz;
+				const float4 center_color = TEX2D(input_texture0, center_uv);
+				
+				if(length(neighbor_max_velocity_radius.z) <= 0.5)
+					return center_color;
+				
+				float4 center_velocity_radius_depth = calc_velocity_radius_depth(input_texture1, input_texture2, center_uv);
+				
+				const float center_override_threshold = 5;
+				
+				// neighbor_w is a unit vector in screen space represent the velocity direction.
+				// If the center is moving very fast, sample along the center direction to avoid tile polution
+				float2 neighbor_w = normalize((center_velocity_radius_depth.z >= center_override_threshold) ? center_velocity_radius_depth.xy : neighbor_max_velocity_radius.xy);
+				
+				// Choose the direction at this pixel to be the same as neighbor_w if this pixel is not itself moving.
+				float2 center_w = (center_velocity_radius_depth.z < VARIANCE_THRESHOLD) ? neighbor_w : normalize(center_velocity_radius_depth.xy);
+
+				const float jit = jitter_texture(int2(input.position.xy)) - 0.5f;
+				const float center_radius_inv = 1.0 / center_velocity_radius_depth.z;
+				
+				// Accumulated color; start with the center sample.
+				// Higher initial weight increases the ability of the background
+				// to overcome the out-blurred part of moving objects
+				float total_weight = ((float)NUM_SAMPLES_ODD / 40.0) * center_radius_inv;
+				float4 result = center_color * total_weight;
+				
+				for(int i = 0; i < NUM_SAMPLES_ODD; i++)
+				{
+					// Signed step distance from center to sample point.
+					float t = clamp(2.4 * (float(i) + 1.0 + jit) / (NUM_SAMPLES_ODD + 1.0) - 1.2, -1, 1);
+					float dist = t * neighbor_max_velocity_radius.z;
+					
+					float2 sampling_direction = (((i & 1) == 1) ? center_w : neighbor_w);
+					float2 offset = dist * sampling_direction;
+					
+					float2 sample_uv = center_uv + offset * inv_input_texture0_size;
+					float2 sample_radius_depth = TEX2DLOD(input_texture2, sample_uv, 0).xy;
+					float4 sample_color = TEX2DLOD(input_texture0, sample_uv, 0);
+					
+					float front= soft_depth_compare(center_velocity_radius_depth.w, sample_radius_depth.y);
+					float back = soft_depth_compare(sample_radius_depth.y, center_velocity_radius_depth.w);
+					
+					// Blurry me, estimate background
+					float weight = back * fast_cone(dist , center_radius_inv);
+					
+					 // Blurry other over any me
+					weight += front * cone(dist, sample_radius_depth.x);
+					
+					// Mutually blurry me and other, optimized implementation
+					weight += cylinder(dist, min(center_velocity_radius_depth.z, sample_radius_depth.x)) * 2.0;
+					
+					total_weight += weight;
+					result += sample_color * weight;
+				}
+				
+				result /= total_weight;
+				return result;
+			}
+		"""
+	}
+}
+
+shaders = {
+	mb_tile_max = {
+		editor_advanced_mode = true
+		
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+						{ hlsl_shader="mb_tile_max" render_states="filter" }
+				]
+			}
+		}	
+		
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		}
+	}
+	
+	mb_neighbour_max = {
+		editor_advanced_mode = true
+		
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+						{ hlsl_shader="mb_neighbour_max" render_states="filter" }
+				]
+			}
+		}	
+		
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		}
+	}
+	
+	mb_bake_velocity_depth = {
+		editor_advanced_mode = true
+		
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+						{ hlsl_shader="mb_bake_velocity_depth" render_states="filter" }
+				]
+			}
+		}	
+		
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		}
+	}
+
+	mb_bake_radius_depth = {
+		editor_advanced_mode = true
+		
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+						{ hlsl_shader="mb_bake_radius_depth" render_states="filter" }
+				]
+			}
+		}	
+		
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		}
+	}
+	
+	mb_reconstruct_filter_blur = {
+		editor_advanced_mode = true
+		
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+						{ hlsl_shader="mb_reconstruct_filter_blur" render_states="filter" }
+				]
+			}
+		}	
+		
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		}
+	}
+}
+
+static_compile= [
+	{ if: "on_renderer(D3D11, D3D12)" shader="mb_tile_max" defines=["HORIZONTAL_PASS"] }
+	{ if: "on_renderer(D3D11, D3D12)" shader="mb_tile_max" defines=["VERTICAL_PASS"] }
+	{ if: "on_renderer(D3D11, D3D12)" shader="mb_neighbour_max" }
+	{ if: "on_renderer(D3D11, D3D12)" shader="mb_bake_velocity_depth" }
+	{ if: "on_renderer(D3D11, D3D12)" shader="mb_bake_radius_depth" }
+	{ if: "on_renderer(D3D11, D3D12)" shader="mb_reconstruct_filter_blur" }
+]

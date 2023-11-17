@@ -1,0 +1,14 @@
+enigma_card_image_placeholder = {
+	material_contexts = {
+		surface_material = ""
+	}
+
+	shader = "gui:DIFFUSE_MAP"
+
+	textures = {
+		diffuse_map = "textures/Enigma/card/image_placeholder"
+	}
+
+	variables = {
+	}
+}

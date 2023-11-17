@@ -1,0 +1,13 @@
+group = "Math"
+display_name = "Atan2 (Expensive)"
+inputs = {
+	"6fc97f2b-a585-4430-9f2d-93069a891bfc" = { name = "v" display_name = "Vector2" type = "vector2" }
+}
+
+output = {
+	type = { typeof: "v" }
+}
+
+code = """
+	RESULT(atan2(v.x, v.y));
+"""

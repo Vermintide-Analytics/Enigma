@@ -1,0 +1,27 @@
+group = "Particle Billboard"
+display_name = "World Space Position"
+
+depends_on = [
+	"core/stingray_renderer/output_nodes/particle_base", 
+	"core/stingray_renderer/output_nodes/particle_gbuffer_base", 
+	"core/stingray_renderer/output_nodes/particle_distortion_base",
+	"core/stingray_renderer/output_nodes/particle_ribbon_base"
+]
+
+defines = ["NEEDS_WORLD_SPACE_POSITION"]
+
+imports = {
+	world_pos = {
+		type = "float3"
+		domain = "vertex"
+		output_channel = "world_space_position"
+	}
+}
+
+output = {
+	type = "float3"
+}
+
+code = """
+	RESULT(world_pos);
+"""

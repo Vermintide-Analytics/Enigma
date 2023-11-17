@@ -1,0 +1,556 @@
+
+Connections = [
+	{
+		Class = "Stingray.Flow.EventConnection"
+		FromItem = "Equal"
+		FromNode = "43ebf6e2-3316-45be-84ee-a604e3f90597"
+		Id = "059f8663-5925-48b2-a610-a207bdd0863e"
+		Priority = 0
+		ToItem = "In"
+		ToNode = "d0f6fc97-990b-40bf-bb50-d9379b9a0246"
+	}
+	{
+		Class = "Stingray.Flow.VariableConnection"
+		FromItem = "Mesh"
+		FromNode = "0b97f26b-d017-446b-9e68-98de08170876"
+		Id = "2e67a5f2-06f3-4b3b-b2cb-029dac584919"
+		ToItem = "Mesh"
+		ToNode = "d5a764c5-d78f-484a-bb16-e2b5a03a7271"
+		Type = "Mesh"
+	}
+	{
+		Class = "Stingray.Flow.VariableConnection"
+		FromItem = "Value"
+		FromNode = "7ee2804b-83a3-4002-9202-c38a36b10b71"
+		Id = "391331a5-c9ae-4c77-9b5b-2a5a05fc675a"
+		ToItem = "A"
+		ToNode = "43ebf6e2-3316-45be-84ee-a604e3f90597"
+		Type = "Bool"
+	}
+	{
+		Class = "Stingray.Flow.EventConnection"
+		FromItem = "Equal"
+		FromNode = "126f16dd-1f4c-4b89-a28c-c945c82e74f8"
+		Id = "47096475-1c66-4b19-a751-05fcdcb34bc0"
+		Priority = 0
+		ToItem = "In"
+		ToNode = "35373a52-5aff-4b24-9789-6d76858c0c4e"
+	}
+	{
+		Class = "Stingray.Flow.EventConnection"
+		FromItem = "Out"
+		FromNode = "5d6030bb-d217-47a8-9ad7-7440773270fb"
+		Id = "47b00295-b318-498e-a1f6-52fbaa369aa5"
+		Priority = 0
+		ToItem = "Compare"
+		ToNode = "126f16dd-1f4c-4b89-a28c-c945c82e74f8"
+	}
+	{
+		Class = "Stingray.Flow.VariableConnection"
+		FromItem = "Value"
+		FromNode = "f1d4a6f4-5de7-4d15-b318-47a32499ea28"
+		Id = "54532ee8-0749-4eea-89b6-b99ff4cdc002"
+		ToItem = "B"
+		ToNode = "43ebf6e2-3316-45be-84ee-a604e3f90597"
+		Type = "Bool"
+	}
+	{
+		Class = "Stingray.Flow.VariableConnection"
+		FromItem = "Value"
+		FromNode = "4e6d6bb9-3764-429a-9bf8-bc0d0d72a08f"
+		Id = "57243c3f-4a62-42f7-89c5-b1157d01fe04"
+		ToItem = "B"
+		ToNode = "126f16dd-1f4c-4b89-a28c-c945c82e74f8"
+		Type = "Bool"
+	}
+	{
+		Class = "Stingray.Flow.EventConnection"
+		FromItem = "Out"
+		FromNode = "2d408bb5-fce7-4bce-bc75-203de28af467"
+		Id = "8864567f-92ec-41da-9f5c-b9a1e10f3478"
+		Priority = 0
+		ToItem = "Compare"
+		ToNode = "126f16dd-1f4c-4b89-a28c-c945c82e74f8"
+	}
+	{
+		Class = "Stingray.Flow.EventConnection"
+		FromItem = "Unequal"
+		FromNode = "126f16dd-1f4c-4b89-a28c-c945c82e74f8"
+		Id = "9f317163-25e1-4bd5-8900-f4c287ddc742"
+		Priority = 0
+		ToItem = "Compare"
+		ToNode = "43ebf6e2-3316-45be-84ee-a604e3f90597"
+	}
+	{
+		Class = "Stingray.Flow.VariableConnection"
+		FromItem = "Value"
+		FromNode = "9937ca19-32f3-4d0f-8ecf-24f339a2e728"
+		Id = "a675b0ab-0977-402e-b11f-166e81bf130c"
+		ToItem = "A"
+		ToNode = "126f16dd-1f4c-4b89-a28c-c945c82e74f8"
+		Type = "Bool"
+	}
+	{
+		Class = "Stingray.Flow.VariableConnection"
+		FromItem = "Vector"
+		FromNode = "e2d5693c-3f99-4b9c-9429-325111323a20"
+		Id = "acbd5a5e-e5c5-4a79-9f27-808a4c8c24db"
+		ToItem = "Vector"
+		ToNode = "35373a52-5aff-4b24-9789-6d76858c0c4e"
+		Type = "Vector3"
+	}
+	{
+		Class = "Stingray.Flow.VariableConnection"
+		FromItem = "Material"
+		FromNode = "d5a764c5-d78f-484a-bb16-e2b5a03a7271"
+		Id = "afc4854f-5112-4dbf-9724-5f31d6570cc8"
+		ToItem = "Material"
+		ToNode = "d0f6fc97-990b-40bf-bb50-d9379b9a0246"
+		Type = "Material"
+	}
+	{
+		Class = "Stingray.Flow.VariableConnection"
+		FromItem = "Material"
+		FromNode = "d5a764c5-d78f-484a-bb16-e2b5a03a7271"
+		Id = "e7d89723-882f-403f-8867-318a6ac324a9"
+		ToItem = "Material"
+		ToNode = "35373a52-5aff-4b24-9789-6d76858c0c4e"
+		Type = "Material"
+	}
+	{
+		Class = "Stingray.Flow.VariableConnection"
+		FromItem = "Value"
+		FromNode = "5bd8a1b7-3a21-4aa0-99b9-e5cdcef77c35"
+		Id = "63cc5e91-7b74-4185-8c74-ac01b43aa201"
+		ToItem = "Table"
+		ToNode = "11ed123b-5c4d-404d-96d2-ea4b93c5bc3a"
+		Type = "Id"
+	}
+	{
+		Class = "Stingray.Flow.VariableConnection"
+		FromItem = "Value"
+		FromNode = "5bd8a1b7-3a21-4aa0-99b9-e5cdcef77c35"
+		Id = "0967a25b-8ca0-4a05-8253-2f1b459bdc79"
+		ToItem = "Table"
+		ToNode = "0cb252ad-4bbb-42c8-88e8-4a0545fd6b4a"
+		Type = "Id"
+	}
+	{
+		Class = "Stingray.Flow.VariableConnection"
+		FromItem = "Value"
+		FromNode = "5bd8a1b7-3a21-4aa0-99b9-e5cdcef77c35"
+		Id = "92370446-567f-4707-b5f7-f9c8bba4d680"
+		ToItem = "Table"
+		ToNode = "169cbf27-8972-4821-860b-71ca3d9eb409"
+		Type = "Id"
+	}
+	{
+		Class = "Stingray.Flow.VariableConnection"
+		FromItem = "Value"
+		FromNode = "11ed123b-5c4d-404d-96d2-ea4b93c5bc3a"
+		Id = "3f3b9bdc-611f-4102-b1ef-167859b3be55"
+		ToItem = "X"
+		ToNode = "e2d5693c-3f99-4b9c-9429-325111323a20"
+		Type = "Float"
+	}
+	{
+		Class = "Stingray.Flow.VariableConnection"
+		FromItem = "Value"
+		FromNode = "0cb252ad-4bbb-42c8-88e8-4a0545fd6b4a"
+		Id = "01f1ffc7-b09e-49a1-b349-8e1c638fa357"
+		ToItem = "Y"
+		ToNode = "e2d5693c-3f99-4b9c-9429-325111323a20"
+		Type = "Float"
+	}
+	{
+		Class = "Stingray.Flow.VariableConnection"
+		FromItem = "Value"
+		FromNode = "169cbf27-8972-4821-860b-71ca3d9eb409"
+		Id = "70819215-e931-49e4-87cf-667e7f80f418"
+		ToItem = "Z"
+		ToNode = "e2d5693c-3f99-4b9c-9429-325111323a20"
+		Type = "Float"
+	}
+]
+Groups = [
+]
+Nodes = [
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.GetUnitMesh"
+		Id = "0b97f26b-d017-446b-9e68-98de08170876"
+		Mesh = {
+		}
+		MeshName = {
+			IsEditable = true
+			Value = "g_chroma_cube"
+		}
+		NodeLocation = {
+			X = 1400
+			Y = 860
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Unit = {
+			UseMyUnit = true
+		}
+		Width = 200
+	}
+	{
+		A = {
+		}
+		Accessibility = "None"
+		B = {
+		}
+		Class = "Stingray.Flow.CompareObjects"
+		Compare = {
+		}
+		Equal = {
+		}
+		Id = "126f16dd-1f4c-4b89-a28c-c945c82e74f8"
+		NodeLocation = {
+			X = 1000
+			Y = 720
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Unequal = {
+		}
+		Width = 160
+	}
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.UnitSpawned"
+		Id = "2d408bb5-fce7-4bce-bc75-203de28af467"
+		NodeLocation = {
+			X = 600
+			Y = 620
+		}
+		Out = {
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Unit = {
+		}
+		Width = 160
+	}
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.SetMaterialVariable"
+		Id = "35373a52-5aff-4b24-9789-6d76858c0c4e"
+		In = {
+		}
+		Material = {
+		}
+		NodeLocation = {
+			X = 2000
+			Y = 720
+		}
+		Out = {
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Scalar = {
+			IsEditable = true
+		}
+		Variable = {
+			IsEditable = true
+			Value = "rgb"
+		}
+		Vector = {
+			IsEditable = true
+		}
+		Width = 160
+	}
+	{
+		A = {
+		}
+		Accessibility = "None"
+		B = {
+		}
+		Class = "Stingray.Flow.CompareObjects"
+		Compare = {
+		}
+		Equal = {
+		}
+		Id = "43ebf6e2-3316-45be-84ee-a604e3f90597"
+		NodeLocation = {
+			X = 1200
+			Y = 1120
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Unequal = {
+		}
+		Width = 160
+	}
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.GetUnitBoolData"
+		Id = "4e6d6bb9-3764-429a-9bf8-bc0d0d72a08f"
+		Key = {
+			IsEditable = true
+			Value = "custom_color"
+		}
+		KeyId = {
+			IsEditable = true
+		}
+		NodeLocation = {
+			X = 800
+			Y = 780
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Table = {
+			IsEditable = true
+		}
+		Unit = {
+			UseMyUnit = true
+		}
+		Value = {
+		}
+		Width = 160
+	}
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.UnitSpawnedEditor"
+		Id = "5d6030bb-d217-47a8-9ad7-7440773270fb"
+		NodeLocation = {
+			X = 600
+			Y = 700
+		}
+		Out = {
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Unit = {
+		}
+		Width = 160
+	}
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.BooleanData"
+		Id = "7ee2804b-83a3-4002-9202-c38a36b10b71"
+		NodeLocation = {
+			X = 1000
+			Y = 1040
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Set = {
+			IsEditable = true
+			Value = true
+		}
+		Value = {
+		}
+		Width = 160
+	}
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.BooleanData"
+		Id = "9937ca19-32f3-4d0f-8ecf-24f339a2e728"
+		NodeLocation = {
+			X = 800
+			Y = 640
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Set = {
+			IsEditable = true
+			Value = true
+		}
+		Value = {
+		}
+		Width = 160
+	}
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.SetMaterialVariable"
+		Id = "d0f6fc97-990b-40bf-bb50-d9379b9a0246"
+		In = {
+		}
+		Material = {
+		}
+		NodeLocation = {
+			X = 2000
+			Y = 1120
+		}
+		Out = {
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Scalar = {
+			IsEditable = true
+		}
+		Variable = {
+			IsEditable = true
+			Value = "rgb"
+		}
+		Vector = {
+			IsEditable = true
+			Value = "0 0 255"
+		}
+		Width = 160
+	}
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.GetMeshMaterial"
+		Id = "d5a764c5-d78f-484a-bb16-e2b5a03a7271"
+		Material = {
+		}
+		MaterialResource = {
+			IsEditable = true
+			Value = "core/units/chroma_cube"
+		}
+		Mesh = {
+		}
+		NodeLocation = {
+			X = 1600
+			Y = 860
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Width = 200
+	}
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.VectorFromComponents"
+		Id = "e2d5693c-3f99-4b9c-9429-325111323a20"
+		NodeLocation = {
+			X = 1600
+			Y = 620
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Vector = {
+		}
+		Width = 160
+		X = {
+			IsEditable = true
+		}
+		Y = {
+			IsEditable = true
+		}
+		Z = {
+			IsEditable = true
+		}
+	}
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.GetUnitBoolData"
+		Id = "f1d4a6f4-5de7-4d15-b318-47a32499ea28"
+		Key = {
+			IsEditable = true
+			Value = "chroma_blue"
+		}
+		KeyId = {
+			IsEditable = true
+		}
+		NodeLocation = {
+			X = 1000
+			Y = 1180
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Table = {
+			IsEditable = true
+		}
+		Unit = {
+			UseMyUnit = true
+		}
+		Value = {
+		}
+		Width = 160
+	}
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.GetUnitNumericData"
+		Id = "11ed123b-5c4d-404d-96d2-ea4b93c5bc3a"
+		Key = {
+			IsEditable = true
+			Value = "R"
+		}
+		KeyId = {
+			IsEditable = true
+		}
+		NodeLocation = {
+			X = 1400
+			Y = 420
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Table = {
+			IsEditable = true
+		}
+		Unit = {
+			UseMyUnit = true
+		}
+		Value = {
+		}
+		Width = 160
+	}
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.GetUnitNumericData"
+		Id = "0cb252ad-4bbb-42c8-88e8-4a0545fd6b4a"
+		Key = {
+			IsEditable = true
+			Value = "G"
+		}
+		KeyId = {
+			IsEditable = true
+		}
+		NodeLocation = {
+			X = 1400
+			Y = 580
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Table = {
+			IsEditable = true
+		}
+		Unit = {
+			UseMyUnit = true
+		}
+		Value = {
+		}
+		Width = 160
+	}
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.GetUnitNumericData"
+		Id = "169cbf27-8972-4821-860b-71ca3d9eb409"
+		Key = {
+			IsEditable = true
+			Value = "B"
+		}
+		KeyId = {
+			IsEditable = true
+		}
+		NodeLocation = {
+			X = 1400
+			Y = 740
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Table = {
+			IsEditable = true
+		}
+		Unit = {
+			UseMyUnit = true
+		}
+		Value = {
+		}
+		Width = 160
+	}
+	{
+		Accessibility = "None"
+		Class = "Stingray.Flow.GetUnitTableData"
+		Id = "5bd8a1b7-3a21-4aa0-99b9-e5cdcef77c35"
+		Key = {
+			IsEditable = true
+			Value = "Color"
+		}
+		KeyId = {
+			IsEditable = true
+		}
+		NodeLocation = {
+			X = 1200
+			Y = 580
+		}
+		Progenitor = "00000000-0000-0000-0000-000000000000"
+		Table = {
+			IsEditable = true
+		}
+		Unit = {
+			UseMyUnit = true
+		}
+		Value = {
+		}
+		Width = 160
+	}
+]

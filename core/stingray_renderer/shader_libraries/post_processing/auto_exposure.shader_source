@@ -1,0 +1,898 @@
+includes = [ "core/stingray_renderer/shader_libraries/common/common.shader_source"]
+
+render_states = {
+	filter = {
+		inherits = "default"
+		states = {
+			z_write_enable = "false"
+			z_enable = "false"
+		}
+	}
+
+	histogram_state = {
+		inherits = "filter"
+		states = {
+			blend_enable = "true"
+			blend_op = "blend_op_add"
+			dest_blend = "blend_inv_src_alpha"
+			src_blend = "blend_src_alpha"
+		}
+	}
+}
+
+hlsl_shaders = {
+	auto_exposure_common = {
+		code="""
+			CBUFFER_START(c_auto_exposure)
+				float exposure_min_log_luma;
+				float exposure_max_log_luma;
+			CBUFFER_END
+
+			float encode_luma(float log_luma)
+			{
+				// TODO: check for negative or zero values
+				return (log2(log_luma) - exposure_min_log_luma) / (exposure_max_log_luma - exposure_min_log_luma);
+			}
+
+			float decode_luma(float encoded_log_luma)
+			{
+				return exp2(encoded_log_luma * (exposure_max_log_luma - exposure_min_log_luma) + exposure_min_log_luma);
+			}
+
+			uint encode_position(float histogram_index)
+			{
+				return asuint(histogram_index);
+			}
+
+			float decode_position(uint encoded_pos)
+			{
+				return asfloat(encoded_pos);
+			}
+		"""
+	}
+
+	compute_histogram = {
+		includes = [ "common" "color_management" ]
+
+		stage_conditions = {
+			compute = "true"
+		}
+
+		code="""
+			Texture2D<float> quantized_luma;
+			RWTexture2D<uint> histogram;
+
+			// Some local thread data used to compute 40 local histograms
+			groupshared uint local_histogram[256];
+			DEFAULT_COMPUTE_ROOT_SIGNATURE_ATTRIBUTE
+			[numthreads(16, 16, 1)]
+			void cs_main(uint3 dtid : SV_DispatchThreadID, uint gi : SV_GroupIndex) {
+
+				local_histogram[gi] = 0;
+
+				GroupMemoryBarrierWithGroupSync();
+
+				// We calculate 40 local histogram and will sum them up into a global histogram
+				for (uint y = 0; y < 384; y += 16) {
+					uint2 load_pos = dtid.xy + int2(0, y);
+					uint quantized_log_luma = quantized_luma.Load(int3(load_pos, 0)) * 255.0;
+					InterlockedAdd(local_histogram[quantized_log_luma], 1);
+				}
+
+				GroupMemoryBarrierWithGroupSync();
+
+				// Sum up the local histograms into one global one
+				InterlockedAdd(histogram[int2(gi, 0)], local_histogram[gi]);
+			}
+		"""
+	}
+
+	quantize_luma = {
+		includes = [ "common", "color_management", "auto_exposure_common" ]
+
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_linear" }
+		}
+
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+			CBUFFER_END
+
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.uv = input.uv;
+
+				return o;
+			}
+
+			half ps_main(PS_INPUT input) : SV_TARGET0 {
+				float2 uv = input.uv;
+				const float3 hdr = TEX2DLOD(input_texture0, uv, 0).rgb;
+				return encode_luma(luminance(hdr));
+			}
+		"""
+	}
+
+	adapt_exposure = {
+		includes = [ "common", "color_management", "auto_exposure_common" ]
+
+		stage_conditions = {
+			compute = "true"
+		}
+
+		code="""
+			CBUFFER_START(c0)
+				float exposure_ignore_darks;
+				float exposure_ignore_lights;
+				float exposure_dampening_down;
+				float exposure_dampening_up;
+				float exposure_max_speed;
+				float exposure_minimum;
+				float exposure_maximum;
+				//float exposure_target;
+				float exposure;
+			CBUFFER_END
+
+			#define exposure_target exposure
+
+			RWTexture2D<uint> histogram;
+			RWTexture2D<float> current_exposure;
+			RWTexture2D<uint> current_exposure_pos;
+			#if defined(DEVELOPMENT)
+				RWTexture2D<uint> target_exposure_pos;
+			#endif
+			DEFAULT_COMPUTE_ROOT_SIGNATURE_ATTRIBUTE
+			[numthreads(1, 1, 1)]
+			void cs_main() {
+
+				float weighted_sum = 0.0;
+				int total_binned_values = 0;
+				int clipped_dark_bins = exposure_ignore_darks * 255;
+				int clipped_light_bins = 255 - exposure_ignore_lights * 255;
+
+				// Sum up all the histogram bins
+				for (int i = clipped_dark_bins; i <= clipped_light_bins; ++i) {
+					int binned_values = histogram[int2(i, 0)];
+					total_binned_values += binned_values;
+					weighted_sum += i * binned_values;
+				}
+
+				// The target_pos is the bin containing the log luminance value we should adapt for
+				float target_pos = weighted_sum / max(1.0, total_binned_values) - 1.0;
+				float current_pos = decode_position(current_exposure_pos[int2(0,0)]);
+
+				// Fix special case (all bins are empty)
+				if (total_binned_values == 0) {
+					float prev_distance_to_dark_clip = abs(current_pos - clipped_dark_bins);
+					float prev_distance_to_highlight_clip = abs(current_pos - clipped_light_bins);
+					target_pos = (prev_distance_to_dark_clip < prev_distance_to_highlight_clip) ? clipped_dark_bins : clipped_light_bins;
+				}
+
+				target_pos = clamp(target_pos, clipped_dark_bins, clipped_light_bins);
+
+				// TODO: include dt or time to calculate adaptation speed
+				float dist_to_target = target_pos - current_pos;
+				float exposure_dampening = dist_to_target < 0.0 ? exposure_dampening_down : exposure_dampening_up;
+				dist_to_target *= delta_time;
+				dist_to_target *= exposure_dampening;
+				dist_to_target = clamp(dist_to_target, -exposure_max_speed, exposure_max_speed);
+				current_pos += dist_to_target;
+
+				float average_luminance = decode_luma(current_pos/255.0);
+				float next_exposure = (1.0/average_luminance);
+				next_exposure = clamp(next_exposure, pow(2, exposure_minimum), pow(2, exposure_maximum));
+				next_exposure *= exposure_target;
+
+				current_exposure[int2(0,0)] = next_exposure;
+				current_exposure_pos[int2(0,0)] = encode_position(current_pos);
+
+				#if defined(DEVELOPMENT)
+					target_exposure_pos[int2(0,0)] = encode_position(target_pos);
+				#endif
+			}
+		"""
+	}
+
+	display_histogram = {
+		includes = [ "common" "color_management", "auto_exposure_common" ]
+
+		samplers = {
+			linear_sampler = { sampler_states="clamp_linear" }
+		}
+
+		code="""
+			SamplerState linear_sampler;
+			Texture2D<uint> histogram;
+			Texture2D<float> current_exposure;
+			Texture2D<uint> target_exposure_pos;
+			Texture2D<float4> input_texture0;
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float exposure_ignore_lights;
+				float exposure_ignore_darks;
+				float exposure_minimum;
+				float exposure_maximum;
+				float exposure;
+			CBUFFER_END
+
+			PS_INPUT vs_main(VS_INPUT input)
+			{
+				PS_INPUT o;
+				o.position = mul( input.position, world_view_proj );
+				o.uv = input.uv;
+				return o;
+			}
+
+			float4 ps_main( PS_INPUT input ) : SV_TARGET0 {
+				float screen_ration = output_rt_size.x/output_rt_size.y;
+				int bottom_padding = 20;
+				int2 histogram_display_size = int2(255 * 2, 128);
+				int2 scene_luma_display_size = int2(128 * screen_ration, 128) + bottom_padding - 4;
+				int2 gradient_display_size = int2(histogram_display_size.x, 16);
+				int widget_width = scene_luma_display_size.x + histogram_display_size.x;
+
+				{ // Draw Luma scene
+					int padding = bottom_padding;
+					int h_offset = (output_rt_size.x - widget_width + histogram_display_size.x * 2) / 2;
+					int v_offset = (output_rt_size.y - (scene_luma_display_size.y + padding));
+					int2 offset = int2(h_offset, v_offset);
+
+					int2 local_position = input.position - offset;
+					if ((local_position.x > 0) && (local_position.x < scene_luma_display_size.x)) {
+						if ((local_position.y > 0) && (local_position.y < scene_luma_display_size.y)) {
+							float2 uv = local_position/(float2)scene_luma_display_size;
+							// TODO: viewport
+							float3 hdr = input_texture0.SampleLevel(linear_sampler, uv,0).rgb;
+							uint quantized_luma = saturate(encode_luma(luminance(hdr))) * 255.0;
+							float dequantized_luma = quantized_luma/255.0;
+							float3 color = lerp(float3(0,0,1), dequantized_luma, saturate(dequantized_luma/exposure_ignore_darks));
+							color = lerp(color, float3(1,0,0), saturate(dequantized_luma - (1.0 - exposure_ignore_lights - 0.0001))/(exposure_ignore_lights + 0.0001));
+
+							return float4(color, 1);
+						}
+					}
+				}
+
+				{ // Draw the gradient
+					int padding = bottom_padding;
+					int h_offset = (output_rt_size.x - widget_width) / 2;
+					int v_offset = (output_rt_size.y - (gradient_display_size.y + padding));
+					int2 offset = int2(h_offset, v_offset);
+
+					int2 local_position = input.position - offset;
+
+					if ((local_position.x > 0) && (local_position.x < gradient_display_size.x)) {
+						if ((local_position.y > 0) && (local_position.y < gradient_display_size.y)) {
+
+							float x = local_position.x * 0.5;
+							float rcp_average_luminance = rcp(decode_luma(x/255.0));
+
+							float cur_average = exposure/current_exposure.Load(int3(0, 0, 0)).x;
+							float cur_pos = saturate(encode_luma(cur_average)) * 255.0 * 2.0 - 0.75;
+
+							// Draw the red bar
+							if(abs(local_position.x - cur_pos) < 1.0) {
+								return float4(1,0,0,1);
+							}
+
+							float alpha = 0.5;
+							float3 color = (local_position/(float2)gradient_display_size).x;
+
+							// Draw under exposode gradient
+							if(rcp_average_luminance <= pow(2, exposure_minimum)) {
+								color = 1.0;
+								alpha = 0.85;
+							}
+
+							// Draw over exposode gradient
+							if(rcp_average_luminance >= pow(2, exposure_maximum)) {
+								color = 0.0;
+								alpha = 0.85;
+							}
+
+							// Draw gradients stripes
+							if(local_position.x % 2 == 0) {
+								alpha *= 0.5;
+								color *= 0.5;
+							}
+
+							return float4(color, alpha);
+						}
+					}
+				}
+
+ 				{ // Draw the histogram
+					int padding = bottom_padding + gradient_display_size.y;
+					int h_offset = (output_rt_size.x - widget_width) / 2;
+					int v_offset = (output_rt_size.y - (histogram_display_size.y + padding));
+					int2 offset = int2(h_offset, v_offset);
+					float2 display_ratio = 255.0 / histogram_display_size;
+
+					float target_pos = decode_position(target_exposure_pos[int2(0,0)]);
+
+					const uint ref_target_pos = encode_luma(exposure) * 255;
+
+					int2 local_position = input.position - offset;
+					if ((local_position.x > 0) && (local_position.x < histogram_display_size.x)) {
+						if ((local_position.y > 0) && (local_position.y < histogram_display_size.y)) {
+
+							uint max_histogram_value = 0;
+							for(int i = 1; i < 255; ++i) {
+								uint n_values = histogram.Load(int3(i,0,0)).x;
+								max_histogram_value = max(n_values, max_histogram_value);
+							}
+
+							float2 uv = local_position/(float2)histogram_display_size;
+							int index = local_position.x * display_ratio.x;
+							float histogram_value = histogram.Load(int3(index, 0, 0)).x;
+							histogram_value /= (float)max(max_histogram_value, 0.0001);
+
+							float alpha = 1.0;
+							float3 bar_color = 0;
+
+							// Draw clipped darks
+							if (uv.x < exposure_ignore_darks) {
+								bar_color = float3(0,0,1);
+								alpha = 0.5;
+							}
+
+							// Draw clipped lights
+							if ((1.0-uv.x) < exposure_ignore_lights) {
+								bar_color = float3(1,0,0);
+								alpha = 0.5;
+							}
+
+							// Draw red bar
+							if ((int)target_pos == (local_position.x/2)) {
+								bar_color = float3(1,0,0);
+								alpha = 1.0;
+							}
+
+							// Position of exposure
+							if (index == ref_target_pos) {
+								bar_color = float3(0,1,0);
+								alpha = alpha = 1.0;
+							}
+
+							float flip = (pow(histogram_value, 0.5) + 0.15)/1.15 < (1.0 - uv.y);
+							float4 color = lerp(float4(bar_color, alpha), float4(1.0, 1.0, 1.0, 0.5 * alpha), flip);
+
+							int darks_clip_start = exposure_ignore_darks * histogram_display_size.x;
+							int light_clip_start = histogram_display_size.x - exposure_ignore_lights * histogram_display_size.x;
+							if(local_position.x == darks_clip_start || local_position.x == light_clip_start) {
+								color = float4(0,0,0,1);
+							}
+
+							return color;
+						}
+					}
+				}
+
+				return float4(0,0,0,0.0);
+			}
+		"""
+	}
+
+	// Legacy eye adaptation code, note that the bright_pass and bloom downsample runs the luminance average code
+	//-------------------------------------------------------------------------------------------
+	//
+
+	init_luminance_adaptation = {
+		includes = [ "common" ]
+
+		code="""
+			struct VS_INPUT {
+				float4 position : POSITION;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				return o;
+			}
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			half4 ps_main(PS_INPUT input) : SV_TARGET0 {
+				return half4(0.5,0.5,0.5,0.5);
+			}
+		"""
+	}
+
+	average_luminance_feedback = {		
+		includes = [ "common", "gbuffer_access" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_linear" }
+			input_texture1 = { sampler_states = "clamp_linear" }
+		}
+
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+			DECLARE_SAMPLER_2D(input_texture1);
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float2 inv_input_texture0_size;
+				float3 eye_adaptation_speed_min_max;			
+			CBUFFER_END
+			
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.uv = input.uv;
+				
+				return o;
+			}			
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float4 ps_main(PS_INPUT input) : SV_TARGET0 {				
+				float d = inv_input_texture0_size.x;
+				// TODO: expose a luminance to exposure curve (see Cryteks solution). 
+				float current_avg_luminance = exp((
+					TEX2D(input_texture0, input.uv + float2(-d, -d)).a +
+					TEX2D(input_texture0, input.uv + float2( d, -d)).a +
+					TEX2D(input_texture0, input.uv + float2(-d,  d)).a +
+					TEX2D(input_texture0, input.uv + float2( d,  d)).a) * 0.25);
+
+				//float adapted_luminance = TEX2D(input_texture1, input.uv).r;
+				float2 eye_adaption_uv = viewport.zw + viewport.xy * 0.5;
+				float adapted_luminance = TEX2D(input_texture1, eye_adaption_uv).r;
+				
+				// isfinite is a safety check if there is protection if there is incorrect data in the luminance pass. Might consider to do this in the bright pass.
+				return isfinite(current_avg_luminance) ? (adapted_luminance + (clamp(current_avg_luminance, eye_adaptation_speed_min_max.y, eye_adaptation_speed_min_max.z) - adapted_luminance) * (1.0 - exp(-delta_time * eye_adaptation_speed_min_max.x * eye_adaptation_speed))).rrrr : adapted_luminance.rrrr;
+			}	
+		"""
+	}
+
+	legacy_quantize_luma = {
+		includes = [ "common", "color_management", "auto_exposure_common" ]
+
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_linear" }
+		}
+
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float3 eye_adaptation_speed_min_max;
+			CBUFFER_END
+
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.uv = input.uv;
+
+				return o;
+			}
+
+			float ps_main(PS_INPUT input) : SV_TARGET0 {
+				float2 uv = input.uv;
+				const float3 hdr = TEX2DLOD(input_texture0, uv, 0).rgb;
+				const float lum = clamp(luminance(hdr), eye_adaptation_speed_min_max.y, eye_adaptation_speed_min_max.z);
+				return encode_luma(lum);
+			}
+		"""
+	}
+
+	legacy_display_histogram = {
+		includes = [ "common" "color_management", "auto_exposure_common" ]
+
+		samplers = {
+			linear_sampler = { sampler_states="clamp_linear" }
+
+			luminance_adaptation_history = { sampler_states="clamp_linear" }
+		}
+
+		code="""
+			SamplerState linear_sampler;
+			Texture2D<uint> histogram;
+			Texture2D<uint> target_exposure_pos;
+			Texture2D<float4> input_texture0;
+
+			DECLARE_SAMPLER_2D(luminance_adaptation_history);
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float3 eye_adaptation_speed_min_max;	
+				float exposure;
+			CBUFFER_END
+
+			#define exposure_ignore_lights 0.0
+			#define exposure_ignore_darks 0.0
+
+			PS_INPUT vs_main(VS_INPUT input)
+			{
+				PS_INPUT o;
+				o.position = mul( input.position, world_view_proj );
+				o.uv = input.uv;
+				return o;
+			}
+
+			float4 ps_main( PS_INPUT input ) : SV_TARGET0 {
+				float screen_ration = output_rt_size.x/output_rt_size.y;
+				int bottom_padding = 20;
+				int2 histogram_display_size = int2(255 * 2, 128);
+				int2 scene_luma_display_size = int2(128 * screen_ration, 128) + bottom_padding - 4;
+				int2 gradient_display_size = int2(histogram_display_size.x, 16);
+				int widget_width = scene_luma_display_size.x + histogram_display_size.x;
+
+				{ // Draw Luma scene
+					int padding = bottom_padding;
+					int h_offset = (output_rt_size.x - widget_width + histogram_display_size.x * 2) / 2;
+					int v_offset = (output_rt_size.y - (scene_luma_display_size.y + padding));
+					int2 offset = int2(h_offset, v_offset);
+
+					int2 local_position = input.position - offset;
+					if ((local_position.x > 0) && (local_position.x < scene_luma_display_size.x)) {
+						if ((local_position.y > 0) && (local_position.y < scene_luma_display_size.y)) {
+							float2 uv = local_position/(float2)scene_luma_display_size;
+							// TODO: viewport
+							float3 hdr = input_texture0.SampleLevel(linear_sampler, uv,0).rgb;
+							float luma = luminance(hdr);
+							float t = (luma - eye_adaptation_speed_min_max.y) / (eye_adaptation_speed_min_max.z - eye_adaptation_speed_min_max.y);
+							uint quantized_luma = saturate(encode_luma(luma)) * 255.0;
+							float dequantized_luma = quantized_luma/255.0;
+							float3 color = lerp(float3(0,0,1), dequantized_luma, t > 0.0 ? 1.0 : 0.0);
+							color = lerp(color, float3(1,0,0), t > 1.0 ? 1.0 : 0.0);
+
+							return float4(color, 1);
+						}
+					}
+				}
+
+				{ // Draw the gradient
+					int padding = bottom_padding;
+					int h_offset = (output_rt_size.x - widget_width) / 2;
+					int v_offset = (output_rt_size.y - (gradient_display_size.y + padding));
+					int2 offset = int2(h_offset, v_offset);
+
+					int2 local_position = input.position - offset;
+
+					if ((local_position.x > 0) && (local_position.x < gradient_display_size.x)) {
+						if ((local_position.y > 0) && (local_position.y < gradient_display_size.y)) {
+
+							float x = local_position.x * 0.5;
+							float average_luminance = decode_luma(x/255.0);
+
+							float2 eye_adaption_uv = viewport.zw + viewport.xy * 0.5;
+							float cur_average = TEX2D(luminance_adaptation_history, eye_adaption_uv).r;
+							float cur_pos = saturate(encode_luma(cur_average)) * 255.0 * 2.0 - 0.75;
+
+							// Draw the red bar
+							if(abs(local_position.x - cur_pos) < 1.0) {
+								return float4(1,0,0,1);
+							}
+
+							float alpha = 0.5;
+							float3 color = (local_position/(float2)gradient_display_size).x;
+
+							// Draw under exposode gradient
+							if(average_luminance <= eye_adaptation_speed_min_max.y) {
+								color = 0.0;
+								alpha = 0.85;
+							}
+
+							// Draw over exposode gradient
+							if(average_luminance >= eye_adaptation_speed_min_max.z) {
+								color = 1.0;
+								alpha = 0.85;
+							}
+
+							// Draw gradients stripes
+							if(local_position.x % 2 == 0) {
+								alpha *= 0.5;
+								color *= 0.5;
+							}
+
+							return float4(color, alpha);
+						}
+					}
+				}
+
+ 				{ // Draw the histogram
+					int padding = bottom_padding + gradient_display_size.y;
+					int h_offset = (output_rt_size.x - widget_width) / 2;
+					int v_offset = (output_rt_size.y - (histogram_display_size.y + padding));
+					int2 offset = int2(h_offset, v_offset);
+					float2 display_ratio = 255.0 / histogram_display_size;
+
+					float target_pos = decode_position(target_exposure_pos[int2(0,0)]);
+					//float current_pos = decode_position(current_exposure_pos[int2(0,0)]);
+
+					const uint ref_target_pos = encode_luma(exposure) * 255;
+
+					int2 local_position = input.position - offset;
+					if ((local_position.x > 0) && (local_position.x < histogram_display_size.x)) {
+						if ((local_position.y > 0) && (local_position.y < histogram_display_size.y)) {
+
+							uint max_histogram_value = 0;
+							for(int i = 1; i < 255; ++i) {
+								uint n_values = histogram.Load(int3(i,0,0)).x;
+								max_histogram_value = max(n_values, max_histogram_value);
+							}
+
+							float2 uv = local_position/(float2)histogram_display_size;
+							int index = local_position.x * display_ratio.x;
+							float histogram_value = histogram.Load(int3(index, 0, 0)).x;
+							histogram_value /= (float)max(max_histogram_value, 0.0001);
+
+							float alpha = 1.0;
+							float3 bar_color = 0;
+
+							// Draw clipped darks
+							if (uv.x < exposure_ignore_darks) {
+								bar_color = float3(0,0,1);
+								alpha = 0.5;
+							}
+
+							// Draw clipped lights
+							if ((1.0-uv.x) < exposure_ignore_lights) {
+								bar_color = float3(1,0,0);
+								alpha = 0.5;
+							}
+
+							// Draw red bar
+							if ((int)target_pos == (local_position.x/2)) {
+								bar_color = float3(1,0,0);
+								alpha = 1.0;
+							}
+
+							// Position of exposure
+							if (index == ref_target_pos) {
+								bar_color = float3(0,1,0);
+								alpha = alpha = 1.0;
+							}
+
+							float flip = (pow(histogram_value, 0.5) + 0.15)/1.15 < (1.0 - uv.y);
+							float4 color = lerp(float4(bar_color, alpha), float4(1.0, 1.0, 1.0, 0.5 * alpha), flip);
+
+							int darks_clip_start = exposure_ignore_darks * histogram_display_size.x;
+							int light_clip_start = histogram_display_size.x - exposure_ignore_lights * histogram_display_size.x;
+							if(local_position.x == darks_clip_start || local_position.x == light_clip_start) {
+								color = float4(0,0,0,1);
+							}
+
+							return color;
+						}
+					}
+				}
+
+				return float4(0,0,0,0.0);
+			}
+		"""
+	}
+}
+
+shaders = {
+	quantize_luma = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="quantize_luma" render_states="filter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[""] }
+			]
+		}
+	}
+
+	compute_histogram = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="compute_histogram" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[""] }
+			]
+		}
+	}
+
+	adapt_exposure = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="adapt_exposure" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[""] }
+			]
+		}
+	}
+
+	display_histogram = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="display_histogram" render_states="histogram_state" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[""] }
+			]
+		}
+	}
+
+	init_luminance_adaptation = {
+		editor_advanced_mode = true
+		
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="init_luminance_adaptation" render_states="filter" }
+				]
+			}
+		}	
+		
+		compile = {
+			default = [
+				{ defines=[""] }
+			]
+		} 
+	}
+
+	average_luminance_feedback = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="average_luminance_feedback" render_states="filter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[""] }
+			]
+		}
+	}
+
+	legacy_quantize_luma = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="legacy_quantize_luma"  render_states="filter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[""] }
+			]
+		}
+	}
+
+	legacy_display_histogram = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="legacy_display_histogram" render_states="histogram_state" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[""] }
+			]
+		}
+	}
+}
+
+static_compile = [
+	{ shader="quantize_luma" }
+	{ shader="compute_histogram" }
+	{ shader="adapt_exposure" defines=["DEVELOPMENT"] }
+	{ shader="adapt_exposure" }
+	{ shader="display_histogram" }
+
+	{ shader="init_luminance_adaptation" }
+	{ shader="average_luminance_feedback" }
+	{ shader="legacy_quantize_luma" }
+	{ shader="legacy_display_histogram" }
+]

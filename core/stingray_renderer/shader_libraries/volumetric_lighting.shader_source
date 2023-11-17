@@ -1,0 +1,1399 @@
+includes = [ 
+	"core/stingray_renderer/shader_libraries/common/common.shader_source",
+	"core/stingray_renderer/shader_libraries/common/post_processing_common.shader_source",
+	"core/stingray_renderer/shader_libraries/common/lighting_common.shader_source",
+	"core/stingray_renderer/shader_libraries/common/volumetric_lighting_common.shader_source",
+	"core/stingray_renderer/shader_libraries/common/shadow_map_common.shader_source",
+	"core/stingray_renderer/shader_libraries/common/sampling_common.shader_source",
+	"core/stingray_renderer/shader_libraries/common/math.shader_source"  
+]
+
+
+render_states = {
+	opacity_volume = {
+		inherits = "opacity_premultiply"
+		states = {
+			defined_ENABLE_INSIDE = {
+				cull_mode = "cull_ccw"
+				z_enable = "false"
+			}
+			ndefined_ENABLE_INSIDE = {
+				cull_mode = "cull_cw"
+				z_enable = "true"
+			}
+		}
+	}
+
+	fog_plane = {
+		inherits = "opacity_premultiply"
+		states = {
+			defined_INVERTED = {
+				z_func = "greater"
+			}
+		}
+	}
+
+	filter = {
+		inherits = "default"
+		states = {
+			z_write_enable = "false"
+			z_enable = "false"
+		}
+	}
+
+	filter_near = {
+		inherits = "default"
+		states = {
+			z_enable = "true"
+			z_func = "greater"
+			z_write_enable = "false"
+		}
+	}
+
+	filter_far = {
+		inherits = "default"
+		states = {
+			z_enable = "true"
+			z_func = "less_equal"
+			z_write_enable = "false"
+		}
+	}
+
+	filter_premultiplied = {
+		inherits = "filter"
+		states = {
+			blend_enable = "true"
+			blend_op = "blend_op_add"
+			src_blend = "blend_one"
+			dest_blend = "blend_inv_src_alpha"
+		}
+	}
+}
+
+sampler_states = {
+	downsample_mip_index = {
+ 		inherits = "clamp_linear"
+ 		states = {
+ 			defined_D3D11 = { 
+ 				mip_level_index = { variable = "sampler_input_mip_level" }
+ 			}
+ 			defined_D3D12 = { 
+ 				mip_level_index = { variable = "sampler_input_mip_level" }
+ 			}
+ 		}
+ 	}
+}
+
+hlsl_shaders = {
+
+	//-----------------------------------------------
+	// FOG UNITS
+	//-----------------------------------------------
+
+	volume_height_fog = {
+		includes = [ "common", "gbuffer_access", "brdf", "taa_offsets", "volumetric_lighting_common", "intersection_common", "shadow_map_filtering", "shadow_bias", "lighting_data", "lighting" ]
+		samplers = {
+			fog_volume = { sampler_states = "clamp_linear"}
+			global_diffuse_map = { sampler_states = "clamp_linear"}
+
+			sun_shadow_map = { sampler_states = "shadow_map" }
+			static_sun_shadow_map = { sampler_states = "shadow_map" }
+		}
+
+		code="""
+			#if defined(LOW_RES_ENABLED)
+				Texture2D<float4> linear_depth_div2;
+			#else
+				Texture2D<float4> linear_depth;
+			#endif
+			
+			DECLARE_SAMPLER_3D(fog_volume);
+			DECLARE_SAMPLER_CUBE(global_diffuse_map);
+
+			DECLARE_COMPARISON_SAMPLER_2D(sun_shadow_map);
+			DECLARE_COMPARISON_SAMPLER_2D(static_sun_shadow_map);
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float3 wp : TEXCOORD0;
+				float4 w : TEXCOORD1;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float4x4 world;
+				float4x4 inv_world;
+
+				float4x4 bounding_volume;
+
+				float3 height_fog_falloff; 		// exports={ name="Fog Falloff" type="vector3" value=[0 0 0] min=[0 0 0] max=[1 1 1] step=[0.001 0.001 0.001] }
+				float3 height_fog_color; 		// exports={ name="Fog Color" type="vector3" value=[0.1 0.1 0.1] min=[0 0 0] max=[1 1 1] step=[0.001 0.001 0.001] }
+				float height_fog_extinction; 	// exports={ name="Fog Phase" type="scalar" value=0.01 min=0 max=10 step=0.0001 }
+				float height_fog_phase; 		// exports={ name="Fog Phase" type="scalar" value=0 min=-1 max=1 step=0.001 }
+
+				float4 dev_wireframe_color;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				
+				#if !defined(WIREFRAME_PASS)
+					[branch]
+					if (volumetric_lighting_enabled && volumetric_volumes_enabled) {
+						// make sure position is outside NDC space, so we don't rasterize this.
+						o.position = float4(-10, -10, -10, 1);
+					} else
+				#endif 
+				{
+					o.position = mul(input.position, world_view_proj);
+					o.wp = mul(input.position, world);
+					o.w = encode_world_pos(o.position, camera_unprojection);
+				}
+
+				return o;
+			}
+			
+ 			#if defined(WIREFRAME_PASS)
+ 				DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+				half4 ps_main(PS_INPUT input) : SV_TARGET0
+				{
+					return dev_wireframe_color;
+				}
+ 			#else
+				DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+				half4 ps_main(PS_INPUT input) : SV_TARGET0
+				{
+					#if defined(LOW_RES_ENABLED)
+						float d = gbuffer_decode_depth(linear_depth_div2.Load(int3(input.position.xy, 0)));
+					#else
+						float d = gbuffer_decode_depth(linear_depth.Load(int3(input.position.xy, 0)));
+					#endif
+
+					float3 wp = decode_world_pos(input.w, d);
+					float3 op = mul(float4(wp, 1.0), inv_world).xyz;
+					float3 op_cam = mul(float4(camera_world._m30_m31_m32, 1.0), inv_world).xyz;
+					float3 op_view_vector = op - op_cam;
+
+					const float3 camera_dir = camera_world._m10_m11_m12;
+					const float depth = dot(input.wp - camera_world._m30_m31_m32, camera_dir);
+
+					Ray r = { op_cam, normalize(op_view_vector) };
+					AABB b = { bounding_volume._m00_m01_m02, bounding_volume._m10_m11_m12 };
+
+					float tmin, tmax;
+					intersection(b, r, tmin, tmax);
+
+					float3 mid_op = r.origin + r.dir * (tmin + tmax) * 0.5;
+					float3 bound_volume_min = bounding_volume._m00_m01_m02;
+					float3 bound_volume_max = bounding_volume._m10_m11_m12;
+					float3 origo = (bound_volume_min + bound_volume_max) * 0.5;
+					float3 dist = min(mid_op - bound_volume_min, bound_volume_max - mid_op);
+					float3 dim = (bound_volume_max - bound_volume_min);
+					float3 span = bound_volume_max - origo;
+					float radius = min(dim.x, min(dim.y, dim.z));
+					float3 box_falloff = smoothstep(float3(0.0, 0.0, 0.0), span * dim * height_fog_falloff, dist);
+					const float extinction = height_fog_extinction * min(box_falloff.x, min(box_falloff.y, box_falloff.z));
+
+					#if defined(LOW_RES_ENABLED)
+						float2 screen_uv = input.position.xy / (output_rt_size * 0.5);
+					#else
+						float2 screen_uv = input.position.xy / output_rt_size;
+					#endif
+
+					float3 V = normalize(camera_world._m30_m31_m32 - wp);
+					float3 L = sun_direction;
+					half sun_shadow = calculate_shadow_intensity(sun_shadow_map, static_sun_shadow_map, wp, d);
+
+					float3 sun_scattering = 0.0;
+					float3 ambient = 0.0;
+					calculate_global_volumetric_data(L, V, global_diffuse_map, sun_shadow, height_fog_phase, sun_scattering, ambient);
+
+					const float depth_to_surface = length(op_view_vector);
+					const float dx = min(depth_to_surface, tmax) - max(min(depth_to_surface, tmin), 0.0);
+					const float3 local_light_scattering = 0.0;
+					const float3 emissive = 0.0;
+					float3 S_int = 0;
+					float exp_sigma_dx = 0;
+					calculate_volumetric_lighting(dx, sun_scattering, local_light_scattering, ambient, emissive, height_fog_color, extinction, S_int, exp_sigma_dx);
+					
+					float3 scattering = S_int;
+					float transmittance = exp_sigma_dx;
+					float4 result = float4(scattering, saturate(1.0 - transmittance));
+
+					float4 fog_data = calc_fog_data(fog_volume, global_diffuse_map, wp, depth, screen_uv);
+					result.rgb = result.rgb * (1.0 - fog_data.a) + fog_data.rgb * result.a;
+					
+					return half4(result.rgb, result.a);
+				}
+			#endif
+		"""
+	}
+
+	fog_plane = { 
+		includes = [ "common", "gbuffer_access", "brdf", "taa_offsets", "volumetric_lighting_common" ]
+
+		samplers = {
+			diffuse_map = { sampler_states ="wrap_linear" }
+			fog_volume = { sampler_states = "clamp_linear"}
+			global_diffuse_map = { sampler_states = "clamp_linear"}
+		}
+		
+		code="""				
+			Texture2D<float4> linear_depth;
+			DECLARE_SAMPLER_3D(fog_volume);
+			DECLARE_SAMPLER_CUBE(global_diffuse_map);
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float3 normal : NORMAL;
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float4 plane_eq : TEXCOORD0;
+				float4 w : TEXCOORD1;
+				float linear_depth : TEXCOORD2;
+				#if defined(AMBIENT_TINT)
+					float3 ambient_color : 	TEXCOORD3;
+				#endif
+			};			
+			
+			CBUFFER_START(c0)
+				float4x4 world;
+				float4x4 view_proj;
+				float3 fog_plane_color; // exports={ name="Fog Color" type="vector3" value=[0.5 0.5 0.5] min=[0 0 0] max=[8 8 8] step=[0.001 0.001 0.001] }
+				float fog_distance; 	// exports={ name="Fog Distance" type="scalar" value=10 min=0.01 max=200 step=0.01 }
+			CBUFFER_END
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+								
+				float3 wp = mul(input.position, world);
+				o.position = mul(float4(wp,1), view_proj);
+
+				float3 wnormal = normalize(mul(input.normal, (float3x3)world));
+				o.plane_eq = float4(wnormal, dot(wnormal, wp));
+				
+				o.w = encode_world_pos(o.position, camera_unprojection);
+
+				o.linear_depth = linearize_depth(o.position.z / o.position.w);
+
+				#if defined(AMBIENT_TINT)
+					float3 ambient_tint_color = (ambient_tint_top_enabled > 0.0 ? lerp(ambient_tint, ambient_tint_top, wnormal.z*0.5+0.5) : ambient_tint) * ambient_global_tint;
+					#if defined(D3D11)
+						ambient_tint_color = (capture_cubemap == 1) ? 1.0 : ambient_tint_color;
+					#endif
+					o.ambient_color = (global_probe_rgbm_encoded ? 
+						rgbm_decode(TEXCUBELOD(global_diffuse_map, wnormal, 0)) :
+						TEXCUBELOD(global_diffuse_map, wnormal, 0)) * ambient_tint_color * fog_plane_color;
+				#endif
+
+				return o;
+			}
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			half4 ps_main(PS_INPUT input) : SV_TARGET0
+			{					
+				float d = gbuffer_decode_depth(linear_depth.Load(int3(input.position.xy, 0)));
+
+				#if defined(MASK_OUT_SKYDOME)
+					if (d > camera_near_far.y) discard;
+				#endif
+
+				float3 wp = decode_world_pos(input.w, d);
+				
+				float distance_to_plane = abs(dot(wp, input.plane_eq.xyz) - input.plane_eq.w);
+				
+				#if defined(AMBIENT_TINT)
+					float3 color = input.ambient_color;
+				#else
+					float3 color = fog_plane_color;
+				#endif
+				float2 screen_uv = input.position.xy / output_rt_size;
+				half4 result = apply_fog(fog_volume, global_diffuse_map, float4(color, saturate(distance_to_plane / fog_distance)), wp, input.linear_depth, screen_uv);
+				
+				return half4(result.rgb * result.a, result.a);	
+			}	
+		"""
+	}
+
+	//-----------------------------------------------
+	// FOG
+	//-----------------------------------------------
+
+	apply_fog = {		
+		includes = [ "common", "gbuffer_access", "brdf", "taa_offsets", "volumetric_lighting_common", "shadow_map_filtering", "shadow_bias", "lighting_data", "lighting", "random", "color_management", "display_noise" ]
+		samplers = {
+			linear_depth = { sampler_states = "clamp_point" }
+			fog_volume = { sampler_states = "clamp_linear" }	
+			global_diffuse_map = { sampler_states = "clamp_linear"}
+			sun_shadow_map = { sampler_states = "shadow_map" }
+			static_sun_shadow_map = { sampler_states = "shadow_map" }
+			luminance_adaptation_history = { sampler_states="clamp_linear" }
+		}
+
+		code="""
+			DECLARE_SAMPLER_2D(linear_depth);
+			DECLARE_SAMPLER_3D(fog_volume);
+			DECLARE_SAMPLER_CUBE(global_diffuse_map);
+			#if defined(VOLUMETRIC_SHADODWS) || defined(DEBUG_FOG)
+				DECLARE_COMPARISON_SAMPLER_2D(sun_shadow_map);
+				DECLARE_COMPARISON_SAMPLER_2D(static_sun_shadow_map);
+			#endif
+
+			DECLARE_SAMPLER_2D(luminance_adaptation_history);
+			Texture2D<float> current_exposure;
+						
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+				float4 w : TEXCOORD3;
+			};
+
+			#if defined(DEBUG_FOG)
+				#define N_SAMPLES 500
+			#endif
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float2 output_target_size;
+				float exposure;
+				float exposure_auto_enabled;
+				float eye_adaptation_enabled;
+			CBUFFER_END
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				float4 p = mul(input.position, world_view_proj);
+				p.z = 1;
+				o.position = p;
+				o.uv = input.uv;
+				o.w = encode_world_pos(o.position);
+				
+				return o;
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			half4 ps_main(PS_INPUT input) : SV_TARGET0 {
+				float depth = gbuffer_decode_depth(TEX2D(linear_depth, input.uv));
+				
+				float4 result = 0;
+				if (volumetric_lighting_enabled) {
+					result = sample_fog_volume(fog_volume, input.uv, depth);
+					[branch]
+					if (depth > (camera_near_far.x + volumetric_distance))
+					{
+						// We can do a analytical solution for the integral
+						// http://iquilezles.org/www/articles/fog/fog.htm
+
+						const float start = camera_near_far.x + volumetric_distance;
+						float end = depth;
+						if (volumetric_extinction == 0.0) {
+							// modify end so we don't sample outside the fog
+							const float3 wp_start = decode_world_pos(input.w, start);
+							const float3 wp_end = decode_world_pos(input.w, end);
+							const float max_height = max(fog0_settings.y, fog1_settings.y);
+							if (wp_end.z > max_height && wp_start.z < max_height) {
+								float3 dir = normalize(wp_end - wp_start);
+								float dist = max_height - wp_start.z;
+								float t = dist / dir.z;
+								end = start + t;
+							}
+						}
+
+						const float distance_left = end - start;
+
+
+						float3 scattering = result.rgb;
+						float transmittance = 1.0 - result.a;
+
+						#if defined(DEBUG_FOG)
+							// Brute force ray marching, starts at the end of the fog volume
+							if (input.uv.x > 0.5 && input.uv.x < 0.75) {
+								const uint steps = N_SAMPLES;
+								const float3 V = normalize(camera_world._m30_m31_m32 - decode_world_pos(input.w, depth));
+								const float dx = distance_left / float(steps);
+								for (uint i = 0; i < steps; ++i) {
+									float d = lerp(start, end, float(i+1)/float(steps));
+
+									float3 wp = decode_world_pos(input.w, d);
+
+									float3 S_int;
+									float exp_sigma_dx;
+									half sun_shadow = calculate_shadow_intensity(sun_shadow_map, static_sun_shadow_map, wp, d);
+									calculate_volumetric_lighting_simple(V, global_diffuse_map, dx, global_extinction(wp), sun_shadow, S_int, exp_sigma_dx);
+
+									scattering += transmittance * S_int;
+									transmittance *= exp_sigma_dx;
+								}
+
+								result = float4(scattering, saturate(1.0 - transmittance));
+							} else {
+						#endif
+							#if defined(HIGH_QUALITY)
+								const uint steps = 3;
+								const float offset = 0.5;
+							#else
+								const uint steps = 1;
+								const float offset = 1.0;
+							#endif
+							const float dx = distance_left / float(steps);
+							const float3 V = normalize(camera_world._m30_m31_m32 - decode_world_pos(input.w, depth));
+
+							[unroll]
+							for (uint i = 0; i < steps; ++i) {
+								float d = lerp(start, end, float(i+offset)/float(steps));
+
+								float3 wp = decode_world_pos(input.w, d);
+
+								float3 S_int;
+								float exp_sigma_dx;
+								#if defined(VOLUMETRIC_SHADODWS)
+									const half shadow_mask = calculate_shadow_intensity(sun_shadow_map, static_sun_shadow_map, wp, d);
+								#else
+									const half shadow_mask = 1.0;
+								#endif
+								calculate_volumetric_lighting_simple(V, global_diffuse_map, dx, global_extinction(wp), shadow_mask, S_int, exp_sigma_dx);
+
+								scattering += transmittance * S_int;
+								transmittance *= exp_sigma_dx;
+							}
+
+							#if defined(HIGH_QUALITY)
+								// make a last sample on the last depth
+								{
+									const float dx = end - lerp(start, end, float(steps-1)/float(steps));
+									float3 wp = decode_world_pos(input.w, end);
+
+									float3 S_int;
+									float exp_sigma_dx;
+									#if defined(VOLUMETRIC_SHADODWS)
+										const half shadow_mask = calculate_shadow_intensity(sun_shadow_map, static_sun_shadow_map, wp, end);
+									#else
+										const half shadow_mask = 1.0;
+									#endif
+									calculate_volumetric_lighting_simple(V, global_diffuse_map, dx, global_extinction(wp), shadow_mask, S_int, exp_sigma_dx);
+
+									scattering += transmittance * S_int;
+									transmittance *= exp_sigma_dx;
+								}
+							#endif
+
+							result = float4(scattering, saturate(1.0 - transmittance));
+						#if defined(DEBUG_FOG)
+							}
+						#endif
+					}
+					#if defined(DEBUG_FOG)
+						// Brute force ray marching, starts at near plane
+						if (input.uv.x > 0.75) {
+							const float start = camera_near_far.x;
+							const float end = depth;
+							const float distance_left = end - start;
+							float3 scattering = 0;
+							float transmittance = 1.0;
+
+							const float3 V = normalize(camera_world._m30_m31_m32 - decode_world_pos(input.w, depth));
+							const uint steps = N_SAMPLES;
+							const float dx = distance_left / float(steps);
+							for (uint i = 0; i < steps; ++i) {
+								float d = lerp(start, end, float(i+1)/float(steps));
+
+								float3 wp = decode_world_pos(input.w, d);
+
+								float3 S_int;
+								float exp_sigma_dx;
+								float sun_shadow = saturate(calculate_shadow_intensity(sun_shadow_map, static_sun_shadow_map, wp, d));
+								calculate_volumetric_lighting_simple(V, global_diffuse_map, dx, global_extinction(wp), sun_shadow, S_int, exp_sigma_dx);
+
+								scattering += transmittance * S_int;
+								transmittance *= exp_sigma_dx;
+							}
+
+							result = float4(scattering, saturate(1.0 - transmittance));
+						}
+					#endif
+				}
+				else
+				{
+					float3 wp = decode_world_pos(input.w, depth);
+					result = calc_volumetric_fog_data(global_diffuse_map, wp, normalize(camera_world._m30_m31_m32 - wp), camera_near_far.x, depth);
+				}
+
+				#if defined(DEVELOPMENT)
+					// cubemaps is not stored in display space and thus we can't apply noise on them.
+					[branch]
+					if (capture_cubemap == 0.0)
+				#endif
+				{
+					float e = exposure;
+					[branch]
+					if (eye_adaptation_enabled && exposure_auto_enabled) {
+						e = current_exposure.Load(int3(0, 0, 0)).r;
+					} else if (eye_adaptation_enabled) {
+						// exposure here is grey value, thus grey_value / avg_luminance = exposure
+						float2 eye_adaption_uv = viewport.zw + viewport.xy * 0.5;
+						float grey_value = TEX2D(luminance_adaptation_history, eye_adaption_uv).r;
+						 e = exposure * (grey_value == 0.0 ? 0.0 : rcp(grey_value));
+					}
+
+					[flatten]
+					if (upscaling_enabled == 0.0f && fsr_enabled == 0.0f) {					
+						result.rgb = e == 0.0 ? result.rgb : display_noise_eight_bit(result.rgb, e, gamma, wang_noise2d(frame_number + 1.0, input.position.xy, output_target_size) * 2.0 - 1.0);
+					}
+				}
+				
+				return result;
+
+			}		
+		"""
+	}
+
+	volumetric_sample_position = {
+		code = """
+			static const uint num_halton_offsets_3d = 8;
+			static const float3 halton_offsets_3d[num_halton_offsets_3d] = {
+	            float3((1.f/2.f  - 0.5f), (1.f/3.f - 0.5f), (1.f/5.f - 0.5f)),
+	            float3((1.f/4.f  - 0.5f), (2.f/3.f - 0.5f), (2.f/5.f - 0.5f)),
+	            float3((3.f/4.f  - 0.5f), (1.f/9.f - 0.5f), (3.f/5.f - 0.5f)),
+	            float3((1.f/8.f  - 0.5f), (4.f/9.f - 0.5f), (1.f/25.f - 0.5f)),
+	            float3((5.f/8.f  - 0.5f), (7.f/9.f - 0.5f), (6.f/25.f - 0.5f)),
+	            float3((3.f/8.f  - 0.5f), (2.f/9.f - 0.5f), (11.f/25.f - 0.5f)),
+	            float3((7.f/8.f  - 0.5f), (5.f/9.f - 0.5f), (16.f/25.f - 0.5f)),
+	            float3((1.f/16.f - 0.5f), (8.f/9.f - 0.5f), (21.f/25.f - 0.5f))
+        	};
+
+			inline float3 sample_position(uint3 pos, float2 inv_texture_size)
+			{
+				float3 offset = float3(0.5, 0.5, 0.5);
+				
+				offset += halton_offsets_3d[uint(frame_number) % num_halton_offsets_3d];
+
+				// Blue Noise Dithering
+				//if(volumetric_debug > 50)
+				//{
+				//	float2 noise_uv = float2(pos.xy * inv_texture_size);
+				//	float3 noise_sample = TEX2DLOD(blue_noise0, noise_uv, 0);
+				//	offset.z = noise_sample.z;
+				//	
+				//	if(volumetric_debug > 75)
+				//	{
+				//		offset.z = noise_sample.z;
+				//	}
+				//}
+
+				return pos + offset;
+			}
+		"""
+	}
+
+	cs_fog_material_data = {
+		includes = [ "common", "space_conversion", "brdf", "taa_offsets", "volumetric_lighting_common", "post_processing_common", "volumetric_sample_position", "gbuffer_access" ]
+		
+		stage_conditions = {
+			compute = "true"
+		}
+		
+		samplers = {
+			sun_shadow_map = { sampler_states = "shadow_map" }
+			static_sun_shadow_map = { sampler_states = "shadow_map" }
+			global_diffuse_map = { sampler_states = "clamp_linear"}
+		}
+		
+		code = """
+			RWTexture3D<float4> input_texture0;
+
+			#if defined(RENDERER_D3D12)
+				StructuredBuffer<float4> fog_unit_data;
+			#else
+				Buffer<float4> fog_unit_data;
+			#endif
+
+			CBUFFER_START(c0)
+				float3 inv_input_texture0_size;
+				float n_fog_units;
+			CBUFFER_END
+			
+			void get_data(uint i, out float4x4 inv_world, out float3 bound_volume_min, out float3 bound_volume_max, out float3 albedo, out float extinction, out float phase, out float4 local_falloff)
+			{
+				float4 p0 = fog_unit_data[i];
+				float4 p1 = fog_unit_data[i+1];
+				float4 p2 = fog_unit_data[i+2];
+				float4 p3 = fog_unit_data[i+3];
+
+				float4 p4 = fog_unit_data[i+4];
+				float4 p5 = fog_unit_data[i+5];
+				float4 p6 = fog_unit_data[i+6];
+				float4 p7 = fog_unit_data[i+7];
+
+				inv_world = float4x4(p0, p1, p2, p3);
+				bound_volume_min = p4.rgb;
+				bound_volume_max = p5.rgb;
+				albedo = p6.rgb;
+				extinction = p4.a;
+				phase = clamp(p5.a, -1.0, 1.0);
+				local_falloff = p7;
+			}
+
+			#define BOX_FADE
+			//#define SPHERE_FADE
+			//#define ELLIPTIC_FADE
+			DEFAULT_COMPUTE_ROOT_SIGNATURE_ATTRIBUTE
+			[numthreads(4, 4, 4)]
+			void cs_main(uint3 Gid : SV_GroupID, uint3 DTId : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex )
+			{
+				float3 sample_pos = sample_position(DTId, inv_input_texture0_size.xy);
+				float2 uv = sample_pos.xy * inv_input_texture0_size.xy;
+				float depth = froxel_to_linear_depth(sample_pos.z, inv_input_texture0_size.z, volumetric_distance, uv);
+				float non_linear_depth = linear_to_clip_depth(depth); 
+				float3 ss_pos = float3(uv, non_linear_depth);
+				float3 wp = view_to_world(ss_to_view(ss_pos, 1.0), 1.0);
+				
+				float extinction = global_extinction(wp);
+				float3 scattering = fog_color * extinction;
+				float3 emissive = 0;
+				// TODO: we can't pack the data atm, thus we remove the local phase in order to fit all in one texture
+				//float phase = volumetric_phase * extinction;
+
+				float total_weight = extinction;
+				#if defined(VOLUMES_ENABLED)
+					// brute force method...
+					// todo: use shared memory
+					const uint count = asuint(n_fog_units);
+					for (uint i = 0; i < count; ++i) {
+						uint j = i * 8;
+						float4x4 inv_world;
+						float3 bound_volume_min, bound_volume_max;
+						float3 local_albedo;
+						float local_extinction;
+						float local_phase;
+						float4 local_falloff;
+						get_data(j, inv_world, bound_volume_min, bound_volume_max, local_albedo, local_extinction, local_phase, local_falloff);
+
+						float3 op = mul(float4(wp, 1), inv_world);
+						bool is_inside = all((op > bound_volume_min) && (op < bound_volume_max));
+						[branch]
+						if (is_inside) {
+							#if defined(BOX_FADE)
+								float3 origo = (bound_volume_min + bound_volume_max) * 0.5;
+								float3 dist = min(op - bound_volume_min, bound_volume_max - op);
+								float3 dim = (bound_volume_max - bound_volume_min);
+								float3 span = bound_volume_max - origo;
+								float radius = min(dim.x, min(dim.y, dim.z));
+								float3 box_falloff = smoothstep(float3(0.0, 0.0, 0.0), span * dim * local_falloff, dist);
+								local_extinction *= min(box_falloff.x, min(box_falloff.y, box_falloff.z));
+							#elif defined(SPHERE_FADE)
+								float3 origo = (bound_volume_min + bound_volume_max) * 0.5;
+								float3 dim = (bound_volume_max - bound_volume_min);
+								float radius = min(dim.x, min(dim.y, dim.z));
+								float3 dist = op - origo;
+								local_extinction *= smoothstep(radius * local_falloff.x, radius * local_falloff.y, distance(op, origo));
+							#elif defined(ELLIPTIC_FADE)
+								float3 origo = (bound_volume_min + bound_volume_max) * 0.5;
+								float radius = distance(bound_volume_min, bound_volume_max);
+								local_extinction *= smoothstep(radius * local_falloff.x, radius * local_falloff.y, distance(op, origo));
+							#endif
+
+							scattering += local_albedo * local_extinction;
+							extinction += local_extinction;
+							//phase += local_phase * local_extinction;
+							total_weight += local_extinction;
+						}
+					}
+				#endif
+
+				float3 albedo = extinction > 0.0 ? scattering / extinction : 0.0;
+				//phase = total_weight > 0.0 ? phase / float(total_weight) : 0.0;
+				//input_texture0[DTId] = float4(encode_albedo(albedo), phase, extinction);
+				input_texture0[DTId] = float4(albedo, extinction);
+			}
+		"""
+	}
+
+	cs_fog_light_data = {
+		includes = [ "common", "space_conversion", "color_management", "brdf", "shadow_map_filtering", "shadow_bias", "lighting_data", "lighting", "taa_offsets", "volumetric_lighting_common", "clustered_shading", "post_processing_common", "vsm_common", "esm_common", "volumetric_sample_position", "gbuffer_access"]
+
+		stage_conditions = {
+			compute = "true"
+		}
+		
+		samplers = {
+			defined_VSM = {
+				input_texture2 = { sampler_states = "clamp_linear" }
+			}
+			defined_ESM = {
+				input_texture2 = { sampler_states = "clamp_linear" }
+			}
+			sun_shadow_map = { sampler_states = "shadow_map" }
+			static_sun_shadow_map = { sampler_states = "shadow_map" }
+			global_diffuse_map = { sampler_states = "clamp_linear"}
+			defined_LOCAL_LIGHTS_ENABLED = {
+				local_lights_shadow_atlas = { sampler_states = "shadow_map" }
+				cached_local_lights_shadow_atlas = { sampler_states = "shadow_map" }
+			}
+		}
+		
+		code = """
+			Texture3D<float4> input_texture0;
+			RWTexture3D<float4> input_texture1;
+			#if defined(VSM) || defined(ESM)
+				DECLARE_SAMPLER_2D(input_texture2);
+			#endif
+
+			#if defined(LOCAL_LIGHTS_ENABLED)
+				DECLARE_CLUSTER_DATA(cs_cluster_buffer);
+				DECLARE_LIGHT_INDEX_DATA(cs_light_index_buffer);
+				DECLARE_LIGHT_DATA(cs_light_data_buffer);
+				#if defined(LOCAL_LIGHT_SHADOWS_ENABLED)
+					DECLARE_LIGHT_SHADOW_MATRICES(cs_light_shadow_matrices_buffer);
+					DECLARE_LIGHT_SHADOW_LOOKUP(cs_light_shadow_lookup_buffer);
+					DECLARE_COMPARISON_SAMPLER_2D(local_lights_shadow_atlas);
+					DECLARE_COMPARISON_SAMPLER_2D(cached_local_lights_shadow_atlas);
+				#endif
+			#endif
+
+			DECLARE_SAMPLER_CUBE(global_diffuse_map);
+
+			DECLARE_COMPARISON_SAMPLER_2D(sun_shadow_map);
+			DECLARE_COMPARISON_SAMPLER_2D(static_sun_shadow_map);
+
+			CBUFFER_START(c0)
+				float3 inv_input_texture1_size;
+			CBUFFER_END
+			DEFAULT_COMPUTE_ROOT_SIGNATURE_ATTRIBUTE
+			[numthreads(4, 4, 4)]
+			void cs_main(uint3 Gid : SV_GroupID, uint3 DTId : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex )
+			{
+				float3 sample_pos = sample_position(DTId, inv_input_texture1_size.xy);
+				float2 uv = sample_pos.xy * inv_input_texture1_size.xy;
+				float depth = froxel_to_linear_depth(sample_pos.z, inv_input_texture1_size.z, volumetric_distance, uv);
+				float prev_depth = froxel_to_linear_depth(sample_pos.z > 1.0 ? sample_pos.z - 1.0 : 0.0, inv_input_texture1_size.z, volumetric_distance, uv);
+				float dx = depth - prev_depth;
+				float non_linear_depth = linear_to_clip_depth(depth); 
+				float3 ss_pos = float3(uv, non_linear_depth);
+				float3 wp = view_to_world(ss_to_view(ss_pos, 1.0), 1.0);
+				
+				float3 V = normalize(camera_world._m30_m31_m32 - wp);
+
+				float2 screen_pos = uv * output_rt_size;
+
+				float4 material0 = input_texture0[DTId];
+				float3 albedo = material0.rgb;
+				float extinction = material0.a;
+				float3 emissive = 0.0;
+				float phase = volumetric_phase;
+
+				float3 S_int = 0;
+				float exp_sigma_dx = 1.0; // TODO: this is incorrect, when albedo is 0 but extinction isn't
+				const float scattering_intensity = (albedo.r + albedo.g + albedo.b) * extinction;
+				[branch]
+				if (scattering_intensity > 0.0) {
+					float3 L = sun_direction;
+					#if defined(VSM)
+						float sun_shadow = saturate(calculate_vsm_intensity(input_texture2, wp));
+					#elif defined(ESM)
+						float sun_shadow = saturate(calculate_esm_intensity(input_texture2, wp));
+					#else
+						float sun_shadow = saturate(calculate_shadow_intensity(sun_shadow_map, static_sun_shadow_map, wp, depth));
+					#endif
+					
+					float3 sun_scattering = 0.0;
+					float3 ambient = 0.0;
+					calculate_global_volumetric_data(L, V, global_diffuse_map, sun_shadow, phase, sun_scattering, ambient);
+
+					float3 local_light_scattering = 0.0;
+					#if defined(LOCAL_LIGHTS_ENABLED)
+						clustered_shading(cs_cluster_buffer, cs_light_index_buffer, cs_light_data_buffer, 
+							#if defined(LOCAL_LIGHT_SHADOWS_ENABLED)
+								cs_light_shadow_matrices_buffer,
+								cs_light_shadow_lookup_buffer,
+								local_lights_shadow_atlas,
+								cached_local_lights_shadow_atlas,
+							#endif
+							wp, V, screen_pos, depth, phase, local_light_scattering);
+					#endif
+
+					calculate_volumetric_lighting(dx, sun_scattering, local_light_scattering, ambient, emissive, albedo, extinction, 
+						S_int, exp_sigma_dx);
+				}
+
+				float4 result = float4(S_int, 1.0 - exp_sigma_dx);
+				
+				// make sure values are correct early so they don't propogate through the integration step.
+				// 0 means that this voxel does not contribute to the result.
+				// we could do this check in reprojection step only, however this voxel would contaminate alot of voxels during the integration step
+				// which is why it's most likely best place to put protection here 
+				input_texture1[DTId] = all(isfinite(result)) ? result : 0.0f;
+			}
+		"""
+	}
+
+	cs_fog_reprojection = {
+		includes = [ "common", "gbuffer_access", "space_conversion", "taa_offsets", "color_management", "neighborhood_clamping", "brdf", "volumetric_lighting_common", "volumetric_sample_position"]
+		stage_conditions = {
+			compute = "true"
+		}
+		
+		samplers = {
+			input_texture1 = { sampler_states = "clamp_linear"}
+		}
+		
+		code = """
+			Texture3D<float4> input_texture0;
+			DECLARE_SAMPLER_3D(input_texture1);
+			RWTexture3D<float4> input_texture2;
+
+			CBUFFER_START(c0)
+				float3 inv_input_texture0_size;
+				float3 inv_input_texture1_size;
+				float volumetric_reprojection_boost;
+			CBUFFER_END
+
+			float3 premulitplied(float4 value)
+			{
+				return value.rgb * value.a;
+			}
+
+			#if defined(NEIGHBOORHOOD_CLAMPING)
+				#define APPLY_TONE_MAP safe_range_tone_map
+				#define APPLY_INV_TONE_MAP inv_safe_range_tone_map
+			#else
+				#define APPLY_TONE_MAP
+				#define APPLY_INV_TONE_MAP
+			#endif
+
+			#define EPSILON 0.0000001
+			#define MAX_HISTORY_DIFFERENCE 0.125
+			#define MIN_HISTORY_DIFFERENCE 0.001
+
+			#define THREADS_X 3
+			#define THREADS_Y 3
+			#define THREADS_Z 3
+			#define THREADS THREADS_X*THREADS_Y*THREADS_Z
+			//#define NEIGHBOORHOOD_CLAMPING
+
+			#if defined(NEIGHBOORHOOD_CLAMPING)
+				groupshared float4 shared_samples[THREADS];
+			#endif
+			DEFAULT_COMPUTE_ROOT_SIGNATURE_ATTRIBUTE
+			[numthreads(THREADS_X, THREADS_Y, THREADS_Z)]
+			void cs_main(uint3 Gid : SV_GroupID, uint3 DTId : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex )
+			{
+				float3 sample_pos = DTId + 0.5;
+				float4 new_result = APPLY_TONE_MAP(input_texture0[DTId]);
+				#if defined(NEIGHBOORHOOD_CLAMPING)
+					shared_samples[GI] = new_result;
+				#endif
+
+				float2 uv = sample_pos.xy * inv_input_texture0_size.xy;
+				float depth = froxel_to_linear_depth(sample_pos.z, inv_input_texture0_size.z, volumetric_distance, uv);
+				float prev_depth = froxel_to_linear_depth(sample_pos.z > 1.0 ? sample_pos.z - 1.0 : 0.0, inv_input_texture0_size.z, volumetric_distance, uv);
+				float dx = depth - prev_depth;
+				float non_linear_depth = linear_to_clip_depth(depth); 
+				float3 ss_pos = float3(uv, non_linear_depth);
+				float3 wp = view_to_world(ss_to_view(ss_pos, 1.0), 1.0);
+
+				float3 view = world_to_prev_view(wp, 1.0);
+				float3 ss = view_to_prev_ss(view, 1.0);
+				float last_depth = view.y;
+				float layer = linear_to_froxel_depth(last_depth, volumetric_distance, uv);
+				float3 uvw = float3(ss.xy, layer);
+
+				// TODO: we don't use 0 or 1 as border since that causes some kind of artefact during motion
+				//bool reprojection_is_offscreen = (any(uvw < inv_input_texture1_size) || any(uvw > (1.0 - inv_input_texture1_size))) ? true : false;
+				//bool reprojection_is_offscreen = (any(uvw < 0.0) || any(uvw > 1.0)) ? true : false;
+				//#if defined(D3D11)
+				//	reprojection_is_offscreen = capture_cubemap ? true : reprojection_is_offscreen;
+				//#endif
+
+				#if defined(NEIGHBOORHOOD_CLAMPING)
+					GroupMemoryBarrierWithGroupSync();
+
+					float4 prev_result = APPLY_TONE_MAP(TEX3DLOD(input_texture1, uvw, 0));
+					float prev_luminance = luminance(prev_result);
+
+					const uint count = THREADS;
+					float3 s0 = premulitplied(shared_samples[0]);
+					float3 s1 = premulitplied(shared_samples[1]);
+					float3 s2 = premulitplied(shared_samples[2]);
+					float3 neighborhood_min = min(min(s0, s1), s2);
+					float3 neighborhood_max = max(max(s0, s1), s2);
+					for (uint i = 3; i < count; i+=3) {
+						s0 = premulitplied(shared_samples[i+0]);
+						s1 = premulitplied(shared_samples[i+1]);
+						s2 = premulitplied(shared_samples[i+2]);
+						neighborhood_min = min(min(min(s0, s1), s2), neighborhood_min);
+						neighborhood_max = max(max(max(s0, s1), s2), neighborhood_max);
+					}
+					float neighborhood_luminance_range = luminance(neighborhood_max) - luminance(neighborhood_min);
+
+					float history_clip_amount = distance_to_ycocg_box(premulitplied(prev_result), premulitplied(new_result), neighborhood_min, neighborhood_max);
+					prev_result = lerp(prev_result, new_result, saturate(history_clip_amount));
+
+
+					float antiflickering_term = prev_luminance/(prev_luminance + neighborhood_luminance_range + EPSILON);
+
+					// TODO: take velocity into account
+
+					float history_difference = antiflickering_term;
+					history_difference = lerp(MIN_HISTORY_DIFFERENCE, MAX_HISTORY_DIFFERENCE, saturate(history_difference));
+
+					input_texture2[DTId] = APPLY_INV_TONE_MAP(lerp(prev_result, new_result, history_difference));
+				#else
+					#if !defined(D3D11)
+						const bool capture_cubemap = false;
+					#endif
+					const float reprojection_amount = capture_cubemap ? 1.0 : lerp(0.125, 0.05, min(volumetric_reprojection_amount + volumetric_reprojection_boost, 1.0));
+					float4 prev_result = APPLY_TONE_MAP(TEX3DLOD(input_texture1, uvw, 0));
+					float4 result = lerp(prev_result, new_result, reprojection_amount);
+					input_texture2[DTId] = APPLY_INV_TONE_MAP(all(isfinite(result)) ? result : 0.0f);
+				#endif
+			}
+		"""
+	}
+
+	cs_fog_integration = {
+		includes = [ "common", "space_conversion" ]
+		
+		stage_conditions = {
+			compute = "true"
+		}
+		
+		samplers = {
+		}
+		
+		code = """
+			Texture3D<float4> input_texture0;
+			RWTexture3D<float4> input_texture1;
+
+			CBUFFER_START(c0)
+				float3 input_texture0_size;	
+			CBUFFER_END
+			
+			// TODO: make use of shared memory, we should probably read all samples along z line for each group... maybe we need to swizzle the group layout (16,4,16) etc
+			DEFAULT_COMPUTE_ROOT_SIGNATURE_ATTRIBUTE
+			[numthreads(8, 8, 1)]
+			void cs_main(uint3 Gid : SV_GroupID, uint3 DTId : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex )
+			{
+				// TODO: integrate using the volume for each voxel as dx
+				const uint layers = uint(input_texture0_size.z);
+				float3 scattering = float3(0, 0, 0); // accumulated in-scattering, premultiplied alpha
+				float transmittance = 1.0; 			 // accumulated transmittance
+				for (uint i = 0; i < layers; ++i) {
+					float4 data = input_texture0[uint3(DTId.xy, i)];
+					float3 S_int = data.rgb;
+					float exp_sigma_dx = 1.0 - data.a; 
+
+					scattering += transmittance * S_int;
+					transmittance *= exp_sigma_dx;
+
+					input_texture1[uint3(DTId.xy, i)] = float4(scattering, 1.0 - transmittance);
+				}
+			}
+		"""
+	}
+
+	//-----------------------------------------------
+	// SCREEN SPACE LIGHT SHAFTS
+	//-----------------------------------------------
+
+	screen_space_light_shafts_mask = {		
+		includes = [ "common", "gbuffer_access", "color_management" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_point" }
+			input_texture1 = { sampler_states = "clamp_point" }
+			input_texture2 = { sampler_states = "clamp_point" }
+		}
+		 
+		code="""
+			#if !defined(FAR_PLANE)
+				DECLARE_SAMPLER_2D(input_texture0);
+				DECLARE_SAMPLER_2D(input_texture1);
+				DECLARE_SAMPLER_2D(input_texture2);
+			#endif
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position 		: SV_POSITION;
+				float2 uv 				: TEXCOORD0;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+			CBUFFER_END
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.position.z = o.position.w;	
+				o.uv = input.uv;
+				
+				return o;
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			half ps_main(PS_INPUT input) : SV_TARGET0 
+			{
+				#if defined(FAR_PLANE)
+					return 1.0;
+				#elif defined(SIMPLE)
+					return 0.0;
+				#else
+					half4 gbuffer_0 = TEX2D(input_texture1, input.uv);
+					half4 gbuffer_1 = TEX2D(input_texture2, input.uv);
+					half material_id = gbuffer_decode_material_id(gbuffer_0);
+					float3 N = gbuffer_decode_normal(gbuffer_1, material_id);
+					return TEX2D(input_texture0, input.uv).r * (dot(-sun_direction, N) > 0.0 ? 1.0 : 0.0);
+				#endif
+			}
+		"""
+	}
+
+	screen_space_light_shafts = {		
+		includes = [ "common", "gbuffer_access", "color_management" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_linear" }
+			//luminance_adaptation_history = { sampler_states = "clamp_linear" }
+		}
+		 
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+			//DECLARE_SAMPLER_2D(linear_depth);
+			//#if defined(EYE_ADAPTATION)
+			//	DECLARE_SAMPLER_2D(luminance_adaptation_history);
+			//#endif
+			
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position 		: SV_POSITION;
+				float2 uv 				: TEXCOORD0;
+				float2 sun_screen_pos 	: TEXCOORD1;
+				float visibility		: TEXCOORD2;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float exposure;
+				float light_shafts_weigth;
+				float2 light_shafts_settings;
+				float2 input_texture0_size;
+			CBUFFER_END
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);		
+				o.uv = input.uv;
+				
+				float4 sun_pos = float4(-sun_direction, 1.0);
+				camera_view._m30_m31_m32 = float3(0,0,0);
+				sun_pos = mul(mul(sun_pos, camera_view), camera_projection);
+				sun_pos /= sun_pos.w;
+				o.sun_screen_pos = sun_pos.xy * float2(0.5, -0.5) + 0.5;
+
+				o.visibility = max(dot(camera_world._m10_m11_m12, -sun_direction), 0.0);
+				
+				return o;
+			}
+
+			half3 scattering(half2 uv, half2 sun_uv) {
+				half2 delta = uv - sun_uv;
+
+				float dist = length(delta * half2(input_texture0_size.x/input_texture0_size.y, 1.0));
+				float3 result = fog_color * sun_color * light_shafts_settings.x * (1.0 - saturate(dist/light_shafts_settings.y)) * TEX2DLOD(input_texture0, uv, 0.0).rrr;
+
+				return result;
+			}
+
+			// Retrieve samples at new location.  
+			static const float weights[] = { 0.25, 0.5, 0.25 };
+
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			half3 ps_main(PS_INPUT input) : SV_TARGET0 
+			{
+				if (input.visibility == 0.0)
+					return 0.0;
+
+				half2 uv = input.uv;
+
+				const uint NUM_SAMPLES = 50;
+				const float density = 0.90;
+				const float decay = 0.992;
+				const float weight = light_shafts_weigth;
+				
+				// Calculate vector from pixel to light source in screen space
+				// Divide by number of samples and scale by control factor. 
+				const half2 delta_uv = (uv - input.sun_screen_pos) * density / NUM_SAMPLES;
+
+				// Set up illumination decay factor.  
+				half illumination_decay = 1.0f;
+
+				const float INV_3 = 0.33333333333;
+				
+				half3 c = scattering(uv, input.sun_screen_pos);
+				// Evaluate summation from Equation 3 NUM_SAMPLES iterations.
+				[loop]
+				for (uint i = 0; i < NUM_SAMPLES; i++) {					
+					half3 s = scattering(uv - delta_uv * INV_3, input.sun_screen_pos) * weights[0];
+					s += scattering(uv, input.sun_screen_pos) * weights[1];
+					s += scattering(uv + delta_uv * INV_3, input.sun_screen_pos) * weights[2];
+					
+					// Apply attenuation decay and weight factor
+					s *= illumination_decay * weight; 
+					
+					// Accumulate combined color.
+					c += s.rgb;
+					
+					// Update exponential decay factor.  
+					illumination_decay *= decay;
+					
+					// Step sample location along ray. 
+					uv -= delta_uv;
+				}
+
+				return c * input.visibility;
+			}
+		"""
+	}
+}
+
+shaders = {
+	volume_height_fog = {
+		editor_options = [
+			{
+				name="Options"
+				options = [
+					{ name="Enable Camera Inside Volume" define="ENABLE_INSIDE" tooltip="Extra computations to make correct fog calculations when camera is inside the volume." }
+				]
+			}
+		]
+
+		contexts = {
+			default = {
+				passes = [
+					{ layer="hdr_transparent" hlsl_shader="volume_height_fog" defines=["CALCULATE_FOG" "CALCULATE_LIGHTING"] render_states="opacity_volume" }
+					{ layer="wireframe" hlsl_shader="volume_height_fog" defines=["WIREFRAME_PASS"] render_states="wireframe" branch_key="dev_wireframe" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ if: "on_renderer(D3D11, D3D12) && render_setting(low_res_transparency)" defines=["LOW_RES_ENABLED"] }
+				{ defines="" }
+			]
+		}
+	}
+
+	fog_plane = {
+		editor_options = [
+			{
+				name="Settings"
+				options = [
+					{ name="Inverted: Fog pixels in-front of plane" define="INVERTED" }
+					{ name="Mask out skydome" define="MASK_OUT_SKYDOME" }	
+					{ name="Ambient tint" define="AMBIENT_TINT" }		
+				]
+			}		
+		]
+		
+		contexts = {
+			default = {
+				passes = [
+					{ layer="fog_plane" hlsl_shader="fog_plane" defines=["CALCULATE_FOG"] render_states="fog_plane" }
+				]
+			}			
+		}	
+		
+		compile = {
+			default = [
+				{ defines="" platforms = "D3D11 D3D12"} 
+			]
+		} 
+	}
+
+	apply_fog = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="apply_fog" defines=["CALCULATE_FOG"] render_states="filter_premultiplied" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				//{ if: "on_renderer(D3D11, D3D12) && render_setting(volumetric_extrapolation_high_quality) && render_setting(volumetric_extrapolation_volumetric_shadows)" defines=["HIGH_QUALITY", "VOLUMETRIC_SHADODWS", "CALCULATE_LIGHTING"] }
+				{ if: "on_renderer(D3D11, D3D12) && render_setting(volumetric_extrapolation_high_quality)" defines=["HIGH_QUALITY"] }
+				{ defines=[] }
+			]
+		}
+	}
+
+	cs_fog_material_data = {
+		editor_advanced_mode = true
+		
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="cs_fog_material_data" }
+				]
+			}
+		}
+		
+		compile = {
+			default = [
+				{ if: "render_setting(volumetric_volumes_enabled)" defines=["VOLUMES_ENABLED"] }
+				{ defines="" }
+			]
+		}
+	}
+
+	cs_fog_light_data = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="cs_fog_light_data" defines=["VOLUMETRIC_LIGHTING", "CALCULATE_LIGHTING"] }
+				]
+			}
+		}
+		
+		compile = {
+			default = [
+				{ if: "render_setting(volumetric_lighting_local_lights) && render_setting(volumetric_lighting_local_shadows)" defines=["LOCAL_LIGHTS_ENABLED" "LOCAL_LIGHT_SHADOWS_ENABLED"] }
+				{ if: "render_setting(volumetric_lighting_local_lights)" defines=["LOCAL_LIGHTS_ENABLED"] }
+				{ defines="" }
+			]
+		}
+	}
+
+	cs_fog_integration = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="cs_fog_integration" }
+				]
+			}
+		}
+		
+		compile = {
+			default = [
+				{ defines="" }
+			]
+		}
+	}
+
+	cs_fog_reprojection = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="cs_fog_reprojection" }
+				]
+			}
+		}
+		
+		compile = {
+			default = [
+				{ defines="" }
+			]
+		}
+	}
+
+	screen_space_light_shafts_mask = {
+		editor_advanced_mode = true
+		
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{
+						defined="FAR_PLANE"
+						pass = [
+							{ hlsl_shader="screen_space_light_shafts_mask" render_states="filter_far" }
+						]
+						fail = [
+							{ hlsl_shader="screen_space_light_shafts_mask" render_states="filter_near" }
+						]
+					}
+				]
+			}
+		}	
+		
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		} 
+	}	
+
+	screen_space_light_shafts = {
+		editor_advanced_mode = true
+		
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="screen_space_light_shafts" render_states="filter" }
+				]
+			}
+		}	
+		
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		} 
+	}
+}
+
+static_compile= [
+	{ if: "on_renderer(D3D11, D3D12)" shader="apply_fog" }
+	{ if: "on_renderer(D3D11, D3D12)" shader="apply_fog" defines=["DEVELOPMENT"] }
+	{ if: "on_renderer(D3D11, D3D12)" shader="apply_fog" defines=["DEVELOPMENT" "DEBUG_FOG", "CALCULATE_LIGHTING"] }
+	{ if: "on_renderer(D3D11, D3D12)" shader="cs_fog_material_data" }
+	{ if: "on_renderer(D3D11, D3D12)" shader="cs_fog_light_data" }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="cs_fog_light_data" defines=["VSM"] }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="cs_fog_light_data" defines=["ESM"] }
+	{ if: "on_renderer(D3D11, D3D12)" shader="cs_fog_integration" }
+	{ if: "on_renderer(D3D11, D3D12)" shader="cs_fog_reprojection" }
+	{ if: "on_renderer(D3D11, D3D12)" shader="screen_space_light_shafts_mask" defines=["FAR_PLANE"] }
+	{ if: "on_renderer(D3D11, D3D12)" shader="screen_space_light_shafts_mask" defines=["SIMPLE"] }
+	{ if: "on_renderer(D3D11, D3D12)" shader="screen_space_light_shafts_mask" }
+	{ if: "on_renderer(D3D11, D3D12)" shader="screen_space_light_shafts" }
+
+]

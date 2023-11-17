@@ -1,0 +1,303 @@
+includes = [ 
+	"core/stingray_renderer/shader_libraries/common/common.shader_source",
+	"core/stingray_renderer/shader_libraries/common/post_processing_common.shader_source",
+	"core/stingray_renderer/shader_libraries/common/cubic_sampling_common.shader_source"
+]
+
+render_states = {
+	filter = {
+		inherits = "default"
+		states = {
+			z_write_enable = "false"
+			z_enable = "false"
+		}
+	}
+}
+
+hlsl_shaders = {
+	calculate_coc = {		
+		includes = [ "common", "gbuffer_access", "post_processing_common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_point" }
+		}            
+    
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+			
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float dof_focal_distance;
+				float dof_focal_region;
+				float dof_focal_region_start;
+				float dof_focal_region_end;
+				float dof_focal_near_scale;
+				float dof_focal_far_scale;
+			CBUFFER_END
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE  
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				float4 p = mul(input.position, world_view_proj);
+				o.position = p;
+				o.uv = input.uv;
+				
+				return o;
+			}			
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float ps_main(PS_INPUT input) : SV_TARGET0 {
+				
+				float depth = TEX2D(input_texture0, input.uv).r;
+				float coc = (depth - dof_focal_distance);
+				
+				if(coc > 0)
+					coc = saturate((coc - dof_focal_region) / dof_focal_region_end) * dof_focal_far_scale;
+				else
+					coc = max(coc / dof_focal_region_start, -1.0) * dof_focal_near_scale;
+
+				return encode_coc(coc);
+			}
+		"""
+	}
+
+	depth_of_field = {		
+		includes = [ "common", "post_processing_common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_linear" }
+			input_texture1 = { sampler_states = "clamp_point" }
+			input_texture2 = { sampler_states = "clamp_point" }
+		}
+		 
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+			DECLARE_SAMPLER_2D(input_texture1);
+			#if defined(DESCENDING_DIAGONAL_PASS)
+				DECLARE_SAMPLER_2D(input_texture2);
+			#endif
+			
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float2 input_texture1_size;
+			CBUFFER_END
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				float4 p = mul(input.position, world_view_proj);
+				o.position = p;
+				o.uv = input.uv;
+				
+				return o;
+			}			
+			
+			// The bleeding bias and multiplier are used to weight sample values
+			// in a way that prevents bleeding artifacts (as proposed by "Efﬁciently
+			// Simulating the Bokeh of Polygonal Apertures in a Post-Process DoF Shader").
+			// Currently using the values proposed by the paper (bias=0.02, multiplier=30).
+			const static float dof_num_of_samples = 5;
+
+			#if defined(DESCENDING_DIAGONAL_PASS)
+				#define PS_OUTPUT half4
+			#else
+				#define PS_OUTPUT half3
+			#endif
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_OUTPUT ps_main(PS_INPUT input) : SV_TARGET0 {
+				const float signed_coc = decode_coc(TEX2D(input_texture1, input.uv).r);
+				const float coc = saturate(abs(signed_coc));
+					
+				float3 total_color = float3(0,0,0);
+				float total_weight = 0.0;
+
+				#if defined(ASCENDING_DIAGONAL_PASS) || defined(DESCENDING_DIAGONAL_PASS)
+					const float inv_aspect_ratio = input_texture1_size.x / input_texture1_size.y;	
+				#endif
+
+					const float dynamic_num_samples = dof_num_of_samples;
+
+				const float offset = 1.0 / float(dynamic_num_samples) * (coc * MAX_COC);
+
+				#if defined(HORIZONTAL_PASS)
+					// Distribution of first pass " --- "
+					const float2 step_size = float2(offset, 0.0f);
+				#elif defined(ASCENDING_DIAGONAL_PASS)
+					// Distribution of second pass " / "
+					const float2 step_size = float2(offset * 0.5, offset * inv_aspect_ratio);
+				#elif defined(DESCENDING_DIAGONAL_PASS)
+					// Distribution of third pass " \ "
+					const float2 step_size = float2(offset * 0.5, -offset * inv_aspect_ratio);
+				#endif
+
+				const int n_samples = dynamic_num_samples/2;
+				[unroll]
+				for (int n = -n_samples; n < n_samples; ++n)
+				{
+					float2 sample_uv = input.uv + n * step_size;
+					const float sample_signed_coc = decode_coc(TEX2D(input_texture1, sample_uv).r);
+
+					float3 sample_color = TEX2D(input_texture0, sample_uv).rgb;
+
+					// Weight samples using Scheuermann's method (Adcanced Depth of Field 2004)
+					float weight = sample_signed_coc >= signed_coc ? 1.0 : saturate(abs(sample_signed_coc/MAX_COC));
+
+					total_color += sample_color * weight;
+					total_weight += weight;
+				}
+				total_color /= total_weight;
+
+				#if defined(DESCENDING_DIAGONAL_PASS)
+					// The descending diagonal pass is the last pass. We combine the boolean
+					// operation with this pass to save the overhead of outputing it into another
+					// pass just to perform the union after.
+					total_color = min(total_color, TEX2D(input_texture2, input.uv).rgb);
+					return float4(total_color, coc);
+				#else
+					return total_color;
+				#endif
+			}
+		"""
+	}	
+
+	merge_depth_of_field = {		
+		includes = [ "common", "gbuffer_access", "sampling_common", "bicubic_sampling", "post_processing_common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_linear" }
+			input_texture1 = { sampler_states = "clamp_point" }
+			input_texture2 = { sampler_states = "clamp_point" }
+		}
+		 
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+			DECLARE_SAMPLER_2D(input_texture1);
+			DECLARE_SAMPLER_2D(input_texture2);
+			
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float2 input_texture0_size;
+			CBUFFER_END
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				float4 p = mul(input.position, world_view_proj);
+				o.position = p;
+				o.uv = input.uv;
+				
+				return o;
+			}			
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float4 ps_main(PS_INPUT input) : SV_TARGET0 {
+				const float signed_coc = decode_coc(TEX2D(input_texture2, input.uv).r);
+				const float abs_coc = saturate(abs(signed_coc)); // TODO: add random offset here 1.0/256.0
+
+				// From Tiago Sousa's Graphics Gems From Cryengine 3 (Advances In Real Time Rendering 2013).
+				// Using a non linear transition helps reduce the frequency artifacts that arrises when going
+				// from half to fullres. Using smoothstep for now but there might be something better.
+				float coc = smoothstep(0.0, 1.0, abs_coc);
+				float3 dof_values = bicubic_sample_2d(input_texture0, input.uv, input_texture0_size);
+				float3 hdr_values = TEX2D(input_texture1, input.uv).rgb;
+				float3 merged_values = lerp(hdr_values, dof_values, coc);
+				return float4(merged_values, 0);
+			}
+		"""
+	}
+}
+
+shaders = {
+	depth_of_field = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="depth_of_field" render_states="filter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		}
+	}
+
+	merge_depth_of_field = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="merge_depth_of_field" defines=["SAMPLE_RGB"] render_states="filter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		}
+	}
+
+	calculate_coc = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="calculate_coc" render_states="filter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		}
+	}
+}
+
+static_compile= [
+	{ if: "on_renderer(D3D11, D3D12)" shader="calculate_coc" }
+	{ if: "on_renderer(D3D11, D3D12)" shader="depth_of_field" defines=["HORIZONTAL_PASS"] }
+	{ if: "on_renderer(D3D11, D3D12)" shader="depth_of_field" defines=["ASCENDING_DIAGONAL_PASS"] }
+	{ if: "on_renderer(D3D11, D3D12)" shader="depth_of_field" defines=["DESCENDING_DIAGONAL_PASS"] }
+	{ if: "on_renderer(D3D11, D3D12)" shader="merge_depth_of_field" }
+]

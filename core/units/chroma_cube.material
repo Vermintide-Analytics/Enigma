@@ -1,0 +1,96 @@
+
+shader = {
+	connections = [
+		{
+			destination = {
+				connector_id = "aca690cb-6305-4a2f-bf3d-69183a493db3"
+				instance_id = "a1cef2cd-1f48-4806-ab28-4f8de724c011"
+			}
+			source = {
+				instance_id = "e8ebdc73-b0c3-4cdf-90f3-8fc2a46b779e"
+			}
+		}
+	]
+	constants = [
+	]
+	nodes = [
+		{
+			content_size = [
+				160
+				0
+			]
+			export = {
+				material_variable = {
+					display_name = "rgb"
+					name = "rgb"
+					type = "float3"
+					ui = {
+						max = [
+							1
+							1
+							1
+						]
+						min = [
+							0
+							0
+							0
+						]
+						step = [
+							0.001
+							0.001
+							0.001
+						]
+					}
+					value = [
+						0
+						0
+						0
+					]
+				}
+			}
+			id = "e8ebdc73-b0c3-4cdf-90f3-8fc2a46b779e"
+			options = [
+			]
+			position = [
+				140
+				340
+			]
+			samplers = {
+			}
+			title = "rgb"
+			type = "core/shader_nodes/material_variable"
+		}
+		{
+			content_size = [
+				160
+				0
+			]
+			export = {
+			}
+			id = "a1cef2cd-1f48-4806-ab28-4f8de724c011"
+			options = [
+				"c8d8b754-c567-4c7b-9cbd-8acab22beff5"
+			]
+			position = [
+				400
+				400
+			]
+			samplers = {
+			}
+			type = "core/stingray_renderer/output_nodes/unlit_base"
+		}
+	]
+	version = 2
+}
+textures = {
+}
+variables = {
+	rgb = {
+		type = "vector3"
+		value = [
+			0
+			255
+			0
+		]
+	}
+}

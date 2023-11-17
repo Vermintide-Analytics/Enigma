@@ -1,0 +1,18 @@
+group = "Input/Camera"
+display_name = "Camera Direction"
+
+imports = {
+	camera_world = {
+		type = "float4x4"
+		domain = "global"
+		source = "engine"
+	}
+}
+
+output = {
+	type = "float3"
+}
+
+code = """
+	RESULT(-camera_world._m10_m11_m12);
+"""

@@ -1,0 +1,27 @@
+group = "Particle Billboard"
+display_name = "UV Scale"
+
+depends_on = [
+	"core/stingray_renderer/output_nodes/particle_base", 
+	"core/stingray_renderer/output_nodes/particle_gbuffer_base", 
+	"core/stingray_renderer/output_nodes/particle_distortion_base",
+	"core/stingray_renderer/output_nodes/particle_ribbon_base"
+]
+
+imports = {
+	uv_scale = { 
+		type = "float2"
+		domain = "vertex"
+		output_channel = "uv_scale"
+	}
+}
+
+defines = ["NEEDS_UV_SCALE"]
+
+output = {
+	type = { typeof: "uv_scale" }
+}
+
+code = """
+	RESULT(uv_scale);
+"""

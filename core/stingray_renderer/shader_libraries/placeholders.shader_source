@@ -1,0 +1,548 @@
+includes = [ "core/stingray_renderer/shader_libraries/common/common.shader_source" ]
+
+render_states = {
+	ambient_no_depth_write = {
+		inherits = "ambient"
+		states = {
+			z_write_enable = "false"
+		}
+	}
+	
+	filter = {
+		inherits = "default"
+		states = {
+			cull_mode = "cull_none"
+			z_write_enable = "false"
+			z_enable = "false"
+		}
+	}
+
+	skydome_billboard = {
+		inherits = "default"
+		states = {
+			z_write_enable = "false"
+
+			blend_enable = "true"
+			blend_op = "blend_op_add"
+			dest_blend = "blend_inv_src_alpha"
+			src_blend = "blend_src_alpha"
+		}
+	}
+
+	missing_shader = {
+		inherits = "opacity"
+		states = {
+			cull_mode = "cull_none"
+		}
+	}
+}
+
+hlsl_shaders = {
+	gbuffer_base = {
+		includes = [ "common", "gbuffer_access", "taa_offsets" ]
+
+		samplers = {
+		}
+
+		code = """
+			#if defined(VC_TINT_RGB)
+				#define VERTEX_COLOR
+			#endif
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float3 normal : NORMAL0;
+				#if defined(VERTEX_COLOR)
+					float4 color : COLOR0;
+				#endif
+
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float3 normal : TEXCOORD0;
+				#if defined(VERTEX_COLOR)
+					float4 color : COLOR0;
+				#endif
+				#if defined(MOTION_BLUR)
+					float3 last_clip_position : TEXCOORD1;
+				#endif				
+			};
+
+			CBUFFER_START(c_per_object)
+				float4x4 world_view_proj;
+				float4x4 world;
+				float4x4 last_world;
+				float3 diffuse_rgb; // exports={ name="Diffuse RGB" type="vector3" value=[0.5 0.5 0.5] min=[0 0 0] max=[1 1 1] step=[0.001 0.001 0.001] }
+				float4 dev_wireframe_color;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+
+				float4 p = mul(input.position, world_view_proj);
+
+				#if defined(DRAW_WIREFRAME) 
+					o.position = p;
+				#else
+					float4 view_space = p / p.w;
+					// Multiply the halton offset by 2 since we are adding the offset in view space (non projected frustrum width and height ranges [-1, 1])
+					view_space.xy += get_vs_halton_offset(frame_number);
+					o.position = view_space * p.w;
+				#endif
+
+				o.normal = mul(input.normal, (float3x3)world);
+
+				#if defined(VERTEX_COLOR)
+					#if defined(VC_COMPRESSED)
+						o.color = decode_vertex_color(input.color);
+					#else
+						o.color = input.color;
+					#endif
+				#endif				
+
+				#if defined(MOTION_BLUR)
+					float4 last_wp = mul(input.position, last_world);
+					float4 last_clip_pos = mul(last_wp, camera_last_view_projection);
+					float4 last_view_space = last_clip_pos / last_clip_pos.w;
+					last_view_space.xy += get_vs_halton_offset(frame_number);
+					last_view_space.xy = last_view_space.xy * 0.5 + 0.5;
+					last_view_space.y = 1.0 - last_view_space.y;					
+					last_clip_pos = last_view_space * last_clip_pos.w;
+					o.last_clip_position = last_clip_pos.xyw;
+ 				#endif
+
+				return o;
+			}
+
+			#ifdef DRAW_WIREFRAME
+				DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+				float4 ps_main(PS_INPUT input) : SV_TARGET0 {
+					return dev_wireframe_color;
+				}
+			#else
+				DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+				GBUFFER_OUT ps_main(PS_INPUT input) {
+					GBUFFER_OUT o;
+
+					half4 diffuse = half4(diffuse_rgb, 1);
+
+					#if defined(VC_TINT_RGB)
+						diffuse.rgb *= fast_gamma_to_linear_rgb(input.color.rgb);
+					#endif					
+
+					float3 wn = normalize(input.normal);					
+					BASE_COLOR(o) = gbuffer_encode_base_color(diffuse.rgb);
+					MATERIAL_ID(o) = gbuffer_encode_material_id();
+					NORMAL(o) = gbuffer_encode_normal(wn);
+					METALLIC(o) = gbuffer_encode_metallic_mask(0);
+					ROUGHNESS(o) = gbuffer_encode_roughness(0.75);
+
+					#if defined(MOTION_BLUR)
+						float3 last_clip_pos = input.last_clip_position;
+						float2 screen_pos = (input.position.xy / output_rt_size - viewport.zw) / viewport.xy;
+						float2 last_screen_pos = last_clip_pos.xy / last_clip_pos.z;
+						VELOCITY(o) = encode_velocity(viewport.xy*(screen_pos - last_screen_pos));
+					#else
+						// Velocity and occlusion is written to gbuffer2. If not written to but
+						// writes to gbuffer3 are done the gpu on PS4 will crash.
+						VELOCITY(o) = encode_velocity(float2(0.0, 0.0));
+					#endif
+
+					AMBIENT_OCCLUSION(o) = 1.f;
+					return o;
+				}
+			#endif
+		"""
+	}
+
+	depth_only = {
+		includes = [ "common" ]
+
+		samplers = {
+		}
+		code = """
+			struct VS_INPUT {
+				float4 position : POSITION;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				return o;
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float4 ps_main() : SV_TARGET0 {
+				return float4(1,1,1,1);
+			}
+		"""
+	}
+
+	forward_emissive = {
+		includes = [ "common", "gbuffer_access" ]
+
+		samplers = {
+			defined_SKYDOME = {
+				skydome_map = { sampler_states = "wrap_anisotropic" }
+			}
+		}
+
+		code="""
+			#if defined(SKYDOME)
+				#define UV0
+				DECLARE_SAMPLER_2D(skydome_map);
+			#endif
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				#if defined(UV0)
+					float2 uv : TEXCOORD0;
+				#endif
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				#if defined(UV0)
+					float2 uv : TEXCOORD0;
+				#endif
+				#if defined(FOG_BLEND)
+					float4 w : TEXCOORD1;
+				#endif
+			};
+
+			CBUFFER_START(c0)
+				#ifdef CAMERA_LOCK_XY
+					float4x4 world;
+					float4x4 view;
+					float4x4 proj;
+				#endif
+				float4x4 world_view_proj;
+				#ifdef SKYDOME
+					float skydome_u_offset;
+					float skydome_intensity;
+					#ifdef TINT_COLOR
+						float3 skydome_tint_color;
+					#endif
+				#endif
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input)
+			{
+				PS_INPUT o;
+
+				float4 position;
+				position = input.position;
+
+				float4 p;
+				#if defined(CAMERA_LOCK_XY)
+					float3 wp = mul(position, world).xyz;
+					#ifdef CAMERA_LOCK_Z
+						view._m30_m31_m32 = float3(0,0,0);
+					#else
+						view._m30_m31 = float2(0,0);
+					#endif
+					p = mul(mul(float4(wp,1),view), proj);
+				#else
+					p = mul(position, world_view_proj);
+				#endif
+
+				#ifdef PROJECT_TO_FAR_PLANE
+					p.z = p.w;
+				#endif
+
+				o.position = p;
+
+				#if defined(FOG_BLEND)
+					o.w = encode_world_pos(o.position, camera_unprojection);
+				#endif
+
+				#if defined(UV0)
+					o.uv = input.uv;
+				#endif
+				#if defined(MATERIAL_TRANSFER) && defined(UV0)
+					float2 tmp = input.uv;
+					tmp.y = 1 - tmp.y;
+					o.position = float4(tmp * 2 - 1, 0, 1);
+				#endif
+
+				return o;
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			half4 ps_main(PS_INPUT input) : SV_TARGET0
+			{
+				half4 c = half4(0,0,0,0);
+
+				#if defined(SKYDOME)
+					c = TEX2D(skydome_map, input.uv + float2(skydome_u_offset, 0));
+					#if defined(SKYDOME_RGBM)
+						c.rgb = rgbm_decode(c);
+					#endif
+					c.rgb *= skydome_intensity;
+					
+					#if defined(TINT_COLOR)
+						c.rgb *= skydome_tint_color;
+					#endif
+
+					#if defined(FOG_BLEND)
+						#error forward_emissive needs maintenance
+					#endif
+				#endif
+
+				//#if defined(MATERIAL_TRANSFER)
+				//	c.rgb = pow(c.rgb, 1.f / 2.2f);
+				//#endif
+
+				return c;
+			}
+		"""
+	}
+
+	skydome_billboard = {
+		includes = [ "common", "gbuffer_access" ]
+		samplers = {
+			diffuse_map = { sampler_states = "clamp_linear" }
+		}
+
+		code="""
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv 		: TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv 		: TEXCOORD0;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 view;
+				float4x4 proj;
+				#if defined(SECONDARY_SUN)
+					float3 secondary_sun_direction;
+					#define direction secondary_sun_direction
+				#else
+					#define direction sun_direction
+				#endif
+				float scale; // exports={ name="Scale" type="scalar" value=1 min=0 max=2 step=0.001 }
+			CBUFFER_END
+
+			DECLARE_SAMPLER_2D(diffuse_map); // exports={ name="Diffuse Map" type="resource" }
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+
+				float4 position = input.position * scale;
+				
+				float4 wp = float4(-direction, 1.0);
+				float3 y_axis = float3(0, 0, 1);
+				float3 x_axis = normalize(cross(y_axis, direction));
+				y_axis = cross(direction, x_axis);
+				wp.rgb += x_axis * position.x + y_axis * position.y;
+
+				o.uv = input.uv;
+
+				view._m30_m31_m32 = float3(0,0,0);
+				o.position = mul(mul(wp, view), proj);
+				o.position.z = o.position.w;
+
+				return o;
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			half4 ps_main(PS_INPUT input) : SV_TARGET0 {
+				return TEX2D(diffuse_map, input.uv);
+			}
+		"""
+	}
+
+	missing_shader = {
+		includes = ["common"]
+
+		code="""
+			struct VS_INPUT {
+				float4 position : POSITION;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float4 color : COLOR;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+			CBUFFER_END
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+
+				o.position = mul(input.position, world_view_proj);
+				o.color = float4(1, 0, 1, 0.4 + 0.6 * (sin(time*5.0)*0.5 + 0.5));
+				return o;
+			}
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float4 ps_main(PS_INPUT input) : SV_TARGET0 {
+				return input.color;
+			}
+		"""
+	}
+}
+
+shaders = {
+	skydome = {
+		editor_options = [
+			{
+				name="Vertex Modifiers"
+				options = [
+					{ name="Lock Camera in XY-plane" define="CAMERA_LOCK_XY" }
+					{ name="Lock Camera in Z-plane" define="CAMERA_LOCK_Z" }
+				]
+			}
+			{
+				name="Pixel Modifiers"
+				options = [
+					{ name="Skydome Texture RGBM encoded" define = "SKYDOME_RGBM" }
+					{ name="Tint Color" define = "TINT_COLOR" }
+					{ name="Blend in fog" define = "FOG_BLEND" }
+				]
+			}
+		]
+
+		contexts = {
+			default = {
+				passes = [
+					{ layer="skydome" hlsl_shader="forward_emissive" defines=["PROJECT_TO_FAR_PLANE" "SKYDOME"] render_states="ambient_no_depth_write" }
+				]
+			}
+
+			//material_transfer = {
+			//	passes_sort_mode="immediate"
+			//	passes = [
+			//		{  hlsl_shader="forward_emissive" defines=["MATERIAL_TRANSFER" "SKYDOME"] render_states="filter" }
+			//	]
+			//}
+		}
+
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+			material_transfer = [
+				{ defines=[] }
+			]
+		}
+	}
+
+	base = {
+		editor_options = [
+		]
+
+		contexts = {
+			shadow_caster = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="depth_only" render_states="shadow_caster" }
+				]
+			}
+
+			default = {
+				passes = [
+					{ layer="gbuffer" hlsl_shader="gbuffer_base" defines=["MOTION_BLUR"] render_states="gbuffer_material" }
+					{ defined="RENDERER_D3D11"
+						pass = [
+							{ layer="wireframe" hlsl_shader="gbuffer_base" defines=["DRAW_WIREFRAME"] render_states="wireframe" branch_key="dev_wireframe" }
+						]
+					}
+					{ defined="RENDERER_D3D12"
+						pass = [
+							{ layer="wireframe" hlsl_shader="gbuffer_base" defines=["DRAW_WIREFRAME"] render_states="wireframe" branch_key="dev_wireframe" }
+						]
+					}
+				]
+			}
+		}
+
+		compile = {
+			shadow_caster = [
+				{ defines=[] }
+			]
+			default = [
+				{ defines=[] }
+			]
+		}
+	}
+
+	skydome_billboard = {
+		editor_advanced_mode = false
+		
+		editor_options = [
+			{
+				name="Sun Direction"
+				options = [
+					{ name="Use Secondary Sun" define="SECONDARY_SUN" }
+				]
+			}
+		]
+
+		contexts = {
+			default = {
+				passes = [
+					{ layer="skydome_billboard" hlsl_shader="skydome_billboard" render_states="skydome_billboard" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[""] }
+			]
+		}
+	}
+
+	missing_shader = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes = [
+					{ layer="transparent" hlsl_shader="missing_shader" render_states="missing_shader" }
+				]
+			}
+			shadow_caster = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="missing_shader" render_states="shadow_caster" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ if: "on_renderer(D3D11, D3D12, GL)" }
+			]
+
+			shadow_caster = [
+				{ if: "on_renderer(D3D11, D3D12, GL)" }
+			]
+		}
+	}
+}
+
+static_compile = [
+	{ shader="missing_shader" }
+]

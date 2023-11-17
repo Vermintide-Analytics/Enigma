@@ -1,0 +1,20 @@
+mod = [
+	"Enigma"
+]
+
+package = [
+	"resource_packages/Enigma/Enigma"
+]
+
+lua = [
+	"scripts/mods/Enigma/*"
+]
+
+material = [
+  "materials/*"
+]
+
+texture = [
+	"textures/*"
+	"img/*"
+]

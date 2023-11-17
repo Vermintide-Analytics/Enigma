@@ -1,0 +1,548 @@
+includes = ["core/stingray_renderer/shader_libraries/common/common.shader_source"]
+
+render_states = {
+	slug_state = {
+		inherits = "opacity"
+		states = {
+			z_enable = "false"
+			z_write_enable = "false"
+			cull_mode = "cull_none"
+			blend_enable = "true"
+			blend_op = "blend_op_add"
+			dest_blend = "blend_inv_src_alpha"
+			src_blend = "blend_src_alpha"
+		}
+	}
+	slug_depth_state = {
+		inherits = "opacity"
+		states = {
+			z_enable = "true"
+			z_write_enable = "false"
+			cull_mode = "cull_none"
+			blend_enable = "true"
+			blend_op = "blend_op_add"
+			dest_blend = "blend_inv_src_alpha"
+			src_blend = "blend_src_alpha"
+		}
+	}
+}
+
+hlsl_shaders = {
+    slug_text = {
+		includes = [ "common" ]
+		samplers = {
+			defined_MASKED = {
+				overlay_mask = { sampler_states = "clamp_point" }
+			}
+		}
+		code = """
+			Texture2D curve_map;
+			Texture2D<uint4> band_map;
+
+			CBUFFER_START(c0)
+				float4x4 world;
+			CBUFFER_END
+
+			#if defined(MASKED)
+				DECLARE_SAMPLER_2D(overlay_mask);
+			#endif
+
+			struct VS_INPUT {
+				float4 attrib0 : POSITION;
+				float4 attrib1 : NORMAL;
+				float4 attrib2 : TANGENT;
+				float4 attrib3 : TEXCOORD;
+				float4 attrib4 : COLOR;
+					uint vid : SV_VertexID;
+			};
+
+			struct PS_INPUT
+			{
+				float4					position : SV_POSITION;
+				float4					color : COLOR0;
+					float2					texcoord : TEXCCORD0;
+					NO_INTERPOLATION float4	banding : BANDING0;
+					NO_INTERPOLATION int4	glyph : GLYPH0;
+				
+			};
+
+			void SlugUnpack(float4 bnd, float2 gly, out float4 vbnd, out int4 vgly)
+			{
+				uint2 g = asuint(gly);
+				vgly = int4(g.x & 0xFFFFU, g.x >> 16U, g.y & 0xFFFFU, g.y >> 16U);
+				vbnd = bnd;
+			}
+
+			float2 SlugDilate(float4 pos, float4 tex, float4 m0, float4 m1, float4 m3, float2 dim, out float2 vpos)
+			{
+					float k = m3.x * pos.x + m3.y * pos.y + m3.w;
+					float kx = k * m3.x;
+					float ky = k * m3.y;
+					float k2 = k * k;
+					float k4 = k2 * k2;
+
+					float fx = m3.y * pos.y + m3.w;
+					float wx = ((m0.y * pos.y + m0.w) * m3.x - fx * m0.x) * dim.x;
+					float hx = ((m1.y * pos.y + m1.w) * m3.x - fx * m1.x) * dim.y;
+					float ax = wx * wx + hx * hx - kx * kx;
+					float bx = k2 * kx;
+					float dx = (bx + sqrt(bx * bx + ax * k4) * clamp(pos.z, -1.0, 1.0)) / ax;
+
+					float fy = m3.x * pos.x + m3.w;
+					float wy = ((m0.x * pos.x + m0.w) * m3.y - fy * m0.y) * dim.x;
+					float hy = ((m1.x * pos.x + m1.w) * m3.y - fy * m1.y) * dim.y;
+					float ay = wy * wy + hy * hy - ky * ky;
+					float by = k2 * ky;
+					float dy = (by + sqrt(by * by + ay * k4) * (abs(pos.z) - 2.0)) / ay;
+
+					vpos.x = pos.x + dx + dy * pos.w;
+					vpos.y = pos.y + dy;
+					return (float2(tex.x + dx * tex.z, tex.y - dy * tex.w));
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input)
+			{
+				PS_INPUT	vresult;
+				float2 p;
+				vresult.texcoord = SlugDilate(input.attrib0, input.attrib1, world[0], world[1], world[3], back_buffer_size, p);
+				vresult.position.x = p.x * world[0].x + p.y * world[0].y + world[0].w;
+				vresult.position.y = p.x * world[1].x + p.y * world[1].y + world[1].w;
+				vresult.position.z = p.x * world[2].x + p.y * world[2].y + world[2].w;
+				vresult.position.w = p.x * world[3].x + p.y * world[3].y + world[3].w;
+				vresult.color = input.attrib4;
+				SlugUnpack(input.attrib2, input.attrib3.xy, vresult.banding, vresult.glyph);
+				return (vresult);
+			}
+
+			#define TexelLoad2D(x, y) x.Load(int3(y, 0))
+			
+			#define slug_code uint
+
+			uint CalcRootCode(float y1, float y2, float y3)
+			{
+				uint i1 = asuint(y1) >> 31U;
+				uint i2 = asuint(y2) >> 30U;
+				uint i3 = asuint(y3) >> 29U;
+
+				#if defined(__PSSL__)
+
+					uint shift = BitFieldInsert(2U, i2, i1);
+					shift = BitFieldInsert(4U, i3, shift);
+
+				#else
+
+					uint shift = (i2 & 2U) | (i1 & ~2U);
+					shift = (i3 & 4U) | (shift & ~4U);
+
+				#endif
+
+				return ((0x2E74U >> shift) & 0x0101U);
+			}
+
+			bool TestCurve(uint code) {return (code != 0U);}
+			bool TestRoot1(uint code) {return ((code & 1U) != 0U);}
+			bool TestRoot2(uint code) {return (code > 1U);}
+
+			float2 SolveHorizPoly(float4 p12, float2 p3)
+			{
+				float2 a = p12.xy - p12.zw * 2.0 + p3;
+				float2 b = p12.xy - p12.zw;
+				float ra = 1.0 / a.y;
+				float rb = 0.5 / b.y;
+
+				float d = sqrt(max(b.y * b.y - a.y * p12.y, 0.0));
+				float t1 = (b.y - d) * ra;
+				float t2 = (b.y + d) * ra;
+
+				if (abs(a.y) < 0.0001220703125) t1 = t2 = p12.y * rb;
+
+				return (float2((a.x * t1 - b.x * 2.0) * t1 + p12.x, (a.x * t2 - b.x * 2.0) * t2 + p12.x));
+			}
+
+			float2 SolveVertPoly(float4 p12, float2 p3)
+			{
+				float2 a = p12.xy - p12.zw * 2.0 + p3;
+				float2 b = p12.xy - p12.zw;
+				float ra = 1.0 / a.x;
+				float rb = 0.5 / b.x;
+
+				float d = sqrt(max(b.x * b.x - a.x * p12.x, 0.0));
+				float t1 = (b.x - d) * ra;
+				float t2 = (b.x + d) * ra;
+
+				if (abs(a.x) < 0.0001220703125) t1 = t2 = p12.x * rb;
+
+				return (float2((a.y * t1 - b.y * 2.0) * t1 + p12.y, (a.y * t2 - b.y * 2.0) * t2 + p12.y));
+			}
+
+			int2 CalcBandLoc(int2 glyphLoc, uint offset)
+			{
+				int2 bandLoc = int2(glyphLoc.x + int(offset), glyphLoc.y);
+				bandLoc.y += bandLoc.x >> 12;
+				bandLoc.x &= 0x0FFF;
+				return (bandLoc);
+			}
+
+			float CalcCoverage(float xcov, float ycov, float xwgt, float ywgt)
+			{
+				float coverage = saturate(max(abs(xcov * xwgt + ycov * ywgt) / max(xwgt + ywgt, 1.0 / 65536.0), min(abs(xcov), abs(ycov))));
+
+				#if defined(SLUG_WEIGHT)
+
+					coverage = sqrt(coverage);
+
+				#endif
+
+				return (coverage);
+			}
+
+			#if defined(SLUG_MULTICOLOR)
+
+				float4 ApplyLayerColor(uint4 layerData, float3 vertexColor, float coverage, float4 finalColor)
+				{
+					#if defined(__PSSL__)
+
+						float3 layerColor = float3(UnpackByte0(layerData.z), UnpackByte1(layerData.z), UnpackByte0(layerData.w)) * (1.0 / 255.0);
+
+					#else
+
+						float3 layerColor = float3(float(layerData.z & 0xFFU), float(layerData.z >> 8U), float(layerData.w & 0xFFU)) * (1.0 / 255.0);
+
+					#endif
+
+					if ((layerData.w >> 8U) != 0U) layerColor = vertexColor.xyz;
+					return (float4(lerp(finalColor.xyz, layerColor, coverage), saturate(finalColor.w + coverage)));
+				}
+
+			#endif
+
+			float4 SlugRender(Texture2D curveData, Texture2D<uint4> bandData, float2 pixelPosition, float4 vertexColor, float4 bandTransform, int4 glyphData)
+			{
+				int curveIndex;
+
+				float2 renderCoord = pixelPosition;
+				float2 emsPerPixel = fwidth(renderCoord);
+				float2 pixelsPerEm = 1.0 / emsPerPixel;
+
+				int2 bandMax = glyphData.zw;
+				bandMax.y &= 0xFF;
+
+				#if defined(SLUG_SUPER)
+
+					int sampleIndex;
+					int2 bandIndex;
+
+					int2 sampleCount = clamp(int2(emsPerPixel * 16.0 + 1.0), int2(1, 1), int2(4, 4));
+
+				#else
+
+					int2 bandIndex = clamp(int2(renderCoord * bandTransform.xy + bandTransform.zw), int2(0, 0), bandMax);
+
+				#endif
+
+				#if defined(SLUG_MULTICOLOR)
+
+					float4 finalColor = float4(0.0, 0.0, 0.0, 0.0);
+					int2 colorLoc = glyphData.xy;
+
+					int layerCount = int(TexelLoad2D(bandData, colorLoc).x);
+					for (int layer = 1; layer <= layerCount; layer++)
+					{
+						uint4 layerData = TexelLoad2D(bandData, int2(colorLoc.x + layer, colorLoc.y));
+						int2 glyphLoc = int2(layerData.xy);
+
+				#else
+
+					int2 glyphLoc = glyphData.xy;
+
+				#endif
+
+						float xcov = 0.0;
+						float xwgt = 0.0;
+
+						#if defined(SLUG_SUPER)
+
+							renderCoord.y -= emsPerPixel.y * (float(sampleCount.y - 1) / float(sampleCount.y * 2));
+							for (sampleIndex = 0; sampleIndex < sampleCount.y; sampleIndex++)
+							{
+								bandIndex.y = clamp(int(renderCoord.y * bandTransform.y + bandTransform.w), 0, bandMax.y);
+
+						#endif
+
+						uint4 hbandData = TexelLoad2D(bandData, int2(glyphLoc.x + bandIndex.y, glyphLoc.y));
+						int2 hbandLoc = CalcBandLoc(glyphLoc, hbandData.y);
+
+						#if defined(SLUG_SYMMETRIC)
+
+							if (renderCoord.x < asfloat(hbandData.z | (hbandData.w << 16U)))
+							{
+								for (curveIndex = 0; curveIndex < int(hbandData.x); curveIndex++)
+								{
+									int2 curveLoc = int2(TexelLoad2D(bandData, int2(hbandLoc.x + curveIndex, hbandLoc.y)).zw);
+									float4 p12 = TexelLoad2D(curveData, curveLoc) - float4(renderCoord, renderCoord);
+									float2 p3 = TexelLoad2D(curveData, int2(curveLoc.x + 1, curveLoc.y)).xy - renderCoord;
+
+									if (min(min(p12.x, p12.z), p3.x) * pixelsPerEm.x > 0.5) break;
+
+									slug_code code = CalcRootCode(p12.y, p12.w, p3.y);
+									if (TestCurve(code))
+									{
+										float2 r = SolveHorizPoly(p12, p3) * pixelsPerEm.x;
+
+										if (TestRoot1(code))
+										{
+											xcov -= saturate(0.5 - r.x);
+											xwgt = max(xwgt, saturate(1.0 - abs(r.x) * 2.0));
+										}
+
+										if (TestRoot2(code))
+										{
+											xcov += saturate(0.5 - r.y);
+											xwgt = max(xwgt, saturate(1.0 - abs(r.y) * 2.0));
+										}
+									}
+								}
+							}
+							else
+							{
+
+						#endif
+
+								for (curveIndex = 0; curveIndex < int(hbandData.x); curveIndex++)
+								{
+									int2 curveLoc = int2(TexelLoad2D(bandData, int2(hbandLoc.x + curveIndex, hbandLoc.y)).xy);
+
+									float4 p12 = TexelLoad2D(curveData, curveLoc) - float4(renderCoord, renderCoord);
+									float2 p3 = TexelLoad2D(curveData, int2(curveLoc.x + 1, curveLoc.y)).xy - renderCoord;
+
+									if (max(max(p12.x, p12.z), p3.x) * pixelsPerEm.x < -0.5) break;
+
+									slug_code code = CalcRootCode(p12.y, p12.w, p3.y);
+									if (TestCurve(code))
+									{
+										float2 r = SolveHorizPoly(p12, p3) * pixelsPerEm.x;
+
+										if (TestRoot1(code))
+										{
+											xcov += saturate(r.x + 0.5);
+											xwgt = max(xwgt, saturate(1.0 - abs(r.x) * 2.0));
+										}
+
+										if (TestRoot2(code))
+										{
+											xcov -= saturate(r.y + 0.5);
+											xwgt = max(xwgt, saturate(1.0 - abs(r.y) * 2.0));
+										}
+									}
+								}
+
+						#if defined(SLUG_SYMMETRIC)
+
+							}
+
+						#endif
+
+						#if defined(SLUG_SUPER)
+
+								renderCoord.y += emsPerPixel.y / float(sampleCount.y);
+							}
+
+						#endif
+
+						float ycov = 0.0;
+						float ywgt = 0.0;
+
+						#if defined(SLUG_SUPER)
+
+							renderCoord = float2(pixelPosition.x - emsPerPixel.x * (float(sampleCount.x - 1) / float(sampleCount.x * 2)), pixelPosition.y);
+							for (sampleIndex = 0; sampleIndex < sampleCount.x; sampleIndex++)
+							{
+								bandIndex.x = clamp(int(renderCoord.x * bandTransform.x + bandTransform.z), 0, bandMax.x);
+
+						#endif
+
+						uint4 vbandData = TexelLoad2D(bandData, int2(glyphLoc.x + bandMax.y + 1 + bandIndex.x, glyphLoc.y));
+						int2 vbandLoc = CalcBandLoc(glyphLoc, vbandData.y);
+
+						#if defined(SLUG_SYMMETRIC)
+
+							if (renderCoord.y < asfloat(vbandData.z | (vbandData.w << 16U)))
+							{
+								for (curveIndex = 0; curveIndex < int(vbandData.x); curveIndex++)
+								{
+									int2 curveLoc = int2(TexelLoad2D(bandData, int2(vbandLoc.x + curveIndex, vbandLoc.y)).zw);
+									float4 p12 = TexelLoad2D(curveData, curveLoc) - float4(renderCoord, renderCoord);
+									float2 p3 = TexelLoad2D(curveData, int2(curveLoc.x + 1, curveLoc.y)).xy - renderCoord;
+
+									if (min(min(p12.y, p12.w), p3.y) * pixelsPerEm.y > 0.5) break;
+
+									slug_code code = CalcRootCode(p12.x, p12.z, p3.x);
+									if (TestCurve(code))
+									{
+										float2 r = SolveVertPoly(p12, p3) * pixelsPerEm.y;
+
+										if (TestRoot1(code))
+										{
+											ycov += saturate(0.5 - r.x);
+											ywgt = max(ywgt, saturate(1.0 - abs(r.x) * 2.0));
+										}
+
+										if (TestRoot2(code))
+										{
+											ycov -= saturate(0.5 - r.y);
+											ywgt = max(ywgt, saturate(1.0 - abs(r.y) * 2.0));
+										}
+									}
+								}
+							}
+							else
+							{
+
+						#endif
+
+								for (curveIndex = 0; curveIndex < int(vbandData.x); curveIndex++)
+								{
+									int2 curveLoc = int2(TexelLoad2D(bandData, int2(vbandLoc.x + curveIndex, vbandLoc.y)).xy);
+									float4 p12 = TexelLoad2D(curveData, curveLoc) - float4(renderCoord, renderCoord);
+									float2 p3 = TexelLoad2D(curveData, int2(curveLoc.x + 1, curveLoc.y)).xy - renderCoord;
+
+									if (max(max(p12.y, p12.w), p3.y) * pixelsPerEm.y < -0.5) break;
+
+									slug_code code = CalcRootCode(p12.x, p12.z, p3.x);
+									if (TestCurve(code))
+									{
+										float2 r = SolveVertPoly(p12, p3) * pixelsPerEm.y;
+
+										if (TestRoot1(code))
+										{
+											ycov -= saturate(r.x + 0.5);
+											ywgt = max(ywgt, saturate(1.0 - abs(r.x) * 2.0));
+										}
+
+										if (TestRoot2(code))
+										{
+											ycov += saturate(r.y + 0.5);
+											ywgt = max(ywgt, saturate(1.0 - abs(r.y) * 2.0));
+										}
+									}
+								}
+
+						#if defined(SLUG_SYMMETRIC)
+
+							}
+
+						#endif
+
+						#if defined(SLUG_SUPER)
+
+								renderCoord.x += emsPerPixel.x / float(sampleCount.x);
+							}
+
+							xcov *= 1.0 / float(sampleCount.y);
+							ycov *= 1.0 / float(sampleCount.x);
+
+						#endif
+
+						float coverage = CalcCoverage(xcov, ycov, xwgt, ywgt);
+
+				#if defined(SLUG_MULTICOLOR)
+
+						finalColor = ApplyLayerColor(layerData, vertexColor.xyz, coverage, finalColor);
+
+						#if defined(SLUG_SUPER)
+
+							renderCoord.x = pixelPosition.x;
+
+						#endif
+					}
+
+					return (float4(finalColor.xyz, finalColor.w * vertexColor.w));
+
+				#else
+
+					return (float4(vertexColor.xyz, coverage * vertexColor.w));
+
+				#endif
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float4 ps_main(PS_INPUT input) : SV_TARGET0
+			{
+				float4 c = SlugRender(curve_map, band_map, input.texcoord, input.color, input.banding, input.glyph);
+
+				#if defined(MASKED)
+					float2 masked_uv = input.position.xy / back_buffer_size;
+					float4 mask = TEX2D(overlay_mask, masked_uv);
+					c.a *= mask.r;
+				#endif
+
+				#if defined(WRITE_MASK)
+					float mask = c.a;
+					return float4(mask, mask, mask, mask);
+				#else
+					float fixed_gamma = 2.2;
+					return float4(pow(c.rgb, 1.0 / fixed_gamma), c.a);
+				#endif
+			}
+		"""
+	}
+}
+shaders = {
+    slug_text = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes = [
+					{ layer="gui" hlsl_shader="slug_text" render_states="slug_state" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines="" }
+			]
+		}
+	}
+	slug_depth_text = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes = [
+					{ layer="transparent" hlsl_shader="slug_text" render_states="slug_depth_state" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines="DEPTH_TEST_ENABLED" }
+			]
+		}
+	}
+}
+static_compile = [
+    { shader = "slug_text" }
+	{ shader = "slug_text" defines = "SLUG_MULTICOLOR" }
+	{ shader = "slug_text" defines = "SLUG_SUPER" }
+	{ shader = "slug_text" defines = "SLUG_SUPER SLUG_MULTICOLOR" }
+	{ shader = "slug_text" defines = "SLUG_WEIGHT" }
+	{ shader = "slug_text" defines = "SLUG_MULTICOLOR SLUG_WEIGHT" }
+	{ shader = "slug_text" defines = "SLUG_WEIGHT SLUG_SUPER" }
+	{ shader = "slug_text" defines = "SLUG_WEIGHT SLUG_SUPER SLUG_MULTICOLOR" }
+	
+	{ shader = "slug_text" defines = "WRITE_MASK"}
+	{ shader = "slug_text" defines = "MASKED" }
+	{ shader = "slug_text" defines = "SLUG_MULTICOLOR MASKED" }
+	{ shader = "slug_text" defines = "SLUG_SUPER MASKED" }
+	{ shader = "slug_text" defines = "SLUG_SUPER SLUG_MULTICOLOR MASKED" }
+	{ shader = "slug_text" defines = "SLUG_WEIGHT MASKED" }
+	{ shader = "slug_text" defines = "SLUG_MULTICOLOR SLUG_WEIGHT MASKED" }
+	{ shader = "slug_text" defines = "SLUG_WEIGHT SLUG_SUPER MASKED" }
+	{ shader = "slug_text" defines = "SLUG_WEIGHT SLUG_SUPER SLUG_MULTICOLOR MASKED" }
+
+	{ shader = "slug_depth_text" }
+]

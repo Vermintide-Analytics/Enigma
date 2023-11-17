@@ -1,0 +1,74 @@
+
+geometries = {
+	g_billboard_01 = {
+		indices = {
+			size = 6
+			streams = [ [ 3 2 0 0 1 3 ] [ 0 1 2 2 3 0 ] [ 3 2 0 0 1 3 ] [ 0 1 2 3 4 5 ] [ 0 1 2 3 4 5 ] ]
+			type = "TRIANGLE_LIST"
+		}
+		materials = [ {
+				name = "billboard_material_01"
+				primitives = [ 0 1 ]
+			} ]
+		smoothing = [ 1 1 ]
+		streams = [ {
+				channels = [ {
+						index = 0
+						name = "POSITION"
+						type = "CT_FLOAT3"
+					} ]
+				data = [ -1 -1 0 1 -1 0 -1 1 0 1 1 0 ]
+				size = 4
+				stride = 12
+			} {
+				channels = [ {
+						index = 0
+						name = "NORMAL"
+						type = "CT_FLOAT3"
+					} ]
+				data = [ 0 0 1 0 0 1 0 0 1 0 0 1 ]
+				size = 4
+				stride = 12
+			} {
+				channels = [ {
+						index = 0
+						name = "TEXCOORD"
+						type = "CT_FLOAT2"
+					} ]
+				data = [ 0 0 1 0 0 1 1 1 ]
+				size = 4
+				stride = 8
+			} {
+				channels = [ {
+						index = 0
+						name = "BINORMAL"
+						type = "CT_FLOAT3"
+					} ]
+				data = [ 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 ]
+				size = 6
+				stride = 12
+			} {
+				channels = [ {
+						index = 0
+						name = "TANGENT"
+						type = "CT_FLOAT3"
+					} ]
+				data = [ 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 1 0 0 ]
+				size = 6
+				stride = 12
+			} ]
+	}
+}
+nodes = {
+	rp_billboard_01 = {
+		children = {
+			g_billboard_01 = {
+				geometries = [ "g_billboard_01" ]
+				local = [ 1 0 0 0 0 0 1 0 0 -1 0 0 0 0 0 1 ]
+				parent = "rp_billboard_01"
+			}
+		}
+		local = [ 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 ]
+	}
+}
+source_path = "D:\\Projects\\bulldozer\\source\\objects\\architecture\\hospital\\hospital_export.max"

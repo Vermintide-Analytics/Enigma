@@ -1,0 +1,1029 @@
+includes = ["core/stingray_renderer/shader_libraries/common/common.shader_source"]
+
+render_states = {
+	gui_gradient = {
+		inherits = "opacity"
+		states = {
+			z_enable = "false"
+			z_write_enable = "false"
+			cull_mode = "cull_none"
+			defined_WRITE_MASK = {
+				defined_ADDITIVE_BLEND = {
+					blend_enable = "true"
+					blend_op = "blend_op_add"
+					dest_blend = "blend_one"
+					src_blend = "blend_one"
+				}
+				ndefined_ADDITIVE_BLEND = {
+					blend_enable = "false"
+				}
+				defined_WRITE_MASK1 = {
+					write_mask0 = "green"
+				}
+				ndefined_WRITE_MASK1 = {
+					defined_WRITE_MASK2 = {
+						write_mask0 = "blue"
+					}
+					ndefined_WRITE_MASK2 = {
+						write_mask0 = "red"
+					}
+				}
+			}
+			defined_MASKED = {
+				blend_enable = "true"
+				blend_op = "blend_op_add"
+				dest_blend = "blend_inv_src_alpha"
+				src_blend = "blend_src_alpha"
+			}
+		}
+	}
+
+	world_interaction = {
+		inherits = "opacity"
+		states = {
+			z_enable = "false"
+			z_write_enable = "false"
+		}
+	}
+	
+	deus_map_fog_mask_clear = {
+		inherits = "opacity"
+		states = {
+			z_enable = "false"
+			z_write_enable = "false"
+			cull_mode = "cull_none"
+			blend_enable = "false"
+		}
+	}
+	
+	deus_map_fog_mask = {
+		inherits = "opacity"
+		states = {
+			z_enable = "false"
+			z_write_enable = "false"
+			cull_mode = "cull_none"
+			blend_enable = "true"
+			blend_op = "blend_op_min"
+			dest_blend = "blend_one"
+			src_blend = "blend_one"
+		}
+	}
+
+	default_forward_mask = {
+		inherits = "default"
+		states = {
+			z_enable = "false"
+			blend_enable = "true"
+			blend_op = "blend_op_add"
+			dest_blend = "blend_inv_src_color"
+			src_blend = "blend_zero"
+		}
+	}
+}
+
+hlsl_shaders = {
+	gui_gradient = {
+		includes = [ "common" ]
+
+		samplers = {
+			defined_DIFFUSE_MAP = {
+				defined_ATLAS_COLOR_LOOKUP = {
+					defined_ANISOTROPIC = {
+						diffuse_map = { sampler_states = "clamp_anisotropic" }
+					}
+					ndefined_ANISOTROPIC = {
+						diffuse_map = { sampler_states = "clamp_point" }
+					}
+				}
+				ndefined_ATLAS_COLOR_LOOKUP = {
+					defined_CYLINDER = {
+						diffuse_map = { sampler_states = "wrap_linear" }
+					}
+					ndefined_CYLINDER = {
+						defined_CLAMP_POINT ={
+							defined_WRAP = {
+								diffuse_map = { sampler_states = "wrap_point" }
+							}
+							ndefined_WRAP = {
+								diffuse_map = { sampler_states = "clamp_point" }
+							}
+						}
+						ndefined_CLAMP_POINT = {
+							defined_WRAP = {
+								diffuse_map = { sampler_states = "wrap_linear" }
+							}
+							ndefined_WRAP = {
+								diffuse_map = { sampler_states = "clamp_linear" }
+							}
+						}
+					}
+				}
+			}
+			defined_DIFFUSE_MAP_TWO = {
+				diffuse_map = { sampler_states = "clamp_linear" }
+				diffuse_map_two = { sampler_states = "clamp_linear" }
+			}
+			defined_DIFFUSE_MAP_THREE = {
+				diffuse_map = { sampler_states = "clamp_linear" }
+				diffuse_map_two = { sampler_states = "clamp_linear" }
+				diffuse_map_three = { sampler_states = "clamp_linear" }
+			}
+			defined_DIFFUSE_MAP_FOUR = {
+				diffuse_map = { sampler_states = "clamp_linear" }
+				diffuse_map_two = { sampler_states = "clamp_linear" }
+				diffuse_map_three = { sampler_states = "clamp_linear" }
+				diffuse_map_four = { sampler_states = "clamp_linear" }
+			}
+			defined_DIFFUSE_MAP_FIVE = {
+				diffuse_map = { sampler_states = "clamp_linear" }
+				diffuse_map_two = { sampler_states = "clamp_linear" }
+				diffuse_map_three = { sampler_states = "clamp_linear" }
+				diffuse_map_four = { sampler_states = "clamp_linear" }
+				diffuse_map_five = { sampler_states = "clamp_linear" }
+			}
+			defined_DIFFUSE_MAP_SIX = {
+				diffuse_map = { sampler_states = "clamp_linear" }
+				diffuse_map_two = { sampler_states = "clamp_linear" }
+				diffuse_map_three = { sampler_states = "clamp_linear" }
+				diffuse_map_four = { sampler_states = "clamp_linear" }
+				diffuse_map_five = { sampler_states = "clamp_linear" }
+				diffuse_map_six = { sampler_states = "clamp_linear" }
+			}
+			defined_GRADIENT = {
+				gradient_map = { sampler_states = "clamp_anisotropic" }
+			}
+			defined_MASKED = {
+				overlay_mask = { sampler_states = "clamp_point" }
+			}
+			defined_PATTERN_TINTING = {
+				color_atlas = { sampler_states = "clamp_point" }
+				material_map = { sampler_states = "clamp_point" }
+			}
+			defined_DETAIL_TEXTURE = {
+				detail_texture = { sampler_states = "wrap_linear" }
+			}
+			defined_COLOR_TINT_MAP = {
+				color_tint_map = { sampler_states = "clamp_linear" }
+			}
+			defined_DISTORTION = {
+				distortion_map = { sampler_states = "wrap_linear" }
+			}
+
+			defined_YUV_VIDEO = {
+				diffuse_map = { sampler_states = "wrap_linear" }
+				normal_map = { sampler_states = "wrap_linear" }
+			}
+		}
+
+		code="""
+			#if defined(DIFFUSE_MAP) || defined(YUV_VIDEO) || defined(DIVISION) || defined(PATTERN_TINTING) || defined(ATLAS_COLOR_LOOKUP) || defined(CIRCULAR_MASK) || defined(CIRCULAR_GRADIENT) || defined(DIFFUSE_MAP_TWO) || defined(DIFFUSE_MAP_THREE) || defined(DIFFUSE_MAP_FOUR) || defined(DIFFUSE_MAP_FIVE) || defined(DIFFUSE_MAP_SIX) || defined(DEUS_MAP_FOG_MASK)
+				#define UV0
+			#endif
+
+			#if defined(MASKED)
+				DECLARE_SAMPLER_2D(overlay_mask);
+			#endif
+
+			#if defined(DETAIL_TEXTURE)
+				DECLARE_SAMPLER_2D(detail_texture); // exports={ name="Detail Map" type="resource" }
+			#endif
+
+			#if defined(DIFFUSE_MAP)
+				DECLARE_SAMPLER_2D(diffuse_map); // exports={ name="Diffuse Map" type="resource" }
+			#endif
+
+			#if defined(DIFFUSE_MAP_TWO)
+				DECLARE_SAMPLER_2D(diffuse_map); // exports={ name="Diffuse Map" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_two); // exports={ name="Diffuse Map Two" type="resource" }
+			#endif
+
+			#if defined(DIFFUSE_MAP_THREE)
+				DECLARE_SAMPLER_2D(diffuse_map); // exports={ name="Diffuse Map" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_two); // exports={ name="Diffuse Map Two" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_three); // exports={ name="Diffuse Map Three" type="resource" }
+			#endif
+
+			#if defined(DIFFUSE_MAP_FOUR)
+				DECLARE_SAMPLER_2D(diffuse_map); // exports={ name="Diffuse Map" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_two); // exports={ name="Diffuse Map Two" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_three); // exports={ name="Diffuse Map Three" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_four); // exports={ name="Diffuse Map Four" type="resource" }
+			#endif
+
+			#if defined(DIFFUSE_MAP_FIVE)
+				DECLARE_SAMPLER_2D(diffuse_map); // exports={ name="Diffuse Map" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_two); // exports={ name="Diffuse Map Two" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_three); // exports={ name="Diffuse Map Three" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_four); // exports={ name="Diffuse Map Four" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_five); // exports={ name="Diffuse Map Five" type="resource" }
+			#endif
+
+			#if defined(DIFFUSE_MAP_SIX)
+				DECLARE_SAMPLER_2D(diffuse_map); // exports={ name="Diffuse Map" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_two); // exports={ name="Diffuse Map Two" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_three); // exports={ name="Diffuse Map Three" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_four); // exports={ name="Diffuse Map Four" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_five); // exports={ name="Diffuse Map Five" type="resource" }
+				DECLARE_SAMPLER_2D(diffuse_map_six); // exports={ name="Diffuse Map Six" type="resource" }
+			#endif
+
+			#if defined(GRADIENT)
+				DECLARE_SAMPLER_2D(gradient_map); // exports={ name="Gradient Map" type="resource" }
+			#endif
+
+			#if defined(DISTORTION)
+				DECLARE_SAMPLER_2D(distortion_map); // exports={ name="Distortion Map" type="resource" }
+			#endif
+
+			#if defined(PATTERN_TINTING)
+				DECLARE_SAMPLER_2D(color_atlas); // exports={ name="Color Atlas" type="resource" }
+				DECLARE_SAMPLER_2D(material_map); // exports={ name="Material Map" type="resource" }
+			#endif
+
+			#if defined(COLOR_TINT_MAP)
+				DECLARE_SAMPLER_2D(color_tint_map); // exports={ name="Color Tint Map" type="resource" }
+			#endif
+
+			#if defined(YUV_VIDEO) || defined(BINK_VIDEO)
+				DECLARE_SAMPLER_2D(diffuse_map);
+				DECLARE_SAMPLER_2D(normal_map);
+			#endif
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				#if defined(DIFFUSE_MAP_TWO) || defined(DIFFUSE_MAP_THREE) || defined(DIFFUSE_MAP_FOUR) || defined(DIFFUSE_MAP_FIVE) || defined(DIFFUSE_MAP_SIX) 
+					float3 normal : NORMAL;
+				#endif
+				float4 color : COLOR;
+				#if defined(UV0)
+					float2 uv : TEXCOORD0;
+				#endif
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float4 color : COLOR;
+				#if defined(DIFFUSE_MAP_TWO) || defined(DIFFUSE_MAP_THREE) || defined(DIFFUSE_MAP_FOUR) || defined(DIFFUSE_MAP_FIVE) || defined(DIFFUSE_MAP_SIX) 
+					float page : TEXCOORD1;
+				#endif
+				#if defined(UV0)
+					float2 uv : TEXCOORD0;
+				#endif
+			};
+
+			inline float2 scale_material_uv( float2 material_uv, float pattern_variation ) {
+				float pattern_u = fmod(pattern_variation,2.0f) * 0.5f;
+				float pattern_v = floor(pattern_variation / 2.0f) * 0.5;
+				return float2((material_uv.x * 0.5) + pattern_u, (material_uv.y * 0.5) + pattern_v);
+			}
+
+			inline float2 scale_uv_coat_of_arms( float2 uv, float variation, float2 atlas_fields ) {
+				float step_u = (1.0f/atlas_fields.x);
+				float step_v = (1.0f/atlas_fields.y);
+				float pattern_u = fmod( variation, atlas_fields.x) * step_u;
+				float pattern_v = floor( variation / atlas_fields.x ) * step_v;
+
+				return float2(uv.x * step_u + pattern_u, uv.y * step_v + pattern_v);
+			}
+
+			inline float2 scale_uv_coat_of_arms_atlas( float2 uv, float2 offset, float2 scale)
+			{
+				float2 scaled_uv = uv * scale + offset;
+				return scaled_uv;
+			}
+
+			float3 yuv_to_rgb(float3 yuv) {
+				float y = 1.1643*(yuv.x-0.0625);
+				float u = yuv.y - 0.5;
+				float v = yuv.z - 0.5;
+				float r = y + 1.5958*v;
+				float g = y - 0.39173*u-0.81290*v;
+				float b = y + 2.017*u;
+				return float3(r,g,b);
+			}
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float threshold_fade; // exports = { name="Threshold Fade" type="scalar" value=0.05 min=0.0 max=1 step=0.001 }
+				#if defined(GRADIENT)
+					float gradient_threshold; // exports = { Name="Gradient threshold" type="scalar" value=0.37 min=0 max=1 step=0.00001 }
+				#endif
+				#if defined(PATTERN_TINTING)
+					float pattern_variation; // exports = { name="Pattern Variation" type="scalar" value=0.0 min=0.0 max=3.0 step=1.0 }
+					float atlas_variation; // exports = { name="Armour Atlas Variation" type="scalar" value=0.0 min=0.0 max=31.0 step=1.0 }
+					float use_grayscale = 0;
+				#endif
+				#if defined(ATLAS_COLOR_LOOKUP)
+					float2 atlas_tiles; // exports = { name="Atlas tiles" type="vector2" value=[128.0 1.0] min=[1.0 1.0] max=[255.0 255.0] step=[1.0 1.0] }
+				#endif
+				#if defined(CIRCULAR_MASK)
+					float radial_threshold; // exports = { name="Radial Threshold" type="scalar" value=0.5 min=0.0 max=1.0 step=0.0001 }
+					float fade_threshold; // exports = { name="Fade Threshold" type="scalar" value=0.5 min=0.0001 max=1.0 step=0.0001 }
+					#if defined(UV_SCALE)
+						float2 uv_scale; // exports = { name="UV Scale" type="vector2" value=[0.0 0.0] min=[0.001 0.001] max=[1 1] step=[0.0001 0.0001] }
+					#endif
+				#endif
+				#if defined(CIRCULAR_GRADIENT)
+					#if !defined(INPUT_FROM_COLOR)
+						float4 from_color; // exports = { name="Gradient From Color" type="vector4" value=[0.0 0.0 0.0 0.0] min=[0 0 0 0] max=[1 1 1 1] step=[0.0001 0.0001 0.0001 0.0001] }
+					#endif
+					float4 to_color; // exports = { name="Gradient To Color" type="vector4" value=[0.0 0.0 0.0 0.0] min=[0 0 0 0] max=[1 1 1 1] step=[0.0001 0.0001 0.0001 0.0001] }
+					float exponent; // exports = { name="Gradient exponent" type="scalar" value=1 min=0 max=10.0 step=0.0001 }
+					float scale; // exports = { name="Gradient scale" type="scalar" value=1 min=0 max=10.0 step=0.0001 }
+				#endif
+				#if defined(DISTANCE_FIELD)
+					float smoothing_denominator; // exports = { name="Smoothing Scale" type="scalar" value=18 min=2 max=100.0 step=0.001 }
+					float outline_color;  // exports = { name="Outline Color" type="vector3" value=[0.0 0.0 0.0] min=[0.0 0.0 0.0] max=[1 1 1] step=[0.0001 0.0001 0.0001] }
+					float2 min_value;  // exports = { name="Min Outline" type="vector2" value=[0.0 0.0] min=[0.0 0.0] max=[1 1] step=[0.0001 0.0001] }
+					float2 max_value;  // exports = { name="Max Outline" type="vector2" value=[0.0 0.0] min=[0.0 0.0] max=[1 1] step=[0.0001 0.0001] }
+				#endif
+				#if defined(MC_DISTANCE_FIELD)
+					float smoothing_denominator; // exports = { name="Smoothing Scale" type="scalar" value=18 min=2 max=100.0 step=0.001 }
+					float outline_color;  // exports = { name="Outline Color" type="vector3" value=[0.0 0.0 0.0] min=[0.0 0.0 0.0] max=[1 1 1] step=[0.0001 0.0001 0.0001] }
+					float2 min_value;  // exports = { name="Min Outline" type="vector2" value=[0.0 0.0] min=[0.0 0.0] max=[1 1] step=[0.0001 0.0001] }
+					float2 max_value;  // exports = { name="Max Outline" type="vector2" value=[0.0 0.0] min=[0.0 0.0] max=[1 1] step=[0.0001 0.0001] }
+				#endif
+				#if defined(DETAIL_TEXTURE_DIR)
+					float2 detail_dir;  // exports = { name="Detail Texture scroll direction" type="vector2" value=[0.0 0.0] min=[-1 -1] max=[1 1] step=[0.0001 0.0001] }
+					float detail_speed; // exports = { name="Detail Texture scroll speed" type="scalar" value=0.5 min=0.0 max=10.0 step=0.0001 }
+				#endif
+				#if defined(DETAIL_TEXTURE)
+					float2 sample_tiling;  // exports = { name="Detail Texture Tiling" type="vector2" value=[1.0 1.0] min=[0 0] max=[100 100] step=[0.0001 0.0001] }
+					float detail_offset; // exports = { name="Detail Texture color offset" type="scalar" value=0.0 min=-1 max=1 step=0.0001 }
+				#endif
+				#if defined(COLOR_TINT_MAP)
+					float2 color_tint_uv; // exports = { name="Color Tint UV" type="vector2" value=[0.5 0.5] min=[0.0 0.0] max=[1 1] step=[0.0001 0.0001] }
+				#endif
+				#if defined(DISTORTION)
+					float2 distortion_strength; // exports = { name = "Distortion strength" type = "vector2" value=[0.5 0.5] min=[0.0 0.0] max=[10 10] step=[0.0001 0.0001] }
+					float2 distortion_speed; // exports = { name = "Distortion speed" type = "vector2" value=[0.0 0.0] min=[-10.0 -10.0] max=[10.0 10.0] step=[0.0001 0.0001] }
+					float distortion_offset_top; // exports = { name="Distortion offset top" type="scalar" value=0.0 min=-0 max=1 step=0.0001 }
+					float distortion_color_origin; // exports = { name="Distortion Color Origin" type="scalar" value=1.0 min=-0 max=1 step=0.0001 }
+					float distortion_sample_multiplier; // exports = { name="Distortion Sample Multiplier" type="scalar" value=1.0 min=1.0 max=100 step=0.0001 }
+				#endif
+				#if defined(DESATURATION)
+					float desaturation; // exports = { name="Desaturation Value" type="scalar" value=0.5 min=0.0 max=1.0 step=0.0001 }
+				#endif
+				#if defined(CYLINDER)
+					float2 test_scroll_speed;  // exports = { name = "Test Scroll Speed" type = "vector2" value=[0.0 0.0] min=[-10.0 -10.0] max=[10.0 10.0] step=[0.0001 0.0001] }
+					float2 test_distortion_amount;  // exports = { name = "Test Distortion Amount" type = "vector2" value=[0.0 0.0] min=[-10.0 -10.0] max=[10.0 10.0] step=[0.0001 0.0001] }
+				#endif
+				#if defined(GENERATE_RIPPLE)
+					float uv_in_scale; // exports = { name="UV Scale" type="scalar" value=1.0 min=0.0 max=10.0 step=0.0001 }
+					float amplitude; // exports = { name="Wave Amplitude" type="scalar" value=0.5 min=0.0 max=1.0 step=0.0001 }
+					float speed; // exports = { name="Wave Speed" type="scalar" value=5.0 min=0.0 max=100.0 step=0.0001 }
+					float base_frequency; // exports = { name="Wave Frequency" type="scalar" value=40.0 min=0.0 max=200.0 step=0.0001 }
+					float frequency_by_alpha; // exports = { name="Frequency Degenerates by Alpha" type="scalar" value=1.0 min=0.0 max=1.0 step=0.0001 }
+					float amplitude_by_alpha; // exports = { name="Amplitude Degenerates by Alpha" type="scalar" value=1.0 min=0.0 max=1.0 step=0.0001 }
+					float amplitude_over_distance; // exports = { name="Amplitude Degenerates by Distance" type="scalar" value=0.0 min=0.0 max=1.0 step=0.0001 }
+					float smoothness; // exports = { name="Wave smoothness" type="scalar" value=5.0 min=0.0 max=1000.0 step=0.0001 }
+				#endif
+				#if defined(SCREEN_TILE)
+					float2 tile_offset; // exports = { name = "Tile Offset" type = "vector2" value=[0.0 0.0] min=[0.0 0.0] max=[100.0 100.0] step=[0.0001 0.0001] }
+					float2 tile_multiplier; // exports = { name = "Tile Multiplier" type = "vector2" value=[1.0 1.0] min=[0.0 0.0] max=[100.0 100.0] step=[0.0001 0.0001] }
+				#endif
+				#if defined(DEUS_MAP_FOG_MASK)
+					float exponent; // exports = { name="Gradient exponent" type="scalar" value=1 min=0 max=10.0 step=0.0001 }
+					float scale; // exports = { name="Gradient scale" type="scalar" value=1 min=0 max=10.0 step=0.0001 }
+				#endif
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.color = decode_vertex_color(input.color);
+				#if defined(DIFFUSE_MAP_TWO) || defined(DIFFUSE_MAP_THREE) || defined(DIFFUSE_MAP_FOUR) || defined(DIFFUSE_MAP_FIVE) || defined(DIFFUSE_MAP_SIX) 
+					o.page = input.normal.z;
+				#endif
+				#if defined(UV0)
+					o.uv = input.uv;
+				#endif
+				return o;
+			}
+
+			float4 sample_diffuse(float2 uv, float page)
+			{
+				#if !defined(DIFFUSE_MAP) && !defined(DIFFUSE_MAP_TWO) && !defined(DIFFUSE_MAP_THREE) && !defined(DIFFUSE_MAP_FOUR) && !defined(DIFFUSE_MAP_FIVE) && !defined(DIFFUSE_MAP_SIX)
+					return float4(0,0,0,0);
+				#endif
+
+				
+				#if defined(DIFFUSE_MAP) || defined(DIFFUSE_MAP_TWO) || defined(DIFFUSE_MAP_THREE) || defined(DIFFUSE_MAP_FOUR) || defined(DIFFUSE_MAP_FIVE) || defined(DIFFUSE_MAP_SIX)
+				[branch]
+				if( page == 0)
+					return TEX2D(diffuse_map, uv);
+				#endif
+				#if defined(DIFFUSE_MAP_TWO) || defined(DIFFUSE_MAP_THREE) || defined(DIFFUSE_MAP_FOUR) || defined(DIFFUSE_MAP_FIVE) || defined(DIFFUSE_MAP_SIX)
+				else if( page == 1)
+					return TEX2D(diffuse_map_two, uv);
+				#endif
+				#if defined(DIFFUSE_MAP_THREE) || defined(DIFFUSE_MAP_FOUR) || defined(DIFFUSE_MAP_FIVE) || defined(DIFFUSE_MAP_SIX)
+				else if( page == 2)
+					return TEX2D(diffuse_map_three, uv);
+				#endif
+				#if defined(DIFFUSE_MAP_FOUR) || defined(DIFFUSE_MAP_FIVE) || defined(DIFFUSE_MAP_SIX)
+				else if( page == 3)
+					return TEX2D(diffuse_map_four, uv);
+				#endif
+				#if defined(DIFFUSE_MAP_FIVE) || defined(DIFFUSE_MAP_SIX)
+				else if( page == 4)
+					return TEX2D(diffuse_map_five, uv);
+				#endif
+				#if defined(DIFFUSE_MAP_SIX)
+				else
+					return TEX2D(diffuse_map_six, uv);
+				#endif
+
+				return float4(0,0,0,0);
+			}
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float4 ps_main(PS_INPUT input) : SV_TARGET0 {
+				#if defined(WRITE_MASK) && !defined(DISTANCE_FIELD) && !defined(MC_DISTANCE_FIELD)
+					#if defined(DIFFUSE_MAP)
+						#if defined(USE_RED_CHANNEL_AS_ALPHA)
+							float mask = TEX2D(diffuse_map, input.uv).r;
+						#else
+							float mask = TEX2D(diffuse_map, input.uv).a;
+						#endif
+
+						#if defined(DISCARD_ON_DIFFUSE_ALPHA)
+							if( mask == 0 )
+								discard;
+						#endif
+
+						#if defined(COLOR_MASK)
+							#if defined(USE_RED_COLOR_CHANNEL)
+								mask *= input.color.r;
+							#else
+								mask *= input.color.a;
+							#endif
+						#endif
+					#else
+						float mask = input.color.a;
+					#endif
+
+					#if defined(THRESHOLD_MASK)
+						mask = input.color.a > mask ? saturate((input.color.a - mask) / threshold_fade) : 0;
+					#elif defined(GRADIENT_MASK)
+						mask = input.color.a > mask ? 1.0 : 0.0;
+					#endif
+
+					#if defined(ADDITIVE_BLEND)
+						return float4(mask, mask, mask, mask); 
+					#else
+						return float4(mask, mask, mask, 0);
+					#endif
+				#elif defined(DIVISION)
+					float intensity = 1.0;
+					intensity = pow(max(pow(((input.uv.x * 2.0) - 1.0),2.0), pow(((input.uv.y * 2.0) - 1.0),2.0)),2.0);
+
+					float4 color = input.color;
+					color.rgb *= intensity;
+					color.a *= intensity;
+					return color;
+				#elif defined(CLEAR_MASK)
+					#if defined(CLEAR_WITH_ALPHA)
+						return float4(1,1,1,input.color.a);
+					#else
+						return float4(1,1,1,1);
+					#endif
+				#elif defined(CIRCULAR_GRADIENT)
+					float2 uv = input.uv;
+					float2 offset_uv = uv - float2(0.5,0.5);
+					float hypotenuse = sqrt(offset_uv.x * offset_uv.x + offset_uv.y * offset_uv.y);
+					#if defined(INPUT_FROM_COLOR)
+						float4 from_color = input.color;
+						return lerp(to_color, from_color, pow(hypotenuse * scale, exponent));
+					#else
+						return lerp(to_color, from_color, pow(hypotenuse * scale, exponent));
+					#endif
+				#elif defined(WORLD_INTERACTION)
+           			float4 diffuse = TEX2D(diffuse_map, input.uv);
+					#if defined(WATER_WORLD_INTERACTION)
+						#if defined(GENERATE_RIPPLE)
+							//float uv_in_scale; // exports = { name="UV Scale" type="scalar" value=1.0 min=0.0 max=10.0 step=0.0001 }
+							//float amplitude; // exports = { name="Wave Amplitude" type="scalar" value=0.5 min=0.0 max=1.0 step=0.0001 }
+							//float speed; // exports = { name="Wave Speed" type="scalar" value=5.0 min=0.0 max=100.0 step=0.0001 }
+							//float base_frequency; // exports = { name="Wave Frequency" type="scalar" value=40.0 min=0.0 max=200.0 step=0.0001 }
+							//float frequency_by_alpha; // exports = { name="Frequency Degenerates by Alpha" type="scalar" value=1.0 min=0.0 max=1.0 step=0.0001 }
+							//float amplitude_by_alpha; // exports = { name="Amplitude Degenerates by Alpha" type="scalar" value=1.0 min=0.0 max=1.0 step=0.0001 }
+							//float amplitude_over_distance; // exports = { name="Amplitude Degenerates by Distance" type="scalar" value=0.0 min=0.0 max=1.0 step=0.0001 }
+							//float smoothness; // exports = { name="Wave smoothness" type="scalar" value=50.0 min=0.0 max=1000.0 step=0.0001 }
+
+							float frequency = base_frequency - ( base_frequency - base_frequency * input.color.a) * frequency_by_alpha;
+							amplitude = amplitude - ( amplitude - amplitude * input.color.a) * amplitude_by_alpha;
+							half2 uv = (input.uv - 0.5) * uv_in_scale;
+
+							// Determine the offsets
+							float2 texel_size = 1.0 / back_buffer_size;
+							float2 offset1 = float2( texel_size.x * 5, 0.0f );
+							float2 offset2 = float2( 0.0f, texel_size.y * 5 );
+
+							// Current height
+							float r = sqrt(uv.x*uv.x + uv.y*uv.y);
+							float amplitude_scale = lerp(1.0, (1.0 - r/0.5), amplitude_over_distance);
+							float radius = r * frequency * 10;
+	            			half z0 = 0.5 + sin(radius - time * speed) * amplitude * amplitude_scale * input.color.a;
+
+	            			// Right Neighbour height
+	            			uv += offset1;
+	            			r = sqrt(uv.x*uv.x + uv.y*uv.y);
+	            			amplitude_scale = lerp(1.0, (1.0 - r/0.5), amplitude_over_distance);
+	            			radius = r * frequency * 10;
+	            			half z1 = 0.5 + sin(radius - time * speed) * amplitude * amplitude_scale * input.color.a;
+
+							// Top Neighbour height
+	            			uv += offset2;
+	            			r = sqrt(uv.x*uv.x + uv.y*uv.y);
+	            			amplitude_scale = lerp(1.0, (1.0 - r/0.5), amplitude_over_distance);
+	            			radius = r * frequency * 10;
+	            			half z2 = 0.5 + sin(radius - time * speed) * amplitude * amplitude_scale * input.color.a;
+																
+							float3 v01 = float3( offset1, z1 - z0 );
+							float3 v02 = float3( offset2, z2 - z0 );
+
+							// Normal at current position
+							float3 n = cross( v01, v02 );
+
+
+							// Can be useful to scale the Z component to tweak the
+							// amount bumps show up, less than 1.0 will make them
+							// more apparent, greater than 1.0 will smooth them out
+							n.z *= smoothness;
+
+	            			diffuse.rgb = encode_signed_normal(normalize( n ));
+
+	            			return float4(diffuse.rgb, diffuse.a * diffuse.b * input.color.a * z0 );
+	            		#else
+							return float4(diffuse.rgb, diffuse.a * diffuse.b * input.color.a );
+						#endif
+					#else
+						return float4(diffuse.rgb, input.color.a);
+					#endif
+				#elif defined(DEUS_MAP_FOG_MASK)
+						float4 clear_color = float4(1.0, 1.0, 1.0, 1.0);
+						float4 color_a = float4(input.color.r, input.color.r, input.color.r, input.color.r);
+						float4 color_b = float4(input.color.g, input.color.g, input.color.g, input.color.g);
+						float2 uv = input.uv;
+					#if defined(DEUS_MAP_FOG_MASK_CLEAR)
+
+						return clear_color;
+					#elif defined(DEUS_MAP_FOG_MASK_NODE)
+
+						float2 centered_uv = (uv - float2(0.5, 0.5)) / float2(0.5, 0.5);
+						float hypotenuse = sqrt(centered_uv.x * centered_uv.x + centered_uv.y * centered_uv.y);
+    					float lerp_value = 1.0 - pow(hypotenuse, exponent);
+
+    					return lerp(clear_color, color_a, lerp_value * scale);
+                    #elif defined(DEUS_MAP_FOG_MASK_EDGE)
+                        float2 centered_uv = (uv - float2(0.5, 0.5)) / float2(0.5, 0.5);
+
+                        float lerp_value = 1.0 - pow(abs(centered_uv.y), exponent);
+
+                        float4 left_color = lerp(clear_color, color_a, lerp_value * scale);
+                        float4 right_color = lerp(clear_color, color_b, lerp_value * scale);
+
+                        return lerp(left_color, right_color, uv.x);                    
+                    #elif defined(DEUS_MAP_FOG_MASK_BORDER)
+
+                        float lerp_value = 1.0 - pow(uv.x, exponent);
+
+                        return lerp(color_a, color_b, lerp_value);
+                    #endif
+				#elif defined(CLEAR_OFFSCREEN_BUFFER)
+					return float4(0,0,0,0);
+				#else
+
+					float4 c = input.color;
+					#if defined(DIFFUSE_MAP) || defined(DIFFUSE_MAP_TWO) || defined(DIFFUSE_MAP_THREE) || defined(DIFFUSE_MAP_FOUR) || defined(DIFFUSE_MAP_FIVE) || defined(DIFFUSE_MAP_SIX)
+						#if defined(DISTANCE_FIELD) 
+							float smoothing = 1.0/smoothing_denominator;
+							#if defined(DIFFUSE_MAP_TWO) || defined(DIFFUSE_MAP_THREE) || defined(DIFFUSE_MAP_FOUR) || defined(DIFFUSE_MAP_FIVE) || defined(DIFFUSE_MAP_SIX)
+								float4 diffuse = sample_diffuse(input.uv, input.page);
+							#else
+								float4 diffuse = TEX2D(diffuse_map, input.uv);
+							#endif
+							float alpha = smoothstep(0.5 - smoothing, 0.5 + smoothing, diffuse.a);
+
+							float dist_mask = diffuse.a;
+							if( dist_mask >= min_value.x && dist_mask <= max_value.y ) {
+								float factor = 1.0;
+								if( dist_mask <= min_value.y )
+									factor = smoothstep(min_value.x, min_value.y, dist_mask);
+								else
+									factor = smoothstep(max_value.y, max_value.x, dist_mask); 
+
+								float3 color = lerp(diffuse.rgb * c.rgb, outline_color, factor);
+								c = float4(color, alpha * c.a);
+							}	else {
+								c = saturate(float4(c.rgb, alpha * c.a)); // original was diffuse.rgb * c.rgb but since all our font textures always stored (1,1,1,distance) we were just wasting resources
+							}
+
+							#if defined(WRITE_MASK)
+								float mask = c.a;
+								#if defined(COLOR_MASK)
+									#if defined(USE_RED_COLOR_CHANNEL)
+										mask *= input.color.r;
+									#else
+										mask *= input.color.a;
+									#endif
+								#endif
+						
+								#if defined(THRESHOLD_MASK)
+									mask = input.color.a > mask ? saturate((input.color.a - mask) / threshold_fade) : 0;
+								#endif
+
+								#if defined(ADDITIVE_BLEND)
+									return float4(mask, mask, mask, mask); 
+								#else
+									return float4(mask, mask, mask, 0);
+								#endif
+							#endif
+						#elif defined(CHANNEL_IMAGE)
+							float4 diffuse = TEX2D(diffuse_map, input.uv);
+							float alpha_epsilon = 0.00393; // Note: Since we cull all gui calls that has an alpha of 0 we need to subtract 1/255 from the alpha channel since the least amount of alpha we can have is 1/255
+							float intensity = sign(c.r) * diffuse.r + sign(c.g) * diffuse.g + sign(c.b) * diffuse.b + sign(max(c.a - alpha_epsilon, 0)) * diffuse.a;
+							float alpha_intensity = c.r + c.g + c.b + c.a;
+							c.rgb = saturate(intensity);
+							c.a = saturate(intensity * alpha_intensity);
+						#elif defined(MC_DISTANCE_FIELD)
+							#if defined(DIFFUSE_MAP_TWO) || defined(DIFFUSE_MAP_THREE) || defined(DIFFUSE_MAP_FOUR) || defined(DIFFUSE_MAP_FIVE) || defined(DIFFUSE_MAP_SIX)
+								float4 diffuse = sample_diffuse(input.uv, input.page);
+							#else
+								float4 diffuse = TEX2D(diffuse_map, input.uv);
+							#endif
+							float smoothing = 1.0/smoothing_denominator;
+							float sign_dist = max(min(diffuse.r, diffuse.g), min(max(diffuse.r, diffuse.g), diffuse.b)); //median
+							float alpha = smoothstep(0.5 - smoothing, 0.5 + smoothing, sign_dist);
+							if( sign_dist >= min_value.x && sign_dist <= max_value.y ) {
+								float factor = 1.0;
+								if( sign_dist <= min_value.y )
+									factor = smoothstep(min_value.x, min_value.y, sign_dist);
+								else
+									factor = smoothstep(max_value.y, max_value.x, sign_dist);
+
+									float3 color = lerp(c.rgb, outline_color, factor);
+									c = float4(color, alpha * c.a);
+							}	else {
+								c = saturate(float4(c.rgb, alpha * c.a)); //original was diffuse.rgb * c.rgb but since we use all channels for the distance field we can no longer use the rgb channels
+							}
+
+							#if defined(WRITE_MASK)
+								float mask = c.a;
+								#if defined(COLOR_MASK)
+									#if defined(USE_RED_COLOR_CHANNEL)
+										mask *= input.color.r;
+									#else
+										mask *= input.color.a;
+									#endif
+								#endif
+						
+								#if defined(THRESHOLD_MASK)
+									mask = input.color.a > mask ? saturate((input.color.a - mask) / threshold_fade) : 0;
+								#endif
+
+								#if defined(ADDITIVE_BLEND)
+									return float4(mask, mask, mask, mask); 
+								#else
+									return float4(mask, mask, mask, 0);
+								#endif
+							#endif
+						#elif defined(DISTORTION)
+							half4 normal_distortion = TEX2D(distortion_map, input.uv * distortion_sample_multiplier + distortion_speed * time);
+							half2 distortion = (normal_distortion.xy * 2.0 - 1.0) * clamp(pow(input.uv.y * distortion_sample_multiplier,2) * distortion_offset_top, 0, 1);
+							float4 diffuse = TEX2D(diffuse_map, input.uv + distortion * distortion_strength);
+							c *= diffuse;
+							c.rgb *= distortion_color_origin;
+							c.rgb *= length(float2(1.0,1.0) - distortion);
+							//c = float4(distortion, 1, 1);
+						#else
+							#if defined(ATLAS_COLOR_LOOKUP)
+								float atlas_index = floor((input.color.a * 255.0f) + 0.5f);
+								float2 atlas_uv = scale_uv_coat_of_arms( input.uv, atlas_index , atlas_tiles );
+								float4 diffuse = TEX2D( diffuse_map, atlas_uv );
+								c.a = 1.0f;
+							#elif defined(CYLINDER)
+								c = float4(1,1,1,1);
+								float2 uv = input.uv;
+								float height_strength =  1.0 - (abs(uv.y - 0.5) * 2);
+								height_strength = sqrt(1 - pow(height_strength-1.0, 2));
+								float total_strength = clamp(1.0 - (test_distortion_amount.x * height_strength), 0, 1);
+								float x_offset = (1.0 - total_strength) * 0.5 + uv.x * total_strength;
+								float2 sample_uv = float2(x_offset + test_scroll_speed.x * time, uv.y + test_scroll_speed.y * time + input.color.a); 
+								float4 diffuse = TEX2D(diffuse_map, sample_uv);
+							#elif defined(SCREEN_TILE)
+								float4 diffuse = TEX2D(diffuse_map, tile_offset + input.uv * tile_multiplier);
+							#else
+								float4 diffuse = TEX2D(diffuse_map, input.uv);
+							#endif
+
+							#if defined(ONE_BIT_ALPHA)
+								one_bit_alpha_mask(diffuse.a, 0.5);
+								c.rgb * diffuse.rgb;
+								#if defined(GRADIENT_FROM_ALPHA)
+									c.a = diffuse.a;
+								#endif
+							#else
+								c *= diffuse;
+								#if defined(GRADIENT_FROM_ALPHA)
+									c.a = diffuse.a;
+								#endif
+							#endif
+
+							#if defined(GAMMA_CORRECTED)
+								c.rgb = pow(c.rgb, 2.2/gamma);
+							#endif
+						#endif
+					#elif defined(YUV_VIDEO)
+						float y = TEX2D(diffuse_map, input.uv).r;
+						float2 uv = TEX2D(normal_map, input.uv).rg;
+						c *= float4(yuv_to_rgb(float3(y,uv)), 1);
+					#endif
+
+					#if defined(COLOR_TINT_MAP)
+						float3 tint_color = TEX2D(color_tint_map, color_tint_uv).rgb;
+						c.rgb *= tint_color;
+					#endif
+
+					#if defined(DETAIL_TEXTURE)
+						float2 sample_uv = (input.position.xy / back_buffer_size) * sample_tiling;
+						#if defined(DETAIL_TEXTURE_DIR)
+							float detail_value = TEX2D(detail_texture, sample_uv + detail_dir * detail_speed * time).r;
+						#else
+							float detail_value = TEX2D(detail_texture, sample_uv).r;
+						#endif
+						#if defined(MASK_WITH_DETAIL_TEXTURE)
+							c.rgba += detail_offset + (detail_value - 0.5);
+						#else
+							c.rgb += detail_offset + (detail_value - 0.5);
+						#endif
+					#endif
+
+					#if defined(PATTERN_TINTING)
+						//float4 pattern_sample_uv = float4( scale_material_uv( input.uv, pattern_variation ), 0.0f, 0.0f );
+						float4 pattern_sample_uv = float4( input.uv, 0.0f, 0.0f );
+						float pattern_value = TEX2D( material_map, pattern_sample_uv ).a;
+
+						float4 armour_tint_sample_uv = float4( pattern_value, (atlas_variation / 32.0f), 0.0f, 0.0f);
+						half4 armour_tint_color = TEX2D( color_atlas, armour_tint_sample_uv );
+
+						c.rgb *= armour_tint_color.rgb * 2;
+						if( use_grayscale )
+							c.rgb = (c.r + c.g + c.b) / 3;
+					#endif
+
+					#if defined(CIRCULAR_MASK)
+						float2 uv = input.uv;
+						#if defined(UV_SCALE)
+							uv = fmod(input.uv, uv_scale) * floor((1.0/uv_scale) + 0.5);
+						#endif
+						float2 offset_uv = uv - float2(0.5,0.5);
+						float hypotenuse_squared = offset_uv.x * offset_uv.x + offset_uv.y * offset_uv.y;
+						float radial_threshold_squared = (radial_threshold * radial_threshold);
+						float fade_threshold_squared = (fade_threshold*fade_threshold);
+						if( hypotenuse_squared > radial_threshold_squared)
+						{
+							float diff = hypotenuse_squared - radial_threshold_squared;
+							c.a *= lerp(1.0,0.0, diff/fade_threshold_squared);
+						}
+					#endif
+
+					#if defined(MASKED)
+						float2 masked_uv = input.position.xy / back_buffer_size;
+						float4 mask = TEX2D(overlay_mask, masked_uv);
+						#if defined(READ_MASK0)
+							c.a *= mask.r;
+						#endif
+						#if defined(READ_MASK1)
+							c.a *= mask.g;
+						#endif
+						#if defined(READ_MASK2)
+							c.a *= mask.b;
+						#endif
+
+						#if !defined(READ_MASK0) && !defined(READ_MASK1) && !defined(READ_MASK2)
+							c.a *= mask.r;
+						#endif	
+					#endif
+
+					#if defined(RADIAL_DISSOLVE)
+						float value = sqrt( pow((input.uv.x * 2.0) - 1.0,2.0) + pow((input.uv.y * 2.0) - 1.0,2.0) );
+						if( value < 0.9 )
+							c.a *= lerp( 1.0, 0.0, (0.9 - value)/0.4);
+					#endif
+
+					#if defined(GRADIENT)
+						float4 gradient_value = TEX2D(gradient_map, input.uv);
+						#if defined(GRADIENT_FROM_ALPHA)
+							gradient_threshold = input.color.a;
+						#endif
+						if( gradient_value.r > gradient_threshold)
+							discard;
+					#endif
+
+					#if defined(GRAYSCALE)
+						float intensity = (c.r + c.g + c.b) / 3.0f;
+						c.rgb = intensity;
+					#endif
+
+					#if defined(DESATURATION)
+						float intensity = (c.r + c.g + c.b) / 3.0f;
+						c.rgb = lerp(c.rgb, float3(intensity, intensity, intensity), desaturation);
+					#endif
+
+					return c;
+				#endif
+			}
+		"""
+	}
+}
+
+shaders = {
+	gui_gradient = {
+		editor_options = [
+			{
+				name="Pixel Modifiers"
+				options = [
+					{ name="Diffuse Map" define="DIFFUSE_MAP" condition="!DIFFUSE_MAP_TWO && !DIFFUSE_MAP_THREE && !DIFFUSE_MAP_FOUR && !DIFFUSE_MAP_FIVE && !DIFFUSE_MAP_SIX" }
+					{ name="Channel divided image" define="CHANNEL_IMAGE" condition="DIFFUSE_MAP" }
+					{ name="Gradient Map" define="GRADIENT" }
+					{ name="YUV Video Decode" define="YUV_VIDEO" tool_tip="Does YUV->RGB conversion (Y in diffuse_map slot, UV in normal_map slot).\nTo be used together with VideoPlayer" }
+					{ name=" - Gradient From Alpha" define="GRADIENT_FROM_ALPHA" condition="GRADIENT"}
+					{ name="One Bit Alpha" define="ONE_BIT_ALPHA" }
+					{ name="Grayscale" define="GRAYSCALE" }
+					{ name="Atlas lookup from alpha" define="ATLAS_COLOR_LOOKUP" }
+					{ name="- Anisotropic Filtering" define="ANISOTROPIC" }
+					{ name="Circular Gradient" define="CIRCULAR_GRADIENT" }
+					{ name=" - Use Input color" define="INPUT_FROM_COLOR" condition="CIRCULAR_GRADIENT"}
+					{ name="Distance Field" define="DISTANCE_FIELD" }
+					{ name="Detail Texture" define="DETAIL_TEXTURE" }
+					{ name="Detail Texture scroll direction" define="DETAIL_TEXTURE_DIR" condition="DETAIL_TEXTURE"}
+					{ name="Mask with Detail Texture" define="MASK_WITH_DETAIL_TEXTURE" condition="DETAIL_TEXTURE"}
+					{ name="Tint Color Map" define="COLOR_TINT_MAP" }
+					{ name="Gamma Correction" define="GAMMA_CORRECTED" }
+					{ name="Normal Map Distortion" define="DISTORTION" }
+					{ name="Desaturation" define="DESATURATION" }
+					{ name="Two Font Maps" define="DIFFUSE_MAP_TWO" condition="DISTANCE_FIELD && !DIFFUSE_MAP && !DIFFUSE_MAP_THREE && !DIFFUSE_MAP_FOUR && !DIFFUSE_MAP_FIVE && !DIFFUSE_MAP_SIX" }
+					{ name="Three Font Maps" define="DIFFUSE_MAP_THREE" condition="DISTANCE_FIELD && !DIFFUSE_MAP && !DIFFUSE_MAP_TWO && !DIFFUSE_MAP_FOUR && !DIFFUSE_MAP_FIVE && !DIFFUSE_MAP_SIX" }
+					{ name="Four Font Maps" define="DIFFUSE_MAP_FOUR" condition="DISTANCE_FIELD && !DIFFUSE_MAP && !DIFFUSE_MAP_THREE && !DIFFUSE_MAP_TWO && !DIFFUSE_MAP_FIVE && !DIFFUSE_MAP_SIX" }
+					{ name="Five Font Maps" define="DIFFUSE_MAP_FIVE" condition="DISTANCE_FIELD && !DIFFUSE_MAP && !DIFFUSE_MAP_THREE && !DIFFUSE_MAP_FOUR && !DIFFUSE_MAP_TWO && !DIFFUSE_MAP_SIX" }
+					{ name="Six Font Maps" define="DIFFUSE_MAP_SIX" condition="DISTANCE_FIELD && !DIFFUSE_MAP && !DIFFUSE_MAP_THREE && !DIFFUSE_MAP_FOUR && !DIFFUSE_MAP_FIVE && !DIFFUSE_MAP_TWO" }
+					{ name="Cylinder distortion" define="CYLINDER" condition="DIFFUSE_MAP" }
+					//{ name="Render to Offscreen Target" define="OFFSCREEN_BUFFER" }
+					//{ name=" - Clear Offscreen Target" define="CLEAR_OFFSCREEN_BUFFER" condition="OFFSCREEN_BUFFER" }
+					{ name="World Interaction Rendering" define="WORLD_INTERACTION" }
+					{ name=" - Water Interaction" define="WATER_WORLD_INTERACTION" condition="WORLD_INTERACTION" }
+					{ name="   - Generate Ripple" define="GENERATE_RIPPLE" condition="WORLD_INTERACTION && WATER_WORLD_INTERACTION" }
+					{ name="Tile Texture" define="SCREEN_TILE" condition="DIFFUSE_MAP" }
+					{ name="Point Sample" define="CLAMP_POINT" condition="DIFFUSE_MAP" }
+					{ name="Wrap Sample" define="WRAP" condition="DIFFUSE_MAP" }
+					{ name="Deus Map Fog Mask" define="DEUS_MAP_FOG_MASK" }
+					{ name=" - Deus Map Fog Mask Clear" define="DEUS_MAP_FOG_MASK_CLEAR" }
+				]
+			}
+			{
+				name="Masking"
+				options = [
+					{ name="Write Transparency Mask" define="WRITE_MASK" condition="!MASKED"}
+					{ name=" - Additive Blend" define="ADDITIVE_BLEND" condition="WRITE_MASK"}
+					{ name=" - Write to Transparency Mask 2" define="WRITE_MASK1" condition="WRITE_MASK && !WRITE_MASK2" }
+					{ name=" - Write to Transparency Mask 3" define="WRITE_MASK2" condition="WRITE_MASK && !WRITE_MASK1" }
+					{ name=" - Use Gradient Mask" define="GRADIENT_MASK" condition="WRITE_MASK && DIFFUSE_MAP && !THRESHOLD_MASK" }
+					{ name=" - Discard pixel where diffuse alpha is zero" define="DISCARD_ON_DIFFUSE_ALPHA" condition="WRITE MASK && DIFFUSE_MAP" }
+					{ name=" - Use the red channel as alpha" define = "USE_RED_CHANNEL_AS_ALPHA" condition="WRITE MASK && DIFFUSE_MAP" }
+					{ name="Diffuse and Color Mask" define="COLOR_MASK" condition="WRITE_MASK && DIFFUSE_MAP"}
+					{ name=" - Use Red Color Channel as Mask", define="USE_RED_COLOR_CHANNEL" condition="COLOR_MASK"}
+					{ name="Threshold Mask" define="THRESHOLD_MASK" }
+					{ name="Transparency Masked" define="MASKED" condition="!WRITE_MASK && !CLEAR_MASK"}
+					{ name=" - Read from Transparency Mask 1 (default)" define="READ_MASK0" condition="MASKED" }
+					{ name=" - Read from Transparency Mask 2" define="READ_MASK1" condition="MASKED" }
+					{ name=" - Read from Transparency Mask 3" define="READ_MASK2" condition="MASKED" }
+					{ name="Circular Mask" define="CIRCULAR_MASK" }
+					{ name="- UV Scale" define="UV_SCALE" } 
+				]
+			}
+			{
+				name="Depth Testing"
+				options = [
+					{ name="Depth Testing Enabled" define="DEPTH_TEST_ENABLED" }
+				]
+			}
+		]
+
+		contexts = {
+			default = {
+				passes = [
+					{
+						defined = "OES2"
+						pass = [
+							{ layer="gui" hlsl_shader="mobile_gui" render_states="gui_gradient" }
+						]
+						fail = [
+							{
+								defined = "CLEAR_MASK"
+								pass = [
+									{ layer="transparent_mask" hlsl_shader="gui_gradient" render_states="gui_gradient" }
+								]
+								fail = [
+									{
+										defined = "WRITE_MASK"
+										pass = [
+											{ layer="transparent_mask" hlsl_shader="gui_gradient" render_states="gui_gradient" }
+										]
+										fail = [
+											{
+												defined = "WORLD_INTERACTION"
+												pass = [
+													{
+														defined = "WATER_WORLD_INTERACTION"
+														pass = [
+															{ layer="world_interaction_water" hlsl_shader="gui_gradient" render_states="world_interaction" }
+														]
+														fail = [
+															{ layer="world_interaction" hlsl_shader="gui_gradient" render_states="gui_gradient" }
+														]
+													}
+												]
+												fail = [
+													{
+														defined = "DEUS_MAP_FOG_MASK"
+														pass = [
+															{
+																defined = "DEUS_MAP_FOG_MASK_CLEAR"
+																pass = [
+																	{ layer="deus_map_fog_mask" hlsl_shader="gui_gradient" render_states="deus_map_fog_mask_clear" }
+																]
+																fail = [
+																	{ layer="deus_map_fog_mask" hlsl_shader="gui_gradient" render_states="deus_map_fog_mask" }
+																]
+															}
+														]
+														fail = [ 
+															{
+																defined = "OFFSCREEN_BUFFER"
+																pass = [
+																	{
+																		defined = "CLEAR_OFFSCREEN_BUFFER"
+																		pass = [
+																			{ layer="transparent_offscreen_buffer" hlsl_shader="gui_gradient" render_states="ambient" }
+																		]
+																		fail = [
+																			{ layer="transparent_offscreen_buffer" hlsl_shader="gui_gradient" render_states="gui_gradient" }
+																		]
+																	}
+																]
+																fail = [
+																	{ layer="gui" hlsl_shader="gui_gradient" render_states="gui_gradient" }
+																]
+															}
+														]
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines="" platforms = "D3D11 D3D12"}
+			]
+		}
+	}
+}
+
+static_compile = [
+	{ shader = "gui_gradient" defines = "MASKED" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP ANISOTROPIC CIRCULAR_MASK MASKED " }
+	{ shader = "gui_gradient" defines = "ATLAS_COLOR_LOOKUP DIFFUSE_MAP" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP CIRCULAR_MASK UV_SCALE" }
+	{ shader = "gui_gradient" defines = "WRITE_MASK CLEAR_WITH_ALPHA" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP PATTERN_TINTING" }
+	{ shader = "gui_gradient" defines = "ATLAS_COLOR_LOOKUP DIFFUSE_MAP MASKED ANISOTROPIC" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP MASKED" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP MATERIAL_TINT_RGB_1 MATERIAL_TINT_RGB_2 MATERIAL_TINT_RGB_3" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP MASKED CIRCULAR_MASK UV_SCALE" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP PATTERN_TINTING MASKED" }
+	{ shader = "gui_gradient" defines = "DIVISION" }
+	{ shader = "gui_gradient" defines = "WRITE_MASK" }
+	{ shader = "gui_gradient" defines = "ATLAS_COLOR_LOOKUP DIFFUSE_MAP ANISOTROPIC" }
+	{ shader = "gui_gradient" defines = "ATLAS_COLOR_LOOKUP DIFFUSE_MAP MASKED" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP MASKED GRAYSCALE" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP WRITE_MASK" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP GRAYSCALE" }
+	{ shader = "gui_gradient" defines = "CLEAR_MASK" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP GRADIENT" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP DISTANCE_FIELD" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP MC_DISTANCE_FIELD" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP DISTORTION" }
+	{ shader = "gui_gradient" defines = "DIFFUSE_MAP WRITE_MASK GRADIENT_MASK" }
+]

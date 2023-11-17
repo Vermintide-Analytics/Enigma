@@ -1,0 +1,27 @@
+group = "Particle Billboard"
+display_name = "UV Frame"
+
+depends_on = [
+	"core/stingray_renderer/output_nodes/particle_base", 
+	"core/stingray_renderer/output_nodes/particle_gbuffer_base", 
+	"core/stingray_renderer/output_nodes/particle_distortion_base",
+	"core/stingray_renderer/output_nodes/particle_ribbon_base"
+]
+
+imports = {
+	uv_frame = { 
+		type = "float"
+		domain = "vertex"
+		output_channel = "uv_frame"
+	}
+}
+
+defines = ["NEEDS_UV_ANIMATION"]
+
+output = {
+	type = { typeof: "uv_frame" }
+}
+
+code = """
+	RESULT(uv_frame);
+"""

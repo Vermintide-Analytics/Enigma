@@ -1,0 +1,13 @@
+group = "Math/Clamping"
+display_name = "Saturate"
+inputs = {
+	"6cebb808-14e4-45d6-9816-3838b1f6f4c7" = { name = "x" display_name = "Value" type = "auto" }
+}
+
+output = {
+	type = { typeof: "x" }
+}
+
+code = """
+	RESULT(saturate(x));
+"""

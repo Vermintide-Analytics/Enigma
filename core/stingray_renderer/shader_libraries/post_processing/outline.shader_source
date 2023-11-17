@@ -1,0 +1,244 @@
+includes = [ "core/stingray_renderer/shader_libraries/common/common.shader_source" ]
+
+render_states = {
+	filter = {
+		inherits = "default"
+		states = {
+			z_write_enable = "false"
+			z_enable = "false"
+
+			defined_OUTLINE = {
+				stencil_enable = "true"
+
+				stencil_func = "equal"
+				stencil_func_back_side = "equal"
+
+				stencil_fail = "stencil_op_keep"
+				stencil_pass = "stencil_op_keep"
+				stencil_z_fail = "stencil_op_keep"
+
+				stencil_fail_back_side = "stencil_op_keep"
+				stencil_pass_back_side = "stencil_op_keep"
+				stencil_z_fail_back_side = "stencil_op_keep"
+
+				stencil_ref = "0x80"
+				stencil_mask = "0x80"
+				stencil_write_mask = "0x0"
+			}
+		}
+	}
+
+	filter_premultiply = {
+		inherits = "filter"
+		states = {
+			blend_enable = "true"
+			blend_op = "blend_op_add"
+			dest_blend = "blend_inv_src_alpha"
+			src_blend = "blend_one"
+		}
+	}
+}
+
+hlsl_shaders = {
+	signed_distance_field_2d = {		
+		includes = [ "common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_point" }	
+		}
+		
+		code="""
+			#define MAX_DISTANCE_2D 3
+
+			DECLARE_SAMPLER_2D(input_texture0);
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+
+				float3 outline_color_red;
+				float3 outline_color_green;
+				float3 outline_color_blue;
+				float3 outline_color_alpha;
+
+				float2 outline_inner_params;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.uv = input.uv;
+				return o;
+			}
+
+			#define linearstep(min, max, x) saturate((x - min) / (max - min))		
+
+			#if defined(VERTICAL_PASS)
+				#define SAMPLES_COUNT 6
+				static const int distance_lut[SAMPLES_COUNT] = {
+					9, 4, 1, 1, 4, 9
+				};
+
+			#endif
+
+			// TODO: optimizations
+			// 1. if we want to only have inner or outer outlines, we should try to optimizwe the shader for it.
+			// 2. Discard pixels that are inside/outside or use the stencil buffer (if taa is used we need to set stencil values)
+			// 3. if we still need to have both inside and outside pixels, then we should use binary operators to pack the data.
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			half4 ps_main(PS_INPUT input) : SV_TARGET0 {
+				const int2 position = input.position.xy;
+
+				#if defined(HORIZONTAL_PASS)
+					const float4 s3 = input_texture0.tex.Load(int3(position.xy, 0));
+					const bool4 is_inside = s3 > 0.5;
+					[branch]
+					if (all(!is_inside))
+						return 0;
+
+					const float4 s0 = Sample(input_texture0, input.uv, int2(-3, 0));
+					const float4 s1 = Sample(input_texture0, input.uv, int2(-2, 0));
+					const float4 s2 = Sample(input_texture0, input.uv, int2(-1, 0));
+					const float4 s4 = Sample(input_texture0, input.uv, int2(1, 0));
+					const float4 s5 = Sample(input_texture0, input.uv, int2(2, 0));
+					const float4 s6 = Sample(input_texture0, input.uv, int2(3, 0));
+					
+					
+					int4 dist = 127; // should be smaller than 128 but value * value should be larger or equals to MAX_DISTANCE_SQUARED 
+					dist = s0 <= 0.5 || s6 <= 0.5 ? 9 : dist;
+					dist = s1 <= 0.5 || s5 <= 0.5 ? 4 : dist;
+					dist = s2 <= 0.5 || s4 <= 0.5 ? 1 : dist;
+
+					return (float4)((is_inside ? 128 : 0) + dist) / 255.0;
+					
+					//// Code above is a manual unroll of the code below when MAX_DISTANCE_2D == 3
+					//int4 dist = 11;
+					//const float4 value = input_texture0.Load(int3(position.xy, 0));
+					//const bool4 is_inside = value > 0.5;
+					//int4 dist = MAX_DISTANCE_2D + 1;
+					//
+					//for (int x = -MAX_DISTANCE_2D; x <= -1; ++x) {
+					//	const float4 value = input_texture0.Load(int3(position.xy + int2(x, 0), 0));
+					//	const bool4 is_valid = !((is_inside && value > 0.5) || (!is_inside && value <= 0.5));
+					//
+					//	dist = is_valid ? min(dist, -x) : dist;
+					//}
+					//
+					//for (int x = 1; x <= MAX_DISTANCE_2D; ++x) {
+					//	const float4 value = input_texture0.Load(int3(position.xy + int2(x, 0), 0));
+					//	const bool4 is_valid = !((is_inside && value > 0.5) || (!is_inside && value <= 0.5));
+					//
+					//	dist = is_valid ? min(dist, x) : dist;
+					//}
+					//return (float4)((is_inside ? 128 : 0) + dist * dist) / 255.0;
+				#elif defined(VERTICAL_PASS)
+					const int4 s3 = input_texture0.tex.Load(int3(position.xy, 0)) 	* 255.0 + 0.5;
+					const bool4 is_inside = s3 >= 128;
+					[branch]
+					if (all(!is_inside))
+						return 0.0;
+
+					const int4 s0 = Sample(input_texture0, input.uv, int2(0, -3))	* 255.0 + 0.5;
+					const int4 s1 = Sample(input_texture0, input.uv, int2(0, -2))	* 255.0 + 0.5;
+					const int4 s2 = Sample(input_texture0, input.uv, int2(0, -1))	* 255.0 + 0.5;
+					const int4 s4 = Sample(input_texture0, input.uv, int2(0, 1))	* 255.0 + 0.5;
+					const int4 s5 = Sample(input_texture0, input.uv, int2(0, 2))	* 255.0 + 0.5;
+					const int4 s6 = Sample(input_texture0, input.uv, int2(0, 3))	* 255.0 + 0.5;			
+
+					const int4 samples[SAMPLES_COUNT] = {
+						s0, s1, s2, s4, s5, s6
+					};
+					
+					const int MAX_DISTANCE_2D_SQUARED = (MAX_DISTANCE_2D + 1) * (MAX_DISTANCE_2D + 1);
+					const int MAX_DISTANCE_SQUARED = MAX_DISTANCE_2D_SQUARED * 2;
+					
+					int4 dist = MAX_DISTANCE_SQUARED;
+					
+					[unroll]
+					for (int i = 0; i < SAMPLES_COUNT; ++i) {
+						const int4 temp_value = samples[i];
+						const int y2 = distance_lut[i];
+						dist = min(dist, max(temp_value - 128, 0) + y2);
+					}
+
+					//for (int y = -MAX_DISTANCE_2D; y <= MAX_DISTANCE_2D; ++y) {
+					//	const int4 temp_value = input_texture0.Load(int3(position.xy + int2(0, y), 0))	* 255.0 + 0.5;
+					//	// inner samples is value + 128, outer samples is the same
+					//	const int4 value = is_inside ? 
+					//		max(temp_value - 128, 0) :
+					//		(temp_value >= 128 ? 0 : temp_value);
+					//
+					//	dist = min(dist, value + y * y);
+					//}
+					//const float4 settings_start = is_inside ? outline_inner_params.xxxx : outline_outer_params.xxxx;
+					//const float4 settings_end = is_inside ? outline_inner_params.yyyy : outline_outer_params.yyyy;
+
+					float4 result = is_inside ? (1.0 - linearstep(outline_inner_params.xxxx, outline_inner_params.yyyy, sqrt((float4)(dist) / (float4)(MAX_DISTANCE_SQUARED)))) : 0.0;
+
+					float3 color = 
+						result.r * outline_color_red +
+						result.g * outline_color_green + 
+						result.b * outline_color_blue + 
+						result.a * outline_color_alpha;
+
+					float alpha = max(max(result.r, result.g), max(result.b, result.a));
+					return float4(pow(color, 2.2/gamma), alpha);
+				#endif
+			}
+
+		"""
+	}
+}
+
+shaders = {
+	signed_distance_field_2d = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{
+						defined="HORIZONTAL_PASS"
+						pass = [
+							{ hlsl_shader="signed_distance_field_2d" defines=["OUTLINE"] render_states="filter" }
+						]
+						fail = [
+							{
+								defined="LENS_EFFECT"
+								pass = [
+									{ hlsl_shader="signed_distance_field_2d" defines=["OUTLINE"] render_states="filter" }
+								]
+								fail = [
+									{ hlsl_shader="signed_distance_field_2d" defines=["OUTLINE"] render_states="filter_premultiply" }
+								]
+							}
+						]
+					}
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines="" }
+			]
+		}
+	}
+}
+
+static_compile = [
+	{ shader="signed_distance_field_2d" defines=["VERTICAL_PASS"] }
+	{ shader="signed_distance_field_2d" defines=["VERTICAL_PASS" "LENS_EFFECT"] }
+	{ shader="signed_distance_field_2d" defines=["HORIZONTAL_PASS"] }
+]

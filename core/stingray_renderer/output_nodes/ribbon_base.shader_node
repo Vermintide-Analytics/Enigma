@@ -1,0 +1,247 @@
+group = "Output/Particles"
+display_name = "Ribbon Base"
+output_node = true
+render_configs = ["core/stingray_renderer/renderer"]
+
+// TODO: disable sun if it's disabled in environment settings.
+// TODO: options to disable shadows, local lights, sun_light.
+
+inputs = {
+	"e3a9c246-0314-4fd7-8fbd-1f843bfc268b" = {
+		name = "vertex_offset"
+		display_name = "Position offset"
+		is_required = false
+		type = { vector3: ["HAS_VERTEX_OFFSET"] }
+		domain = "vertex"
+	}
+
+	"e1d24468-d03e-4884-9b0d-dba23aaa94d6" = {
+		name = "base_color"
+		is_required = false
+		display_name = "Base Color"
+		type = { vector3: ["HAS_BASE_COLOR"] }
+		domain = "pixel"
+	}
+
+	"31359c75-f8b8-4d00-8be5-3c655d967421" = {
+		name = "normal"
+		is_required = false
+		display_name = "Normal"
+		type = { vector3: ["HAS_NORMAL"] }
+		domain = "pixel"
+	}
+	
+	"0752e133-0c01-4fc4-b45a-a629cad4f850" = {
+		name = "opacity"
+		is_required = false
+		display_name = "Opacity"
+		type = { scalar: ["HAS_OPACITY"] }
+		domain = "pixel"
+	}
+
+	"ecf646b2-91fc-4c75-ab73-90dc1da18fd0" = {
+		name = "emissive"
+		is_required = false
+		display_name = "Emissive"
+		type = { vector3: ["HAS_EMISSIVE"] }
+		domain = "pixel"
+	}
+
+	"a4334a80-de5b-45ca-85e5-4a931bdf1354" = {
+		name = "additive"
+		is_required = false
+		display_name = "Additive"
+		type = { scalar: ["HAS_ADDITIVE"] }
+		domain = "pixel"
+	}
+
+	"277fc016-3300-4c4f-85d0-50277d9cafd0" = {
+		name = "premultiply"
+		is_required = false
+		display_name = "Premultiply"
+		type = { scalar: ["HAS_PREMULTIPLIED"] }
+		domain = "pixel"
+	}
+
+	"6fd5ebe2-4d15-4ecc-abad-ab9731ea861a" = {
+		name = "fade_range"
+		is_required = false
+		display_name = "Angle Fade Range"
+		type = { vector2: ["HAS_ANGLE_FADE", "NEEDS_EYE_VECTOR", "NEEDS_WORLD_SPACE_PLANE_NORMAL"] }
+		domain = "pixel"
+	}
+}
+
+options = {
+	"e8e86308-83cd-47a1-ab84-82776b3cf0ca" = "SCREEN_SPACE"
+	"47a74b09-1932-40d4-ab90-0ec090fb9643" = "BLEND_ADDITIVE"
+	"e267562a-65dc-4547-a9fa-6a605b451cae" = "BLEND_PREMULTIPLIED_ALPHA"
+	"4a42f2e1-1069-4afe-a93f-c7558572780f" = "EMISSIVE_PARTICLES"
+	"5e380f16-5cc6-482b-9df6-af0d2b3bda3c" = "HAS_CUSTOM_FOV"
+}
+
+ui = [
+	{
+		type = "drop_down"
+		display_name = "Blend Mode"
+		options = {
+			"Alpha Blend"			 		= "00000000-0000-0000-0000-000000000000"
+			"Additive Blend"			 	= "47a74b09-1932-40d4-ab90-0ec090fb9643"
+			"Pre-Multiplied Alpha Blend" 	= "e267562a-65dc-4547-a9fa-6a605b451cae"
+		}
+		default = "00000000-0000-0000-0000-000000000000"
+	}
+
+	{
+		type = "drop_down"
+		display_name = "Turn-up Algorithms"
+		options = {
+			"Disabled"		= "00000000-0000-0000-0000-000000000000"
+			"Screen Space"	= "e8e86308-83cd-47a1-ab84-82776b3cf0ca"
+		}
+		default = "00000000-0000-0000-0000-000000000000"
+	}
+
+	{ type = "checkbox" display_name = "Emissive particles" option = "4a42f2e1-1069-4afe-a93f-c7558572780f" }
+	{ type = "checkbox" display_name = "Custom FOV" 		option = "5e380f16-5cc6-482b-9df6-af0d2b3bda3c" }
+]
+
+render_state = {
+}
+
+sampler_state = {
+}
+
+channels = 	{
+	"defined(HAS_NORMAL) && !defined(WORLD_SPACE_NORMAL)": {
+		tsm0 = { type = "float3" domains = ["vertex", "pixel"] }
+		tsm1 = { type = "float3" domains = ["vertex", "pixel"] }
+		tsm2 = { type = "float3" domains = ["vertex", "pixel"] }
+	}
+
+	"defined(PARTICLE_LIGHTING)": {
+		basis0 = { type = "float4" domains = ["vertex", "pixel"] }
+		basis1 = { type = "float4" domains = ["vertex", "pixel"] }
+		basis2 = { type = "float4" domains = ["vertex", "pixel"] }
+		back_lighting = { type = "float3" domains = ["vertex", "pixel"] }
+	}
+
+	"defined(NEEDS_EYE_VECTOR)": {
+		eye_vector = { type = "float3" domains = ["vertex", "pixel"] }
+	}
+	
+	"defined(NEEDS_WORLD_SPACE_PLANE_NORMAL)": {
+		world_space_plane_normal = { type = "float3" domains = ["vertex", "pixel"] }
+	}
+
+	"defined(NEEDS_WORLD_SPACE_NORMAL)": {
+		world_space_normal = { type = "float3" domains = ["vertex", "pixel"] }
+	}
+
+	"defined(NEEDS_PIXEL_DEPTH)": {
+		pixel_depth = { type = "float" domain = "pixel" }
+	}
+
+	"defined(NEEDS_SCREEN_POS)": {
+		screen_pos = { type = "float2" domain = "pixel" }
+	}
+	
+	vertex_strip_info = { type = "float" semantic = "POSITION1" domain = "vertex" }
+	vertex_size = { type = "float2" semantic = "TEXCOORD7" domain = "vertex" }
+
+	"defined(ROTATION)": {
+		vertex_rotation = { type = "float" semantic = "TEXCOORD1" domains = ["vertex"] }
+	}
+	"defined(NEEDS_UV_SCALE)": {
+		"defined(NEEDS_UV_ANIMATION)": {
+			vertex_uv_data = { type = "float3" semantic = "TEXCOORD0" domains = ["vertex"] }
+			uv_frame = { type = "float" domains = ["vertex"] }
+		}
+		"!defined(NEEDS_UV_ANIMATION)": {
+			vertex_uv_data = { type = "float2" semantic = "TEXCOORD0" domains = ["vertex"] }
+		}
+		uv_scale = { type = "float2" domains = ["vertex"] }
+	}
+	"!defined(NEEDS_UV_SCALE)": {
+		"defined(NEEDS_UV_ANIMATION)": {
+			vertex_uv_frame = { type = "float" semantic = "TEXCOORD0" domains = ["vertex"] }
+			uv_frame = { type = "float" domains = ["vertex"] }
+		}
+	}
+	"defined(PIVOT)": {
+		vertex_pivot = { type = "float3" semantic = "TEXCOORD6" domains = ["vertex"] }
+	}
+
+	"defined(TANGENT_LOCKED)": {
+		vertex_tangent = { type = "float3" semantic = "TANGENT" domains = ["vertex"] }
+	}
+
+	"defined(EXTERNAL_ROTATION)": {
+		vertex_binormal = { type = "float3" semantic = "BINORMAL" domains = ["vertex"] }
+	}
+
+	"defined(WIRE_AA)": {
+		wire_aa_fade = { type = "float" domains = ["vertex", "pixel"] }
+	}
+
+	"defined(NEEDS_WORLD_SPACE_POSITION)": {
+		world_space_position = { type = "float3" domains = ["vertex", "pixel"] }
+	}
+
+	// ribbon channels
+	ribbon_distance = { type = "float" semantic = "TEXCOORD6" domains = ["vertex"] }
+}
+
+exports = {
+	particle_min_size = { 
+		display_name = "Particle Min Size" 
+		type = "float" 
+		value = 5.0 
+		min = 0.0 
+		max = 50.0 
+		step = 0.001 
+	}
+}
+
+log_permutations = false
+permutation_sets = {
+   	pivot = [
+		//{ if: "has_visualizer_channels(pivot)" define: { "macros": ["PIVOT"] stages: ["vertex"] } }
+		{ default = true }
+	]
+
+    rotation = [
+		{ if: "has_visualizer_channels(rotation)" define: { "macros": ["ROTATION"] stages: ["vertex"] } permute_with: "pivot" }
+		{ permute_with: "pivot" }
+	]
+
+	axis_aligment = [
+		{ if: "has_visualizer_channels(tangent, binormal)" define: { "macros": ["EXTERNAL_ROTATION"] stages: ["vertex"] } permute_with: "rotation" }
+		{ define: { "macros": ["TANGENT_LOCKED"] stages: ["vertex"] } permute_with: "rotation" }
+		//{ if: "has_visualizer_channels(tangent)" define: { "macros": ["TANGENT_LOCKED"] stages: ["vertex"] } permute_with: "rotation" }
+		//{ permute_with: "rotation" }
+	]
+
+    default = [
+    	{ permute_with: "axis_aligment" }
+    ]
+}
+
+shader_contexts = {
+	default = {
+		passes_sort_mode = "deferred"
+		compile_with = [
+			// { if: "on_renderer(D3D11, D3D12, GL) && render_cap(development) && render_setting(particle_visualization)" defines=["PARTICLE_DEBUG"] permute_with: "default" }
+			{ if: "render_setting(low_res_transparency)" defines=["LOW_RES_ENABLED"] permute_with: "default" }
+			{ permute_with: "default" }
+		]
+
+		passes = [
+			{ if: "defined(EMISSIVE_PARTICLES)" then: [
+				{ layer="hdr_transparent" code_block="core/stingray_renderer/output_nodes/particle_base#billboard" render_state="core/stingray_renderer/output_nodes/particle_base#opacity" defines=["RIBBON"] }
+			] else: [
+				{ layer="hdr_transparent" code_block="core/stingray_renderer/output_nodes/particle_base#billboard" render_state="core/stingray_renderer/output_nodes/particle_base#opacity"  defines=["PARTICLE_LIGHTING" "CALCULATE_LIGHTING" "CALCULATE_FOG" /*"WIRE_AA"*/ "HL2_BASIS_LIGHTING" "BACK_LIGHTING" "RIBBON"] }
+			]}
+		]
+	}
+}

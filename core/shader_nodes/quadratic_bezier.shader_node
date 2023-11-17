@@ -1,0 +1,18 @@
+group = "Math/Interpolation"
+display_name = "Quadratic Bézier Interpolate"
+inputs = {
+	"add6315a-241c-4e0f-964d-d631c76a8873" = { name = "a" display_name = "A" type = "auto" }
+	"3b28b467-bfd1-4ad1-b47b-154216dd083c" = { name = "b" display_name = "B" type = "auto" }
+	"032b2db9-e594-4b28-ba6c-454083fa34ab" = { name = "c" display_name = "C" type = "auto" }
+	"bde70504-67e6-4d49-a49a-b932c185e028" = { name = "w" display_name = "Weight" type = "auto" }
+}
+
+domain = "pixel"
+
+output = {
+	type = { typeof: "a" }
+}
+
+code = """
+	RESULT(lerp(lerp(a, b, w), lerp(b, c, w), w));
+"""

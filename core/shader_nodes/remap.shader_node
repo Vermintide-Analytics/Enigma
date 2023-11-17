@@ -1,0 +1,18 @@
+group = "Utility"
+display_name = "Remap"
+inputs = {
+	"6fc97f2b-a585-4430-9f2d-93069a891bfc" = { name = "v" display_name = "Value" type = "float" }
+    "0563cce3-54d3-4366-9bfa-d22cf628d7e4" = { name = "from" display_name = "From" type = "vector2" }
+    "389bbca2-5575-4e59-9f0d-3c97082a9ea0" = { name = "to" display_name = "To" type = "vector2" }
+}
+
+output = {
+	type = { typeof: "v" }
+}
+
+code = """
+
+    float result = to.x + (to.y - to.x ) * ((v - from.x) / (from.y - from.x));
+
+	RESULT(result);
+"""

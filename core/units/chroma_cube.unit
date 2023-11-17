@@ -1,0 +1,59 @@
+
+data = {
+	chroma_blue = false
+	Color = {
+		B = 0
+		G = 0
+		R = 255
+	}
+	custom_color = false
+}
+editor_metadata = {
+	camera_settings = {
+		far_range = 1000
+		interest_point_distance = 1.422752
+		orthographic_plane = [
+			0
+			0
+			1
+			0
+		]
+		orthographic_zoom = 10
+		position = [
+			1.442318
+			-0.119604
+			0.545356
+		]
+		projection_type = "perspective"
+		rotation = [
+			0.092764
+			0.085128
+			-0.670755
+			-0.730914
+		]
+		rotation_speed = 0.003
+		translation_speed = 0.05
+	}
+	flow_framing = {
+		scale = 0.887444442696175
+		x = -830.01014658345
+		y = 8.34000104022078
+	}
+}
+materials = {
+	material = "core/units/chroma_cube"
+}
+mesh = "core/units/chroma_cube"
+renderables = {
+	g_chroma_cube = {
+		always_keep = false
+		culling = "bounding_volume"
+		generate_uv_unwrap = false
+		opaque = true
+		particle_mesh_spawning = false
+		raytracable = true
+		shadow_caster = false
+		surface_queries = false
+		viewport_visible = true
+	}
+}

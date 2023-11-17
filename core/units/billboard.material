@@ -1,0 +1,19 @@
+
+billboard_material_01 = {
+	material_contexts = {
+		surface_material = ""
+	}
+	shader = "base"
+	textures = {
+	}
+	variables = {
+		diffuse_rgb = {
+			type = "vector3"
+			value = [
+				1
+				0
+				0
+			]
+		}
+	}
+}

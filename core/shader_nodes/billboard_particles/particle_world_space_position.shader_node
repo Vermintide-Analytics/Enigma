@@ -1,0 +1,28 @@
+// only tracks the particle center position
+
+group = "Particle Billboard"
+display_name = "Particle World Space Position"
+
+depends_on = [
+	"core/stingray_renderer/output_nodes/particle_base", 
+	"core/stingray_renderer/output_nodes/particle_gbuffer_base", 
+	"core/stingray_renderer/output_nodes/particle_distortion_base",
+	"core/stingray_renderer/output_nodes/particle_ribbon_base"
+]
+
+imports = {
+	position = { 
+		type = "float4"
+		semantic = "POSITION"
+		domain = "vertex"
+	}
+}
+
+output = {
+	type = "float3"
+}
+
+
+code = """
+	RESULT(position.xyz);
+"""

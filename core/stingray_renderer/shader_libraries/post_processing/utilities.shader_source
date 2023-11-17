@@ -1,0 +1,913 @@
+includes = [
+	"core/stingray_renderer/shader_libraries/common/common.shader_source",
+	"core/stingray_renderer/shader_libraries/common/cubic_sampling_common.shader_source"
+]
+
+render_states = {
+	filter = {
+		inherits = "default"
+		states = {
+			z_enable = "false"
+			z_write_enable = "false"
+
+			defined_PREMULTIPLIED = {
+				blend_enable = "true"
+				blend_op = "blend_op_add"
+				src_blend = "blend_one"
+				dest_blend = "blend_inv_src_alpha"
+			}
+
+			defined_ADD = {
+				blend_enable = "true"
+				blend_op = "blend_op_add"
+				src_blend = "blend_one"
+				dest_blend = "blend_one"
+			}
+
+			defined_SKIN = {
+				stencil_enable = "true"
+				stencil_func = "equal"
+				stencil_fail = "stencil_op_keep"
+				stencil_pass = "stencil_op_keep"
+				stencil_z_fail = "stencil_op_keep"
+
+				stencil_func_back_side = "equal"
+				stencil_fail_back_side = "stencil_op_keep"
+				stencil_pass_back_side = "stencil_op_keep"
+				stencil_z_fail_back_side = "stencil_op_keep"
+
+				stencil_ref = "0x8"
+				stencil_mask = "0x18"
+				stencil_write_mask = "0x0"
+			}
+		}
+	}
+
+	filter_farplane = {
+		inherits = "filter"
+		states = {
+			z_enable = "true"
+		}
+	}
+
+	filter_depth = {
+		inherits = "default"
+		states = {
+			z_write_enable = "true"
+			z_enable = "true"
+			z_func = "always"
+			write_mask0 = "0x0"
+			write_mask1 = "0x0"
+			write_mask2 = "0x0"
+			write_mask3 = "0x0"
+		}
+	}
+
+	filter_downsample_depth = {
+		inherits = "filter_depth"
+		states = {
+			write_mask0 = "red"
+		}
+	}
+}
+
+sampler_states = {
+	downsample_mip_index = {
+ 		inherits = "clamp_linear"
+ 		states = {
+ 			defined_D3D11 = { 
+ 				mip_level_index = { variable = "sampler_input_mip_level" }
+ 			}
+ 			defined_D3D12 = { 
+ 				mip_level_index = { variable = "sampler_input_mip_level" }
+ 			}
+ 		}
+ 	}
+}
+
+hlsl_shaders = {
+	copy = {
+		includes = [ "common", "sampling_common", "bicubic_sampling", "lagrange_cubic_sampling", "hermite_cubic_sampling"]
+		samplers = {
+			ndefined_INTERLEAVE_BUFFER = {
+				defined_POINT_SAMPLER = {
+					input_texture0 = { sampler_states = "clamp_point" }
+				}
+				ndefined_POINT_SAMPLER = {
+					input_texture0 = { sampler_states = "clamp_linear" }
+				}
+			}
+			defined_MASKED = {
+				input_texture1 = { sampler_states = "clamp_point" }
+			}
+		}
+
+		code="""
+			#if defined(INTERLEAVE_BUFFER)
+				StructuredBuffer<float> input_texture0;
+			#else
+				DECLARE_SAMPLER_2D(input_texture0);
+			#endif
+			#if defined(MASKED)
+				DECLARE_SAMPLER_2D(input_texture1);
+			#endif
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float2 input_texture0_size;
+				#if defined(CUBE_CAPTURE)
+					float2 uv_flip;
+				#endif
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+
+				#if defined(FLIP_Y)
+					o.uv = float2(input.uv.x, 1.f - input.uv.y);
+				#else
+					o.uv = input.uv;
+				#endif
+
+				return o;
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float4 ps_main(PS_INPUT input) : SV_TARGET0 {
+				#if defined(INTERLEAVE_BUFFER)
+					float2 res = input_texture0_size;
+					res.y /= 4;
+
+					uint2 pixel_pos = input.position.xy;
+					uint buff_index = pixel_pos.y*res.x + pixel_pos.x;
+					uint stride = res.x * res.y;
+
+					return float4(input_texture0[buff_index + 0], input_texture0[buff_index + 1 * stride], input_texture0[buff_index + 2 * stride], input_texture0[buff_index + 3 * stride]);
+				#else
+					float2 uv = input.uv;
+					#if defined(CUBE_CAPTURE)
+						uv = uv * 2 - 1;
+						uv *= uv_flip;
+						uv = uv * 0.5 + 0.5;
+					#endif
+
+					#if defined(CUBIC_SAMPLER)
+						float4 c = bicubic_sample_2d(input_texture0, uv, input_texture0_size);
+					#elif defined(CATMULL_ROM_SAMPLER)
+						float4 c = catmull_rom_sample_2d(input_texture0, uv, input_texture0_size);
+					#elif defined(LAGRANGE_CUBIC_SAMPLER)
+						float4 c = lagrange_cubic_sample_2d(input_texture0, uv, input_texture0_size);
+					#elif defined(HERMITE_CUBIC_SAMPLER)
+						float4 c = hermite_cubic_sample_2d(input_texture0, uv, input_texture0_size);
+					#else
+						float4 c = TEX2D(input_texture0, uv);
+					#endif
+
+					#ifdef ALPHA_TO_RGB
+						c.rgb = c.aaa;
+					#elif RED_TO_RGB
+						c.rgb = c.rrr;
+					#endif
+
+					#if defined(COPY_HALF)
+						if(input.uv.x < 0.5)
+							discard;
+					#endif
+
+					#if defined(MASKED)
+						c *= 1 - TEX2D(input_texture1, uv).r;
+					#endif
+
+					return c;
+				#endif
+			}
+		"""
+	}
+
+	cs_copy_3d = {
+		includes = [ "common" ]
+		
+		stage_conditions = {
+			compute = "true"
+		}
+		
+		samplers = {
+		}
+		
+		code = """
+			Texture3D<float4> input_texture0;
+			RWTexture3D<float4> input_texture1;
+
+			CBUFFER_START(c0)
+				float3 input_texture0_size;	
+			CBUFFER_END
+			DEFAULT_COMPUTE_ROOT_SIGNATURE_ATTRIBUTE
+			[numthreads(4, 4, 4)]
+			void cs_main(uint3 Gid : SV_GroupID, uint3 DTId : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex )
+			{
+				input_texture1[DTId] = input_texture0[DTId];
+			}
+		"""
+	}
+
+	downsample_depth = {
+		includes = [ "common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_point" }
+		}
+
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float2 input_texture0_size;
+				float2 inv_input_texture0_size;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				float4 p = mul(input.position, world_view_proj);
+				o.position = p;
+				o.uv = input.uv;
+				return o;
+			}
+
+
+			struct PS_OUTPUT {
+				float linear_depth : SV_TARGET0;
+				float clip_depth : SV_DEPTH;
+			};
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_OUTPUT ps_main(PS_INPUT input) {
+				int2 ssp = int2(input.uv * input_texture0_size);
+				int2 uv_i = int2(ssp * 2 + int2((ssp.y & 1) ^ 1, (ssp.x & 1) ^ 1));
+				float2 uv = 0.5 * (float2)uv_i * inv_input_texture0_size;
+
+				float clip_depth = TEX2DLOD(input_texture0, uv, 0).r;
+
+				PS_OUTPUT o;
+				o.linear_depth = linearize_depth(clip_depth);
+				o.clip_depth = clip_depth;
+
+				return o;
+			}
+		"""
+	}
+
+	filter = {		
+		includes = [ "common", "gbuffer_access" ]
+		samplers = {
+			ndefined_DOWNSAMPLE_MIP = {
+				input_texture0 = { sampler_states = "clamp_linear" }
+			}
+			defined_DOWNSAMPLE_MIP = {
+				input_texture0 = { sampler_states = "downsample_mip_index" }
+			}
+		}
+
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+						
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float2 inv_input_texture0_size;
+				float input_mip_level;			
+				float output_mip_level;			
+			CBUFFER_END
+			
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.uv = input.uv;
+				
+				return o;
+			}			
+			
+			const static float2 gaussian_taps[5] = {
+				float2(-4.30908, 0.055028),
+				float2(-2.37532, 0.244038),
+				float2(-0.50000, 0.401870),
+				float2( 1.37532, 0.244038),
+				float2( 3.30908, 0.055028),
+			};
+
+			static const float3 luminance_vector = float3(0.2127, 0.7152, 0.0721);
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float4 ps_main(PS_INPUT input) : SV_TARGET0 {				
+				#if defined(DOWNSAMPLE_4x4)
+					float d = inv_input_texture0_size.x;
+					float4 c =
+						TEX2D(input_texture0, input.uv + float2(-d, -d)) +
+						TEX2D(input_texture0, input.uv + float2( d, -d)) +
+						TEX2D(input_texture0, input.uv + float2(-d,  d)) +
+						TEX2D(input_texture0, input.uv + float2( d,  d));
+					c *= 0.25;
+				#elif defined(DOWNSAMPLE_2X2)
+					float4 c = TEX2D(input_texture0, input.uv);
+				#elif defined(DOWNSAMPLE_MIP)
+					float4 c = TEX2DLOD(input_texture0, input.uv, input_mip_level);
+				#elif defined(SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X) || defined(SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y)					
+					float4 c = float4(0,0,0,0);			
+					for (int i = 0; i < 5; ++i) {
+						#if defined(SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X)
+							c += TEX2DLOD(input_texture0, input.uv + float2(gaussian_taps[i].x, 0.5) * inv_input_texture0_size, output_mip_level) * gaussian_taps[i].y;
+						#else
+							c += TEX2DLOD(input_texture0, input.uv + float2(0.5, gaussian_taps[i].x) * inv_input_texture0_size, output_mip_level) * gaussian_taps[i].y;
+						#endif
+					}
+				#elif defined(FIREFLIES_REDUCTION)
+					float4 c = TEX2D(input_texture0, input.uv);					
+					float lum = dot(c.rgb, luminance_vector);
+					c.rgb *= 1.0 / (1.0 + lum);					
+				#elif defined(INV_FIREFLIES_REDUCTION)
+					float4 c = TEX2D(input_texture0, input.uv);
+					float lum = dot(c.rgb, luminance_vector);					
+					c.rgb *= 1.0 / (1.0 - lum);
+				#else
+					float4 c = TEX2D(input_texture0, input.uv);
+				#endif
+				
+				return c;
+			}	
+		"""
+	}
+
+	linearize_depth	= {
+		includes = [ "common", "gbuffer_access" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_point" }
+		}
+
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.uv = input.uv;
+				return o;
+			}
+
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float4 ps_main(PS_INPUT input) : SV_TARGET0 {
+				float clip_depth = TEX2D(input_texture0, input.uv).r;
+				float d = linearize_depth(clip_depth);
+				return float4(d,0,0,0);
+			}
+		"""
+	}
+
+	merge_skydome_motion_vectors = {		
+		includes = [ "common", "gbuffer_access", "space_conversion" ]
+		samplers = {
+		}
+		
+		code="""
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+				float4 w : TEXCOORD1;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;			
+			CBUFFER_END	
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.uv = input.uv;
+				o.w = encode_world_pos(o.position);
+				o.position.z = o.position.w;
+				return o;
+			}
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float2 ps_main(PS_INPUT input) : SV_TARGET0 {
+				float3 cur_world_pos = decode_world_pos(input.w, camera_near_far.y);
+				cur_world_pos -= camera_pos;
+				float3 prev_view_pos = world_to_prev_view(cur_world_pos, 1, 1);
+				float3 prev_ss_pos = view_to_ss(prev_view_pos, 1);
+				float2 curr_ss_pos = (input.uv - viewport.zw) / viewport.xy;
+				float2 velocity = (curr_ss_pos - prev_ss_pos.xy)*viewport.xy;
+				return float2(encode_velocity(velocity));
+			}	
+		"""
+	}
+
+	bilateral_upsample = {
+		// TODO: needs optimization
+		includes = [ "common", "gbuffer_access" ]
+		samplers = {			
+			input_texture0 = { sampler_states = "clamp_point" }
+			input_texture1 = { sampler_states = "clamp_point" }
+			input_texture2 = { sampler_states = "clamp_point" }
+		}
+		 
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+			DECLARE_SAMPLER_2D(input_texture1);
+			DECLARE_SAMPLER_2D(input_texture2);
+						
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;				
+				float2 inv_input_texture0_size;
+			CBUFFER_END
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);				
+				o.uv = input.uv;
+				
+				return o;
+			}			
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float4 ps_main(PS_INPUT input) : SV_TARGET0 {
+				const float4 bilinear_weights[4] = {
+					float4(9.0/16.0,3.0/16.0,3.0/16.0,1.0/16.0),
+					float4(3.0/16.0,9.0/16.0,1.0/16.0,3.0/16.0),
+					float4(3.0/16.0,1.0/16.0,9.0/16.0,3.0/16.0),
+					float4(1.0/16.0,3.0/16.0,3.0/16.0,9.0/16.0)
+				};
+				const float eps = 0.001;				
+				
+				int2 pos = int2(input.position.xy);
+				int idx = int((pos.y%2.0)*2.0) + int(pos.x%2.0);
+				
+				const float2 offsets[4*4] = {
+					{ -0.5, -0.5 }, { 1.5, -0.5 }, {  1.5, 1.5 }, { -0.5, 1.5 }, 
+					{ -1.5, -0.5 }, { 0.5, -0.5 }, {  0.5, 1.5 }, { -1.5, 1.5 }, 
+					{ -0.5, -1.5 }, { 1.5, -1.5 }, { -0.5, 0.5 }, {  1.5, 0.5 }, 
+					{ -1.5, -1.5 }, { 0.5, -1.5 }, { -1.5, 0.5 }, {  0.5, 0.5 }
+				};
+				
+				inv_input_texture0_size *= 0.5;
+				float4 shading_coarse[4] = {
+					TEX2D(input_texture0, input.uv + offsets[idx*4+0] * inv_input_texture0_size),
+					TEX2D(input_texture0, input.uv + offsets[idx*4+1] * inv_input_texture0_size),
+					TEX2D(input_texture0, input.uv + offsets[idx*4+2] * inv_input_texture0_size),
+					TEX2D(input_texture0, input.uv + offsets[idx*4+3] * inv_input_texture0_size)
+				};
+
+				float depth_coarse[4] = {
+					TEX2D(input_texture1, input.uv + offsets[idx*4+0] * inv_input_texture0_size).r,
+					TEX2D(input_texture1, input.uv + offsets[idx*4+1] * inv_input_texture0_size).r,
+					TEX2D(input_texture1, input.uv + offsets[idx*4+2] * inv_input_texture0_size).r,
+					TEX2D(input_texture1, input.uv + offsets[idx*4+3] * inv_input_texture0_size).r
+				};
+
+				float depth_hires = TEX2D(input_texture2, input.uv).r;
+								
+				float total_weight = 0;
+				float4 s = 0;
+				float d = 0;								
+				for (int i=0;i<4;i++) {
+					float diff = abs(depth_hires - depth_coarse[i]);										
+					float w = (1.0 / (eps+diff)) * bilinear_weights[idx][i];					
+					s += shading_coarse[i] * w;
+					d += depth_coarse[i] * w;
+					total_weight += w;
+				}
+				
+				s /= total_weight;
+				d /= total_weight;
+				
+				s.a = d;
+				return s;
+			}
+		"""
+	}
+
+	cs_common = {
+		code = """
+			#define RS_CS1	"RootFlags (0), " \
+					"CBV(b0, visibility = SHADER_VISIBILITY_ALL), " \
+					"CBV(b1, visibility = SHADER_VISIBILITY_ALL), " \
+					"DescriptorTable( CBV(b2, numDescriptors = 6), visibility = SHADER_VISIBILITY_ALL), " \
+					"DescriptorTable( SRV(t0, numDescriptors = 16), visibility = SHADER_VISIBILITY_ALL), " \
+					"DescriptorTable( UAV(u0, numDescriptors = 8), visibility = SHADER_VISIBILITY_ALL), " \
+					"DescriptorTable( Sampler(s2, numDescriptors = 16), visibility = SHADER_VISIBILITY_ALL), " \
+					"StaticSampler(s0, filter = FILTER_MIN_MAG_MIP_POINT, comparisonFunc = COMPARISON_NEVER)," \
+					"StaticSampler(s1, filter = FILTER_MIN_MAG_MIP_LINEAR, comparisonFunc = COMPARISON_NEVER)"
+				
+				#define DEFAULT_CS_ROOT_SIGNATURE_ATTRIBUTE
+		"""
+	}
+
+	cs_downsample = {
+		includes = [ "common" ]
+		
+		stage_conditions = {
+			compute = "true"
+		}
+		
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_linear" }
+		}
+		
+		code = """
+			#if defined(THREADS_4)
+				#define THREADX 4
+				#define THREADY 4
+			#endif
+			#if defined(THREADS_8)
+				#define THREADX 8
+				#define THREADY 8
+			#endif
+			#if defined(THREADS_16)
+				#define THREADX 16
+				#define THREADY 16
+			#endif
+			
+			#define GROUPTHREADS THREADX * THREADY
+			
+			#define GATHER_RED(s, uv, offset) s.tex.GatherRed(s.state, uv, offset)
+			#define GATHER_GREEN(s, uv, offset) s.tex.GatherGreen(s.state, uv, offset)
+			#define GATHER_BLUE(s, uv, offset) s.tex.GatherBlue(s.state, uv, offset)
+			#define GATHER_ALPHA(s, uv, offset) s.tex.GatherAlpha(s.state, uv, offset)
+			
+			#define Input input_texture0
+			#define Output input_texture1
+			
+			#define InTex __tex_input_texture0
+			#define Samp __samp_input_texture0
+			
+			#define DECLARE_SAMPLER_2D_REG(name, tr, sr)	\
+					Texture2D TEXTURE_NAME(name) : register(tr); \
+					SamplerState SAMPLER_NAME(name) : register(sr); \
+					static Sampler2D name = { TEXTURE_NAME(name), SAMPLER_NAME(name) };
+			
+			
+			cbuffer c0
+			{
+				float2 inv_input_texture0_size;
+			};
+			
+			#if defined(RENDERER_D3D11)
+				DECLARE_SAMPLER_2D(input_texture0);
+			#else 
+				#if defined(POINT)
+					DECLARE_SAMPLER_2D_REG(input_texture0, t0, s0);
+				#endif
+				#if defined(LINEAR)
+					DECLARE_SAMPLER_2D_REG(input_texture0, t0, s1);
+				#endif
+			#endif
+			
+			RWTexture2D<float4> Output: register(u0);
+			
+			#if defined(GATHER)
+				groupshared float4 shared_mem[GROUPTHREADS];
+			#else
+				groupshared float3 shared_mem[GROUPTHREADS];
+			#endif
+			
+			static const float inv_div = 1.0 / 16.0;
+			DEFAULT_COMPUTE_ROOT_SIGNATURE_ATTRIBUTE
+			[numthreads(THREADX, THREADY, 1)]
+			void cs_main(uint3 Gid : SV_GroupID, uint3 DTId : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex )
+			{
+				const float4 one = float4(1,1,1,1);
+				
+				#if defined(WRITE1)
+					// Every thread writes, 4x4 Threads, 100x225 Thread Groups
+					#if defined(LOAD)
+						float3 rgb = InTex.Load(DTId * 4);
+					#endif
+					#if defined(SAMPLE)
+						float2 uv = float2(DTId.xy * 4) * inv_input_texture0_size;
+						float3 rgb = TEX2DLOD(input_texture0, uv, 0);
+					#endif
+					Output[DTId.xy] = float4(rgb, 0);
+				#endif
+				
+			
+				#if defined(WRITE2)
+					// Every other thread writes, avarage every other pixel, Load, 8x8 Threads, 100x225 Thread Groups
+					#if defined(LOAD)
+						float3 rgb = InTex.Load(DTId * 2);
+					#endif
+					#if defined(SAMPLE)
+						float2 uv = float2(DTId.xy * 2) * inv_input_texture0_size;
+						float3 rgb = TEX2DLOD(input_texture0, uv, 0);
+					#endif
+					shared_mem[GI] = rgb;
+					GroupMemoryBarrierWithGroupSync();
+					bool2 mask = (GTid.xy & uint2(1,1));
+					shared_mem[GI] += mask.y ? 0 : shared_mem[GI + THREADX];
+					shared_mem[GI] += mask.x ? 0 : shared_mem[GI + 1];
+					
+					if(!any(mask)) {
+						Output[DTId.xy * 0.5] = float4(shared_mem[GI] * (1.0 / 4.0), 0);
+					}
+				#endif
+				
+				#if defined(WRITE4)
+					// Every forth thread writes, avarage every pixel, 16x16 Threads, 100x225 Thread Groups
+					#if defined(LOAD)
+						float3 rgb = InTex.Load(DTId);
+					#endif
+					#if defined(SAMPLE)
+						float2 uv = float2(DTId.xy) * inv_input_texture0_size;
+						float3 rgb = TEX2DLOD(input_texture0, uv, 0);
+					#endif
+					shared_mem[GI] = rgb;
+					GroupMemoryBarrierWithGroupSync();
+					bool4 mask = (GTid.xyxy & uint4(1,1,3,3));
+					shared_mem[GI] += mask.y ? 0 : shared_mem[GI + THREADX * 2];
+					shared_mem[GI] += mask.w ? 0 : shared_mem[GI + THREADX];
+					shared_mem[GI] += mask.x ? 0 : shared_mem[GI + 1];
+					shared_mem[GI] += mask.z ? 0 : shared_mem[GI + 2];
+					if(!any(mask)) {
+						Output[DTId.xy / 4] = float4(shared_mem[GI] * (1.0 / 16.0), 0);
+					}
+				#endif
+				
+				#if defined(GATHER)
+					// gather 2x2 pixels per thread, 8x8 Thread groups, 100x225 
+					float2 uv = float2(DTId.xy * 2) * inv_input_texture0_size;
+					float4 reds = GATHER_RED(input_texture0, uv, uint2(1,1));
+					float4 greens = GATHER_GREEN(input_texture0, uv, uint2(1,1));
+					float4 blues = GATHER_BLUE(input_texture0, uv, uint2(1,1));
+					float4 alphas = GATHER_ALPHA(input_texture0, uv, uint2(1,1));
+					shared_mem[GI] = float4(dot(reds, one), dot(greens, one), dot(blues, one), dot(alphas, one));
+					GroupMemoryBarrierWithGroupSync();
+					bool2 mask = (GTid.xy & uint2(1,1));
+					shared_mem[GI] += mask.y ? 0 : shared_mem[GI + THREADX];
+					shared_mem[GI] += mask.x ? 0 : shared_mem[GI + 1];
+					if(!any(mask)) {
+						Output[DTId.xy / 2] = shared_mem[GI] * (1.0 / 16.0);
+					}
+				#endif
+			}
+		"""
+	}
+}
+
+shaders = {
+	copy = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="copy" defines=["SAMPLE_RGBA"] render_states="filter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[""] }
+			]
+		}
+	}
+
+	cs_copy_3d = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="cs_copy_3d" }
+				]
+			}
+		}
+		
+		compile = {
+			default = [
+				{ defines="" }
+			]
+		}
+	}
+
+	downsample_depth = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="downsample_depth" render_states="filter_downsample_depth" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		}
+	}
+
+	filter = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="filter" render_states="filter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		}
+	}
+
+	linearize_depth = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="linearize_depth" render_states="filter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines = [] }
+			]
+		}
+	}
+
+	merge_skydome_motion_vectors = {
+		editor_advanced_mode = true
+		
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+						{ hlsl_shader="merge_skydome_motion_vectors" render_states="filter_farplane" }
+				]
+			}
+		}	
+		
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		}
+	}
+
+	bilateral_upsample = {
+		editor_advanced_mode = true
+
+		contexts={
+			default = {
+				passes_sort_mode="immediate"
+				passes=[
+					{hlsl_shader="bilateral_upsample" render_states="filter"}
+				]
+			}
+		}
+
+		compile= {
+			default = [
+				{defines=[""]}
+			]
+		}
+	}
+
+	cs_downsample = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="cs_downsample" }
+				]
+			}
+		}
+		
+		compile = {
+			default = [
+				{ defines="" }
+			]
+		}
+	}
+}
+
+static_compile= [
+	{ shader="copy" }
+	{ shader="copy" defines=["COPY_HALF"] }
+	{ shader="copy" defines=["CUBE_CAPTURE"] }
+	{ shader="copy" defines=["POINT_SAMPLER"] }
+	{ shader="copy" defines=["ALPHA_TO_RGB"] }
+	{ shader="copy" defines=["CUBIC_SAMPLER"] }
+	{ shader="copy" defines=["CUBIC_SAMPLER" "PREMULTIPLIED"] }
+	{ shader="copy" defines=["CUBIC_SAMPLER" "PREMULTIPLIED" "MASKED"] }
+	{ shader="copy" defines=["PREMULTIPLIED"] }
+	{ shader="copy" defines=["POINT_SAMPLER" "ADD" "SKIN"] }
+	{ shader="copy" defines=["POINT_SAMPLER" "PREMULTIPLIED"] }
+
+	{ if: "on_renderer(D3D11, D3D12)" shader="cs_copy_3d" }
+
+	{ shader="downsample_depth" }
+
+	{ shader="filter" defines=["DOWNSAMPLE_4x4"] }
+	{ shader="filter" defines=["DOWNSAMPLE_2x2"] }
+	{ shader="filter" defines=["DOWNSAMPLE_MIP"] }
+	{ shader="filter" defines=["SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X"] }
+	{ shader="filter" defines=["SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y"] }
+
+	{ shader="linearize_depth" }
+
+	{ if: "on_renderer(D3D11, D3D12)" shader="merge_skydome_motion_vectors" }
+
+	//{ if: "on_renderer(D3D11, D3D12)" shader="bilateral_upsample" }
+
+	//{ if: "on_renderer(D3D11, D3D12)" shader="cs_downsample" defines=["THREADS_4" "WRITE1" "LOAD" "POINT"] }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="cs_downsample" defines=["THREADS_4" "WRITE1" "SAMPLE" "POINT"] }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="cs_downsample" defines=["THREADS_4" "WRITE1" "SAMPLE" "LINEAR"] }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="cs_downsample" defines=["THREADS_8" "WRITE2" "LOAD" "POINT"] }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="cs_downsample" defines=["THREADS_8" "WRITE2" "SAMPLE" "POINT"] }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="cs_downsample" defines=["THREADS_8" "WRITE2" "SAMPLE" "LINEAR"] }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="cs_downsample" defines=["THREADS_16" "WRITE4" "LOAD" "POINT"] }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="cs_downsample" defines=["THREADS_16" "WRITE4" "SAMPLE" "POINT"] }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="cs_downsample" defines=["THREADS_16" "WRITE4" "SAMPLE" "LINEAR"] }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="cs_downsample" defines=["THREADS_8" "GATHER" "SAMPLE" "POINT"] }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="cs_downsample" defines=["THREADS_8" "GATHER" "SAMPLE" "LINEAR"] }
+]

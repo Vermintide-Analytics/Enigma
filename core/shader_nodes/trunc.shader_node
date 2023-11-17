@@ -1,0 +1,13 @@
+group = "Math/Round"
+display_name = "Truncate"
+inputs = {
+	"72abc776-966f-42ab-91ac-ceacb1ef8cf6" = { name = "a" display_name = "A" type = "auto" }
+}
+
+output = {
+	type = { typeof: "a" }
+}
+
+code = """
+	RESULT(trunc(a));
+"""

@@ -1,0 +1,99 @@
+
+shader = {
+	connections = [
+		{
+			destination = {
+				connector_id = "aca690cb-6305-4a2f-bf3d-69183a493db3"
+				instance_id = "0b7725c1-93b2-4f9c-82af-2891f9257f9f"
+			}
+			source = {
+				instance_id = "d0d48366-b765-430b-8e08-5a7bfd4b7d54"
+			}
+		}
+	]
+	constants = [
+	]
+	groups = [
+	]
+	nodes = [
+		{
+			content_size = [
+				160
+				0
+			]
+			export = {
+			}
+			id = "0b7725c1-93b2-4f9c-82af-2891f9257f9f"
+			options = [
+				"c8d8b754-c567-4c7b-9cbd-8acab22beff5"
+				"8df1b8f7-17c2-4ae4-8c4e-25517ec1df46"
+			]
+			position = [
+				1280
+				-560
+			]
+			samplers = {
+			}
+			type = "core/stingray_renderer/output_nodes/unlit_base"
+		}
+		{
+			content_size = [
+				160
+				0
+			]
+			export = {
+				material_variable = {
+					display_name = "color"
+					name = "color"
+					type = "float3"
+					ui = {
+						max = [
+							1
+							1
+							1
+						]
+						min = [
+							0
+							0
+							0
+						]
+						step = [
+							0.001
+							0.001
+							0.001
+						]
+					}
+					value = [
+						0
+						0
+						0
+					]
+				}
+			}
+			id = "d0d48366-b765-430b-8e08-5a7bfd4b7d54"
+			options = [
+			]
+			position = [
+				1040
+				-540
+			]
+			samplers = {
+			}
+			title = "Color"
+			type = "core/shader_nodes/material_variable"
+		}
+	]
+	version = 3
+}
+textures = {
+}
+variables = {
+	color = {
+		type = "vector3"
+		value = [
+			1
+			1
+			1
+		]
+	}
+}

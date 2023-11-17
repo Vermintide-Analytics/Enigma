@@ -1,0 +1,596 @@
+includes = [ 
+	"core/stingray_renderer/shader_libraries/common/common.shader_source", 
+	"core/stingray_renderer/shader_libraries/common/shadow_map_common.shader_source",
+]
+
+render_states = {
+	depth_write = {
+		inherits = "default"
+		states = {
+			cull_mode = "cull_none"
+			z_enable = "true"
+			z_write_enable = "true"
+			z_func = "always"
+		}
+	}
+
+	sun_shadow_mask = {
+		inherits = "filter"
+		states = {
+			write_mask0 = "red"
+			stencil_enable = "true"
+			stencil_func = "equal"
+			stencil_fail = "stencil_op_keep"
+			stencil_pass = "stencil_op_keep"
+			defined_FILL = {
+				stencil_ref = "0x0"
+			}
+			ndefined_FILL = {
+				defined_FILL_SHADOW = {
+					stencil_ref = "0x0"
+				}
+				ndefined_FILL_SHADOW = {
+					stencil_ref = "0x1"
+				}
+			}
+			
+			stencil_z_fail = "stencil_op_keep"
+			stencil_mask = "0x7"
+			stencil_write_mask = "0x7"
+		}
+	}
+
+	sun_shadow_cutter = {
+		inherits = "default"
+		states = {
+			cull_mode="cull_ccw"
+
+			// needed when camera far plane clips the shadow far plane
+			depth_clip_enable = "false"
+
+			z_enable = "true"
+			z_write_enable = "false"
+
+			write_mask0 = "0x0"
+			write_mask1 = "0x0"
+			write_mask2 = "0x0"
+			write_mask3 = "0x0"
+
+			stencil_enable = "true"
+			stencil_func = "always"
+			stencil_fail = "stencil_op_keep"
+			stencil_pass = "stencil_op_keep"
+			stencil_ref = "0x0"
+			stencil_z_fail = "stencil_op_incr"
+
+			stencil_func_back_side = "always"
+			stencil_fail_back_side = "stencil_op_keep"
+			stencil_pass_back_side = "stencil_op_keep"
+			stencil_z_fail_back_side = "stencil_op_incr"
+
+			stencil_mask = "0x7"
+			stencil_write_mask = "0x7"
+		}
+	}
+
+	filter = {
+		inherits = "default"
+		states = {
+			z_write_enable = "false"
+			z_enable = "false"
+		}
+	}
+}
+
+hlsl_shaders = {
+	shadow_clear_mask = {
+		includes = [ "common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_point" }
+		}
+		
+		code = """
+			DECLARE_SAMPLER_2D(input_texture0);
+			
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float2 input_texture0_size;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.position.z = 0; // clamp to max depth
+				o.uv = input.uv;
+				return o;
+			}
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float ps_main(PS_INPUT input) : SV_DEPTH {
+				
+				
+				float4 tex = TEX2D(input_texture0, input.uv);
+				if(tex.r == 0)
+					discard;
+					
+				return 1;
+			}			
+			
+		"""
+	}
+
+	sun_shadow_mask = {
+		includes = [ "common", "gbuffer_access", "shadow_bias", "shadow_map_filtering", "taa_offsets" ]
+		samplers = {
+			linear_depth = { sampler_states = "clamp_point" }
+
+			input_texture0 = { sampler_states = "shadow_map" }
+			defined_BILLBOARD_SHADOW_CASTING = {
+				shadow_map_color = { sampler_states = "clamp_linear" }
+			}
+	
+		}
+
+		code="""
+			DECLARE_SAMPLER_2D(linear_depth);
+
+			DECLARE_COMPARISON_SAMPLER_2D(input_texture0);
+			#ifdef BILLBOARD_SHADOW_CASTING
+				DECLARE_SAMPLER_2D(shadow_map_color);
+			#endif
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				#if !defined(FILL) && !defined(NUKE_HI_STENCIL)
+					float2 uv : TEXCOORD0;
+					float4 w : TEXCOORD1;
+				#endif
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+
+				#if defined(FILL)
+					float shadow_fallback_intensity; // exports={ name="Shadow Intensity Fallback" type="scalar" value=1 min=0 max=1 step=0.003 }
+				#else
+					float4x4 world_to_shadow_map;
+				#endif
+				float2 input_texture0_size;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				#if !defined(FILL)
+					o.uv = input.uv;
+					// When using temporal antialiasing we try to cancel out the jitter
+					// that was introduced in the depth buffer. This is to minimize self occlusion
+					// that can arrise when performing a depth test beween the jittered depth buffer
+					// and a non jittered shadow map.
+					float4 tmp = o.position;
+					float4 view_space = tmp / tmp.w;
+					view_space.xy -= get_vs_halton_offset(frame_number);
+					tmp = view_space * tmp.w;
+					o.w = encode_world_pos(tmp);
+				#endif
+
+				return o;
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			#if defined(FILL)
+				half4 ps_main() : SV_TARGET0 {
+					return half4(1,1,1,1);
+				}
+			#else
+				half4 ps_main(PS_INPUT input) : SV_TARGET0 {
+					float d = gbuffer_decode_depth(TEX2D(linear_depth, input.uv));
+					float3 wp = decode_world_pos(input.w, d);
+					float4 sm_pos = mul(float4(wp, 1), world_to_shadow_map);
+					
+					#if defined(FILL_SHADOW)
+						sm_pos.z = apply_shadow_depth_comparison_bias(d, sm_pos.z, ssm_shadow_map_bias);
+					#else
+						sm_pos.z = apply_shadow_depth_comparison_bias(d, sm_pos.z, sun_shadow_map_bias);
+					#endif
+					half shadow = shadow_intensity_2d(input_texture0, input_texture0_size, sm_pos.xy, sm_pos.z);
+					#if defined(FILL_SHADOW)
+						if(sm_pos.x < 0.0 || sm_pos.x > 1.0 ||
+						   sm_pos.y < 0.0 || sm_pos.y > 1.0) {
+						   shadow = 1.0;
+						}
+					#endif
+					return half4(shadow, shadow, shadow, 1);
+				}
+			#endif
+		"""
+	}
+
+	sun_shadow_cutter = {
+		includes = [ "common", "gbuffer_access" ]
+
+		code="""
+			struct VS_INPUT {
+				float4 position : POSITION;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+
+				float4x4 box_wtm;
+				float3 box_scale;
+				float3 box_translation;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				float4 p = input.position;
+				p.xyz *= float3(2,1,2);
+				p.xyz = p.xyz * box_scale; // + box_translation;
+				o.position = mul(mul(p, box_wtm), world_view_proj);
+				return o;
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			half4 ps_main() : SV_TARGET0 {
+				return half4(1,0,0,0.5);
+			}
+		"""
+	}
+	
+	init_variance_shadow_map = {
+		includes = [ "common", "lighting_data", "vsm_common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_point" }
+		}
+
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.uv = input.uv;
+				return o;
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float2 ps_main(PS_INPUT input) : SV_TARGET0 {
+				float shadow_depth = sample_light_depth(input_texture0, input.uv);
+				return float2(shadow_depth, shadow_depth * shadow_depth);
+			}
+		"""
+	}
+
+	apply_variance_shadow_map = {
+		includes = [ "common", "gbuffer_access", "taa_offsets", "lighting_data", "vsm_common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_linear" }
+		}
+
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+			Texture2D<float> input_texture1;
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+				float4 w : TEXCOORD1;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.uv = input.uv;
+				// When using temporal antialiasing we try to cancel out the jitter
+				// that was introduced in the depth buffer. This is to minimize self occlusion
+				// that can arrise when performing a depth test beween the jittered depth buffer
+				// and a non jittered shadow map.
+				float4 tmp = o.position;
+				float4 view_space = tmp / tmp.w;
+				view_space.xy -= get_vs_halton_offset(frame_number);
+				tmp = view_space * tmp.w;
+				o.w = encode_world_pos(tmp);
+
+				return o;
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			half ps_main(PS_INPUT input) : SV_TARGET0
+			{
+				float depth = gbuffer_decode_depth(input_texture1.Load(int3(input.position.xy, 0)));
+				float3 wp = decode_world_pos(input.w, depth);
+				return calculate_vsm_intensity(input_texture0, wp);
+			}
+		"""
+	}
+
+	init_exponential_shadow_map = {
+		includes = [ "common", "lighting_data", "vsm_common", "esm_common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_point" }
+		}
+
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.uv = input.uv;
+				return o;
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float ps_main(PS_INPUT input) : SV_TARGET0 {
+				float shadow_depth = sample_light_depth(input_texture0, input.uv);
+				return exp(volumetric_esm_constant*shadow_depth);
+			}
+		"""
+	}
+
+	apply_exponential_shadow_map = {
+		includes = [ "common", "gbuffer_access", "taa_offsets", "lighting_data", "vsm_common", "esm_common" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_linear" }
+		}
+
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+			Texture2D<float> input_texture1;
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+				float4 w : TEXCOORD1;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.uv = input.uv;
+				// When using temporal antialiasing we try to cancel out the jitter
+				// that was introduced in the depth buffer. This is to minimize self occlusion
+				// that can arrise when performing a depth test beween the jittered depth buffer
+				// and a non jittered shadow map.
+				float4 tmp = o.position;
+				float4 view_space = tmp / tmp.w;
+				view_space.xy -= get_vs_halton_offset(frame_number);
+				tmp = view_space * tmp.w;
+				o.w = encode_world_pos(tmp);
+
+				return o;
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			half ps_main(PS_INPUT input) : SV_TARGET0
+			{
+				float depth = gbuffer_decode_depth(input_texture1.Load(int3(input.position.xy, 0)));
+				float3 wp = decode_world_pos(input.w, depth);
+				
+				return calculate_esm_intensity(input_texture0, wp);
+			}
+		"""
+	}
+}
+
+shaders = {
+	shadow_clear_mask = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+						{ hlsl_shader="shadow_clear_mask" render_states="depth_write" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		}
+	}
+
+	sun_shadow_mask = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="sun_shadow_mask" render_states="sun_shadow_mask" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ if: "on_renderer(D3D11, D3D12)" render_settings={ sun_shadow_map_filter_quality="high" } defines=["PCF_5X5"] }
+				{ defines=[] }
+			]
+		}
+	}
+
+	sun_shadow_cutter = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="sun_shadow_cutter" render_states="sun_shadow_cutter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines="" }
+			]
+		}
+	}
+
+	init_variance_shadow_map = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="init_variance_shadow_map" defines=["CALCULATE_LIGHTING"] render_states="filter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines="" }
+			]
+		}
+	}
+
+	apply_variance_shadow_map = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="apply_variance_shadow_map" defines=["CALCULATE_LIGHTING"] render_states="filter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines="" }
+			]
+		}
+	}
+
+	init_exponential_shadow_map = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="init_exponential_shadow_map" defines=["CALCULATE_LIGHTING"] render_states="filter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines="" }
+			]
+		}
+	}
+
+	apply_exponential_shadow_map = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="apply_exponential_shadow_map" defines=["CALCULATE_LIGHTING"] render_states="filter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines="" }
+			]
+		}
+	}
+
+}
+
+static_compile= [
+	{ shader="shadow_clear_mask" }
+	{ shader="sun_shadow_mask" }
+	{ shader="sun_shadow_mask" defines=["FILL"] }
+	{ shader="sun_shadow_mask" defines=["FILL_SHADOW"] }
+	{ shader="sun_shadow_cutter" }
+	// { shader="init_variance_shadow_map" }
+	// { shader="apply_variance_shadow_map" }
+	// { shader="init_exponential_shadow_map" }
+	// { shader="apply_exponential_shadow_map" }
+]

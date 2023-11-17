@@ -1,0 +1,7 @@
+shader = "slug_text:WRITE_MASK"
+textures = {
+    curve_map = ""
+    band_map = ""
+}
+variables = {
+}

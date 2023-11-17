@@ -1,0 +1,673 @@
+includes = [ 
+	"core/stingray_renderer/shader_libraries/common/common.shader_source",
+	"core/stingray_renderer/shader_libraries/common/post_processing_common.shader_source" 
+	"core/stingray_renderer/shader_libraries/common/sampling_common.shader_source" 
+]
+
+render_states = {
+	filter = {
+		inherits = "default"
+		states = {
+			z_write_enable = "false"
+			z_enable = "false"
+		}
+	}
+}
+
+sampler_states = {
+	hiz_sample_mip_index = {
+ 		inherits = "clamp_point"
+ 		states = {
+ 			defined_D3D11 = { 
+ 				mip_level_index = { variable = "sampler_input_mip_level" }
+ 			}
+ 			defined_D3D12 = { 
+ 				mip_level_index = { variable = "sampler_input_mip_level" }
+ 			}
+ 		}
+ 	}
+}
+
+hlsl_shaders = {
+	ssr_hiz_pass = {		
+		includes = [ "common", "gbuffer_access" ]
+		samplers = {
+			input_texture0 = { sampler_states = "hiz_sample_mip_index" }	
+		}
+		
+		code="""
+
+			DECLARE_SAMPLER_2D(input_texture0);
+			
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;				
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};			 			
+			
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float2 input_texture0_base_size;
+				float input_mip_level;				
+				float output_mip_level;				
+			CBUFFER_END
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);				
+				o.uv = input.uv;
+				
+				return o;
+			}			
+			
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float ps_main(PS_INPUT input) : SV_TARGET0 {
+				#if defined(LEVEL_0)
+					return TEX2DLOD(input_texture0, input.uv, 0).r;
+				#else
+					// map the current pixel to it's corresponding pixel in the previous mip
+					float2 prev_cell_count = (int2)input_texture0_base_size >> (int)(input_mip_level);
+					float2 cell_count = (int2)input_texture0_base_size >> (int)output_mip_level;
+
+					int2 cell_id = (int2)(input.uv * cell_count) * 2;
+
+					// To be safe we sample at a half pixel offset (so if we sample cell_id [0.0] we sample at [0.5, 0.5]/prev_cell_count)
+					float v1 = TEX2DLOD(input_texture0, (cell_id + int2(0,0) + float2(0.5, 0.5)) / prev_cell_count, input_mip_level).r;
+					float v2 = TEX2DLOD(input_texture0, (cell_id + int2(1,0) + float2(0.5, 0.5)) / prev_cell_count, input_mip_level).r;
+					float v3 = TEX2DLOD(input_texture0, (cell_id + int2(0,1) + float2(0.5, 0.5)) / prev_cell_count, input_mip_level).r;
+					float v4 = TEX2DLOD(input_texture0, (cell_id + int2(1,1) + float2(0.5, 0.5)) / prev_cell_count, input_mip_level).r;
+
+					return min(min(min(v1, v2), v3), v4);
+				#endif
+			}
+		"""
+	}
+
+	ssr_ray_march_pass_common = {		
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_point" }
+			input_texture1 = { sampler_states = "clamp_linear" }
+			input_texture2 = { sampler_states = "clamp_point" }
+			input_texture3 = { sampler_states = "clamp_point" }
+			input_texture4 = { sampler_states = "clamp_linear" }
+			input_texture5 = { sampler_states = "clamp_point" }
+		}
+		 
+		code="""
+			#define HIZ_START_LEVEL 1.0
+			#define HIZ_STOP_LEVEL 0.0
+			#define HIZ_MAX_LEVEL 9.0
+			#define CROSS_EPSILON 0.0000001
+			#define SSR_MIPMAP_ROUGNESS_SCALE 14 // Maps a rougness value to a mip level
+			#define SSR_REPROJECTION_MIN 0.05
+			#define SSR_REPROJECTION_SCALAR 1000.0
+
+			// #define SSR_ENABLE_CONTACT_HARDERING
+			#define SSR_ROUNGESS_OFFSET_START_VALUE 0.1 // Rougness value at which a mip level starts being added
+			#define SSR_ROUNGESS_OFFSET_END_VALUE 0.05 // Rougness value at which a mip level finishes being added (0.15 - SSR_ROUNGESS_OFFSET_START_VALUE)
+			#define SSR_RAYLENGTH_SCALE 3 // Controls the amount of contact hardening
+			#define SSR_CONTACT_HARDENING_CURVE 1.5 // Controls the blend curve between (should be linear in theory, but a linear blend can cause ugly discontinuities for roughness values > 0.3)
+
+			#if defined(SSR_LOW_QUALITY)
+				#define MAX_ITERATIONS 64
+			#else
+				#define MAX_ITERATIONS 64
+			#endif
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+				float4x4 camera_inv_proj;
+				//float2 output_target_base_size;
+				float2 input_texture2_size;
+				float2 ssr_surface_thickness_threshold;
+				float ssr_screen_edge_threshold;
+				float ssr_ray_bending_enabled;
+
+				float ssr_reference_enabled;
+				float ssr_reference_samples;
+			CBUFFER_END
+			
+			DECLARE_SAMPLER_2D(input_texture0);
+			DECLARE_SAMPLER_2D(input_texture1);
+			Texture2D<float4> input_texture2; // It's easier to track the corresponding hiz cell of a ray with the Load operator
+			DECLARE_SAMPLER_2D(input_texture3);
+			DECLARE_SAMPLER_2D(input_texture4);
+			DECLARE_SAMPLER_2D(input_texture5);
+
+			float3 move_point(float3 o, float3 d, float t) {
+				return o + d * t;
+			}
+
+			float2 cell(float2 ray, float2 cell_count) {
+				return floor(ray * cell_count);
+			}
+
+			float2 cell_count(float level) {
+				float2 div = level == 0.0f ? 1.0f : exp2(level);
+				return input_texture2_size / div;
+			}
+
+			float3 intersect_cell_boundary(float3 pos, float3 dir, float2 cell_id, float2 cell_count, float2 cross_step, float2 cross_offset) {
+				float2 cell_size = 1.0 / cell_count;
+				float2 planes = cell_id/(cell_count) + cell_size * cross_step + cross_offset;
+				float2 solutions = (planes - pos.xy)/dir.xy;
+				return move_point(pos, dir, min(solutions.x, solutions.y));
+			}
+
+			bool crossed_cell_boundary(float2 cell_id_one, float2 cell_id_two) {
+				return (int)cell_id_one.x != (int)cell_id_two.x || (int)cell_id_one.y != (int)cell_id_two.y;
+			}
+
+			float minimum_depth_plane(float2 ray, float level, float2 cell_count) {
+				return input_texture2.Load(int3(ray.xy * cell_count, level)).r;
+			}
+
+			float3 hi_z_trace(float3 p, float3 v, float dithering_term) {
+
+				float level = HIZ_START_LEVEL;
+				float2 hi_z_size = cell_count(level);
+				float3 ray = p;
+
+				float2 cross_step = float2(v.x >= 0.0f ? 1.0f : -1.0f, v.y >= 0.0f ? 1.0f : -1.0f);
+				float2 cross_offset = float2(cross_step.xy) * CROSS_EPSILON;
+				cross_step.xy = saturate(cross_step.xy);
+
+				float2 ray_cell = cell(ray.xy, hi_z_size.xy);
+				ray = intersect_cell_boundary(ray, v, ray_cell, hi_z_size.xy, cross_step.xy, cross_offset.xy);
+
+				float3 v_z = v/v.z;
+				int iterations = 0;
+				while((level >= HIZ_STOP_LEVEL) && (iterations < MAX_ITERATIONS)) {
+					// get the cell number of the current ray
+					float2 current_cell_count = cell_count(level);
+					float2 old_cell_id = cell(ray.xy, current_cell_count);
+
+					// get the minimum depth plane in which the current ray resides
+					float min_z = minimum_depth_plane(ray.xy, level, current_cell_count);
+
+					// intersect only if ray depth is below the minimum depth plane
+					float3 tmp_ray = ray;
+					if(v.z > 0) {
+						float min_minus_ray = min_z - ray.z;
+						if(min_minus_ray > 0) {
+							tmp_ray = move_point(ray, v_z, min_minus_ray);
+						}
+						float2 new_cell_id = cell(tmp_ray.xy, current_cell_count);
+						if(crossed_cell_boundary(old_cell_id, new_cell_id)) {
+							tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count.xy, cross_step.xy, cross_offset.xy);
+							level = min(HIZ_MAX_LEVEL, level + 2.0f);
+						}
+					} else {
+						if(ray.z < min_z) {
+							tmp_ray = intersect_cell_boundary(ray, v, old_cell_id, current_cell_count.xy, cross_step.xy, cross_offset.xy);
+							level = min(HIZ_MAX_LEVEL, level + 2.0f);
+						}
+					}
+
+					ray.xyz = tmp_ray.xyz;
+					--level;
+					++iterations;
+				}
+
+				#if defined(SSR_LOW_QUALITY)
+					return ray;
+				#else
+					// Dither the ray to prevent banding artifacts
+					float2 dithered_pos = ray.xy - normalize(v.xy) * (dithering_term + 1) * 0.015/output_rt_size;
+					float dithered_z = input_texture2.Load(int3(dithered_pos * output_rt_size, 0)).r;
+					float dithered_to_blend = abs(linearize_depth(ray.z) - linearize_depth(dithered_z) * 20);
+
+					ray.xy = lerp(ray.xy, dithered_pos, dithered_to_blend);
+					return ray;
+				#endif
+
+
+			}
+
+			float generate_reflection_mask(float3 ss_ray, float3 ss_reflection, float3 view_pos_reflection) {
+
+				// Reject reflections that ended up 'behind' a surface
+				float2 ss_ray_dir = normalize(ss_reflection.xy) * ssr_surface_thickness_threshold.x;
+				float2 ss_ray1 = ss_ray.xy + ss_ray_dir;
+				float2 ss_ray2 = ss_ray.xy;
+				
+				// Unfortunate 2 taps, but so far this is the most stable way to identify rays that have traveled behing a surface.
+				// We basically find the ray intersection and evalute the depth discontinuity a closer and further along the ray
+				float delta1 = linearize_depth(input_texture2.Load(int3(ss_ray1 * input_texture2_size, 0)).r);
+				float delta2 = linearize_depth(input_texture2.Load(int3(ss_ray2 * input_texture2_size, 0)).r);
+				float ray_z = linearize_depth(ss_ray.z);
+				float reflection_visibility_mask = 1 - saturate(abs(delta1 - ray_z) * ssr_surface_thickness_threshold.y + abs(delta2 - ray_z) * ssr_surface_thickness_threshold.y);
+
+				// Reject points that are too close to the screen's edge
+				float distance_to_horizontal_edge = min(saturate(ss_ray.y), abs(ss_ray.y  - 1));
+				float distance_to_vertical_edge = min(saturate(ss_ray.x), abs(ss_ray.x  - 1));
+				float distance_to_edge = min(distance_to_horizontal_edge, distance_to_vertical_edge);
+				float edge_mask = saturate(distance_to_edge / ssr_screen_edge_threshold);
+				edge_mask = max(edge_mask, ssr_ray_bending_enabled);
+
+				float skydome_mask = (ss_ray.z != 1.0);
+
+				// We shouldn't need this. Needs to be investigated further.
+				float dangerous_reflection_mask = (view_pos_reflection.y >= 0);
+
+				return reflection_visibility_mask * edge_mask * skydome_mask * dangerous_reflection_mask;
+			}
+
+			float3 proj_point_in_plane(float3 p, float3 v0, float3 n, out float d) {
+				d = dot(n, p - v0);
+				return p - (n * d);
+			}
+
+			float3 find_reflection_incident_point(float3 p0, float3 p1, float3 v0, float3 n) {
+				float d0 = 0;
+				float d1 = 0;
+				float3 proj_p0 = proj_point_in_plane(p0, v0, n, d0);
+				float3 proj_p1 = proj_point_in_plane(p1, v0, n, d1);
+
+				if(d1 < d0) {
+					return (proj_p0 - proj_p1) * d1/(d0+d1) + proj_p1;
+				}else{
+					return (proj_p1 - proj_p0) * d0/(d0+d1) + proj_p0;
+				}
+			}
+
+			/*
+			float2 find_previous_reflection_position(float3 ss_pos, float3 ss_ray, float2 surface_motion_vector, float2 reflection_motion_vector, float3 world_normal) {
+				float3 ss_p0 = 0;
+				ss_p0.xy = ss_pos.xy - surface_motion_vector;
+				ss_p0.z = TEX2DLOD(input_textureX, ss_p0.xy, 0).r;
+
+				float3 ss_p1 = 0;
+				ss_p1.xy = ss_ray.xy - reflection_motion_vector;
+				ss_p1.z = TEX2D(input_textureX, ss_p1.xy, 0).r;
+
+				float3 view_n = normalize(world_to_prev_view(world_normal, 0));
+				float3 view_p0 = float3(0,0,0);
+				float3 view_v0 = ss_to_view(ss_p0, 1);
+				float3 view_p1 = ss_to_view(ss_p1, 1);
+
+				float3 view_intersection = find_reflection_incident_point(view_p0, view_p1, view_v0, view_n);
+				float3 ss_intersection = view_to_ss(view_intersection, 1);
+
+				return ss_intersection.xy;
+			}
+			*/
+
+			float map_reflection_to_mip_level(float ray_length, float roughness, float mask) {
+				float ssr_glossy_term = roughness * SSR_MIPMAP_ROUGNESS_SCALE;
+				
+				#if defined(SSR_ENABLE_CONTACT_HARDERING)
+					float ssr_blur_offset = (saturate(roughness - SSR_ROUNGESS_OFFSET_START_VALUE)/SSR_ROUNGESS_OFFSET_END_VALUE);
+					float ssr_blur_scale = ray_length * roughness * SSR_RAYLENGTH_SCALE;
+					float ssr_blur_term = saturate(ssr_blur_scale + ssr_blur_offset);
+					float ssr_contact_hardening_term = (pow(ssr_blur_term, SSR_CONTACT_HARDENING_CURVE));
+					ssr_glossy_term *= ssr_contact_hardening_term;
+				#endif
+	
+				return min(ssr_glossy_term , SSR_MIPMAP_LEVELS);
+			}
+			
+			void ssr_ray_march(float2 input_uv, out float4 out_result, out float out_mip_level)
+			{
+				float4 result = 0.0;
+				float mip_level = 0.0;
+
+				float2 uv = input_uv;
+				#if defined(SSR_LOW_QUALITY)
+					// When running ssr at lower resolution, start the raytrace in the center of the corresponding hiz cell
+					int2 pixel_pos = input_uv * output_rt_size;
+					uv = float2(pixel_pos)/output_rt_size + 0.5/output_rt_size;
+				#endif
+
+				float non_linear_depth = input_texture2.Load(int3(uv * input_texture2_size, 0)).r;
+
+				// Do not execute for the skydome
+				if(non_linear_depth < 1) {
+
+					float3 ss_pos = float3(uv, non_linear_depth);
+
+					half4 gbuffer_0 = TEX2DLOD(input_texture5, input_uv, 0);
+					half4 gbuffer_1 = TEX2DLOD(input_texture0, input_uv, 0);
+
+					half material_id = gbuffer_decode_material_id(gbuffer_0);
+					half roughness = gbuffer_decode_roughness(gbuffer_1);
+					float3 world_normal = gbuffer_decode_normal(gbuffer_1, material_id);
+
+					float3 view_pos = ss_to_view(ss_pos, 1);
+					float3 view_ray = normalize(view_pos);
+					
+					float3 view_normal = normalize(world_to_view(world_normal, 0));
+					float3 view_reflection = normalize(reflect(view_ray, view_normal));
+					float3 view_pos_reflection = view_pos + view_reflection;
+
+					float3 ss_pos_reflection = view_to_ss(view_pos_reflection, 1);
+					float3 ss_reflection = normalize(ss_pos_reflection - ss_pos);
+
+					#if defined(SSR_LOW_QUALITY)
+						float dithering_term = 0;
+					#else
+						// We adjust the number of halton offsets we use to dither the ssr. We do this to
+						// prevent jitters to be propagated into the blurred ssr mip chain. Anything above
+						// roughness of 0.1 will not jitter the dither pattern. The idea behind this is that
+						// we can jitter the dither for mirror reflections and still have stable glossy reflections
+						uint num_offsets = 8 - saturate(roughness/0.1) * 8;
+						uint2 pixel_pos = input_uv * output_rt_size + 8 * halton_offsets[int(frame_number) % num_offsets];
+						float dithering_term = dither_pattern_4x4[pixel_pos.x % 4u][pixel_pos.y % 4u];
+					#endif
+
+					// Bend the ray as it appraoch the screen's edge
+					float left_edge_term = 1.0 - ss_pos.x/ssr_screen_edge_threshold;
+					float right_edge_term = (ss_pos.x - (1.0 - ssr_screen_edge_threshold))/ssr_screen_edge_threshold;
+					float bending_amount = saturate(max(left_edge_term, right_edge_term));
+					bending_amount = smoothstep(0, 1, bending_amount);
+					float eps = left_edge_term < 0 ? -0.02 : 0.02;
+
+					ss_reflection.xy = lerp(ss_reflection.xy, float2(eps, -1), bending_amount * ssr_ray_bending_enabled); 
+
+					// Trace reflection
+					float3 ss_ray = hi_z_trace(ss_pos, ss_reflection, dithering_term);
+					float ray_length = length(ss_to_view(ss_ray, 1) - view_pos);
+
+					// Generate reflection mask
+					float mask = generate_reflection_mask(ss_ray, ss_reflection, view_pos_reflection);
+
+					if(mask > 0) {
+						// Fetch surface and reflected motion vectors
+						float2 reflection_motion_vector = decode_velocity(TEX2DLOD(input_texture3, ss_ray.xy, 0).VELOCITY_COMPONENTS);
+
+						// Note: Remember that the ssr pass gets executed before the lighting pass so the hdr data we
+						// use is one frame old (that's why we need to fetch the data with a motion vector offset)
+						float4 color = TEX2DLOD(input_texture1, ss_ray.xy - reflection_motion_vector, 0);
+						color.rgb = safe_range_tone_map(color.rgb);
+						color.a = mask;
+						result = color;
+					} else {
+						// Needed to avoid getting a black hallow around the reflections
+						result.rgb = safe_range_tone_map(TEX2DLOD(input_texture1, input_uv, 0).rgb);
+					}
+
+					float2 motion_vector = decode_velocity(TEX2DLOD(input_texture3, input_uv, 0).VELOCITY_COMPONENTS);
+					// TODO: prev_uv = input_uv is incorrect, also is input_uv - motion_vector
+					float4 prev_val = TEX2DLOD(input_texture4, input_uv - motion_vector, 0);
+					float blend_factor = length(motion_vector) * SSR_REPROJECTION_SCALAR + SSR_REPROJECTION_MIN;
+					float4 reprojection = lerp(result, prev_val, (1.0 - saturate(blend_factor)) * jitter_enabled);
+
+					// Since we cannot track the trace depth of an ssr reflection, clamp the reprojected
+					// reflection into a defined range to prevent introducing excessive amounts of light
+					// (Think of reflections between two pefect perpendicular mirrors) 
+					result = clamp(reprojection, 0, 1);
+
+					mip_level = map_reflection_to_mip_level(ray_length, roughness, mask);
+				}
+
+				out_result = result;
+				out_mip_level = mip_level/SSR_MIPMAP_LEVELS;
+			}
+
+			void ssr_ray_march_reference(float2 input_uv, out float4 out_result, out float out_mip_level)
+			{
+				float4 result = 0.0;
+				float mip_level = 0.0;
+
+				float2 uv = input_uv;
+				#if defined(SSR_LOW_QUALITY)
+					// When running ssr at lower resolution, start the raytrace in the center of the corresponding hiz cell
+					int2 pixel_pos = input_uv * output_rt_size;
+					uv = float2(pixel_pos)/output_rt_size + 0.5/output_rt_size;
+				#endif
+
+				float non_linear_depth = input_texture2.Load(int3(uv * input_texture2_size, 0)).r;
+
+				// Do not execute for the skydome
+				if(non_linear_depth < 1) {
+					uint2 size;
+					input_texture1.tex.GetDimensions(size.x, size.y);
+
+					float3 ss_pos = float3(uv, non_linear_depth);
+
+					half4 gbuffer_0 = TEX2DLOD(input_texture5, input_uv, 0);
+					half4 gbuffer_1 = TEX2DLOD(input_texture0, input_uv, 0);
+
+					half material_id = gbuffer_decode_material_id(gbuffer_0);
+					half roughness = gbuffer_decode_roughness(gbuffer_1);
+					float3 world_normal = gbuffer_decode_normal(gbuffer_1, material_id);
+
+					float3 view_pos = ss_to_view(ss_pos, 1);
+					float3 view_ray = normalize(view_pos);
+					
+					float3 view_normal = normalize(world_to_view(world_normal, 0));
+
+					float3 V = -view_to_world(view_ray, 0.0);
+
+					const uint MULTISAMPLES = 4;
+					const float min_reprojection = 0.05;
+					const uint N_SAMPLES = ssr_reference_samples;
+					float4 local_result = 0;
+					float weight = 0.0;
+					for (uint i = 0; i < N_SAMPLES; ++i) {
+						float2 E = hammersley_sequence_2d(i*MULTISAMPLES + ((uint)frame_number)%MULTISAMPLES, N_SAMPLES * MULTISAMPLES);
+						float3 H = importance_sample_ggx(E, roughness, world_normal);
+						float3 R = 2 * dot(V, H) * H - V;
+						float3 view_reflection = normalize(world_to_view(R, 0));
+
+						//float3 view_reflection = normalize(reflect(view_ray, view_normal));
+						float3 view_pos_reflection = view_pos + view_reflection;
+
+						float3 ss_pos_reflection = view_to_ss(view_pos_reflection, 1);
+						float3 ss_reflection = normalize(ss_pos_reflection - ss_pos);
+
+						#if defined(SSR_LOW_QUALITY)
+							float dithering_term = 0;
+						#else
+							// We adjust the number of halton offsets we use to dither the ssr. We do this to
+							// prevent jitters to be propagated into the blurred ssr mip chain. Anything above
+							// roughness of 0.1 will not jitter the dither pattern. The idea behind this is that
+							// we can jitter the dither for mirror reflections and still have stable glossy reflections
+							uint num_offsets = 8 - saturate(roughness/0.1) * 8 + 1;
+							uint2 pixel_pos = input_uv * output_rt_size + 8 * halton_offsets[int(frame_number) % num_offsets];
+							float dithering_term = dither_pattern_4x4[pixel_pos.x % 4u][pixel_pos.y % 4u];
+						#endif
+
+						// Bend the ray as it appraoch the screen's edge
+						float left_edge_term = 1.0 - ss_pos.x/ssr_screen_edge_threshold;
+						float right_edge_term = (ss_pos.x - (1.0 - ssr_screen_edge_threshold))/ssr_screen_edge_threshold;
+						float bending_amount = saturate(max(left_edge_term, right_edge_term));
+						bending_amount = smoothstep(0, 1, bending_amount);
+						float eps = left_edge_term < 0 ? -0.02 : 0.02;
+
+						ss_reflection.xy = lerp(ss_reflection.xy, float2(eps, -1), bending_amount * ssr_ray_bending_enabled); 
+
+						// Trace reflection
+						float3 ss_ray = hi_z_trace(ss_pos, ss_reflection, dithering_term);
+						float ray_length = length(ss_to_view(ss_ray, 1) - view_pos);
+
+						// Generate reflection mask
+						float mask = generate_reflection_mask(ss_ray, ss_reflection, view_pos_reflection);
+
+						float NL = saturate(dot(world_normal, R));
+
+						if (mask > 0 && NL > 0.0) {
+							// Fetch surface and reflected motion vectors
+							float2 reflection_motion_vector = decode_velocity(TEX2DLOD(input_texture3, ss_ray.xy, 0).VELOCITY_COMPONENTS);
+
+							// Note: Remember that the ssr pass gets executed before the lighting pass so the hdr data we
+							// use is one frame old (that's why we need to fetch the data with a motion vector offset)
+							float4 color = TEX2DLOD(input_texture1, ss_ray.xy - reflection_motion_vector, 0);
+							local_result.rgb += color * NL;
+							local_result.a += mask;
+							weight += NL;
+						} else if (NL > 0.0) {
+							//// Fetch surface and reflected motion vectors
+							//float2 reflection_motion_vector = decode_velocity(TEX2DLOD(input_texture3, ss_ray.xy, 0).VELOCITY_COMPONENTS);
+							//// Note: Remember that the ssr pass gets executed before the lighting pass so the hdr data we
+							//// use is one frame old (that's why we need to fetch the data with a motion vector offset)
+							//float4 color = TEX2DLOD(input_texture1, ss_ray.xy - reflection_motion_vector, 0);
+							//local_result.rgb += color * NL;
+							////local_result.a += mask; // TODO: weight with NL
+							//weight += NL;
+						}
+					}
+
+					[flatten]
+					if (weight > 0.0)
+						local_result.rgb /= weight;
+
+					result.rgb = safe_range_tone_map(local_result.rgb);
+					result.a = local_result.a / N_SAMPLES;
+
+					float2 motion_vector = decode_velocity(TEX2DLOD(input_texture3, input_uv, 0).VELOCITY_COMPONENTS);
+					// TODO: prev_uv = input_uv is incorrect, also is input_uv - motion_vector
+					float4 prev_val = TEX2DLOD(input_texture4, input_uv - motion_vector, 0);
+					float blend_factor = length(motion_vector) * SSR_REPROJECTION_SCALAR + min_reprojection;
+					float4 reprojection = lerp(result, prev_val, (1.0 - saturate(blend_factor)) * jitter_enabled);
+
+					// Since we cannot track the trace depth of an ssr reflection, clamp the reprojected
+					// reflection into a defined range to prevent introducing excessive amounts of light
+					// (Think of reflections between two pefect perpendicular mirrors) 
+					//result = clamp(reprojection, 0, 1);
+					result = reprojection;
+				}
+
+				out_result = result;
+				out_mip_level = 0;
+			}
+		"""
+	}
+
+	ssr_ray_march_pass = {		
+		includes = [ "common", "gbuffer_access", "color_management", "space_conversion", "taa_offsets", "post_processing_common", "sampling", "ssr_ray_march_pass_common" ]
+
+		code="""
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};			 			
+
+			struct PS_OUTPUT {
+				float4 buffer0 : SV_TARGET0;
+				float buffer1 : SV_TARGET1;
+			}; 			
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				float4 p = mul(input.position, world_view_proj);
+				o.position = p;
+				o.uv = input.uv;
+
+				return o;
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_OUTPUT ps_main(PS_INPUT input)
+			{
+				PS_OUTPUT o;
+				o.buffer0 = 0;
+				o.buffer1 = 0;
+				ssr_ray_march(input.uv, o.buffer0, o.buffer1);
+				return o;
+			}
+		"""
+	}
+
+	cs_ssr_ray_march_pass = {		
+		includes = [ "common", "gbuffer_access", "color_management", "space_conversion", "taa_offsets", "post_processing_common", "sampling", "ssr_ray_march_pass_common" ]
+
+		stage_conditions = {
+			compute = "true"
+		}
+
+		code="""
+			RWTexture2D<float4> input_texture6;
+				RWTexture2D<unorm float> input_texture7;
+
+			CBUFFER_START(c_ssr_ray_march)
+				float2 inv_input_texture6_size;
+			CBUFFER_END
+			DEFAULT_COMPUTE_ROOT_SIGNATURE_ATTRIBUTE
+			[numthreads(8, 8, 1)]
+			void cs_main(uint3 Gid : SV_GroupID, uint3 DTId : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex )
+			{
+				float2 uv = (DTId.xy + 0.5) * inv_input_texture6_size;
+				float4 result = 0;
+				float mip_level = 0;
+				#if defined(DEVELOPMENT)
+					if (ssr_reference_enabled)
+						ssr_ray_march_reference(uv, result, mip_level);
+					else
+						ssr_ray_march(uv, result, mip_level);
+				#else
+					ssr_ray_march(uv, result, mip_level);
+				#endif
+				input_texture6[DTId.xy] = result;
+				input_texture7[DTId.xy] = mip_level;
+			}
+		"""
+	}
+}
+
+shaders = {
+	ssr_hiz_pass = {
+		editor_advanced_mode = true
+		
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="ssr_hiz_pass" render_states="filter" }
+				]
+			}
+		}	
+		
+		compile = {
+			default = [
+				{ defines=[""] }
+			]
+		}
+	}
+
+	ssr_ray_march_pass = {
+		editor_advanced_mode = true
+		
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [{					
+					defined="COMPUTE"
+					pass = [		
+						{ hlsl_shader="cs_ssr_ray_march_pass" }
+					]
+					fail = [
+						{ hlsl_shader="ssr_ray_march_pass" render_states="filter" }
+					]
+				}]
+			}
+		}	
+		
+		compile = {
+			default = [
+				{ if: "on_renderer(D3D11, D3D12) && render_cap(development)" defines=["DEVELOPMENT"] }
+				{ defines=[""] }
+			]
+		}
+	}
+}
+
+static_compile= [
+	{ if: "on_renderer(D3D11, D3D12)" shader="ssr_hiz_pass" }
+	{ if: "on_renderer(D3D11, D3D12)" shader="ssr_hiz_pass" defines=["LEVEL_0"] }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="ssr_ray_march_pass" }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="ssr_ray_march_pass" defines=["SSR_LOW_QUALITY"] }
+	//{ if: "on_renderer(D3D11, D3D12)" shader="ssr_ray_march_pass" defines=["COMPUTE"] }
+	{ if: "on_renderer(D3D11, D3D12)" shader="ssr_ray_march_pass" defines=["SSR_LOW_QUALITY" "COMPUTE"] }
+]

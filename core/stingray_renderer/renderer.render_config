@@ -1,0 +1,3301 @@
+// ----------------------------------------------------------------------------------------------------
+// Configures per platform render caps block
+
+
+/* 
+TODO: Optimization
+
+xb1
+- Pack gbuffers more? chroma luminance
+
+Consoles
+- htile control 
+
+all platforms
+- Split velocity vectors from ao and density? since it needs to be F16 format. or find a format that is R16G16B8A8
+- Clustered shading: pack indicies as char? is it possible?
+	- Pack light depending on type (might be in conflict when packing indices as char)
+	- Sort lights on type and shadow casting in order to optimize data access pattern in clustered shading.
+	- use legacy deferred shading to find light intersections and mark a stencil value there, then use this stencil value to render all lights at once using clustered shading. (stencil culling)
+	- depth cull fullscreen passes on far and near distance. ssr, ssao?
+	- write velocity directly to hdr3_rg use far distance cull in order to write skydome vectors to it.
+TODO: Improvements
+- use density calculation for particle transluency (both gbuffer and backlighting)
+*/
+
+/*
+xb1 esram notes:
+the dst is resolved after gbuffer pass and then discarded in post processing, this means that everything that is written to dst (water for instance) after the resolve will not be present in the dst when used.
+*/
+
+win_caps = {
+	feature_level = ""
+	use_deferred_contexts = false
+	d3d12 = false
+}
+
+/*
+ps4_caps = {
+	gnm_parallel_dispatch = true
+}
+
+xb1_caps = {
+	use_deferred_contexts = false
+	mixed_resolution_rendering = false
+	esram = true
+	d3d12 = false
+}
+
+xb12_caps = {
+	compute_decompress = false
+	async_compute_decompress = false
+	mixed_resolution_rendering = false
+	d3d12 = true
+}
+
+linux_caps = {
+	
+}
+*/
+
+// ---------------------------------------------------------------------------------------------------
+// Configures render settings
+
+render_settings = {
+	sun_shadows = true
+	sun_shadow_map_size = [ 2048, 2048 ]
+
+	async_ssr = false
+	async_fog = false
+
+	hdr = false
+	display_noise_enabled = true
+	
+	static_sun_shadows = true
+	static_sun_shadow_map_size = [ 2048, 2048 ]
+	// Only on PC, PS4, XB1: medium == 4 tap PCF, high == 5x5 PCF
+	// Ignored on mobile
+	sun_shadow_map_filter_quality = "high"
+	local_lights_shadow_map_filter_quality = "high"
+
+	deferred_local_lights_cast_shadows = true	
+	forward_local_lights_cast_shadows = true
+	local_lights_shadow_atlas_size = [ 2048, 2048 ]
+	cached_local_lights_shadow_atlas_size = [ 2048, 2048 ]
+
+	particles_local_lighting = true
+	particles_receive_shadows = true
+	particles_tessellation = true
+	particles_cast_shadows = true
+	particles_simulation_lod = 0
+	particles_capacity_multiplier = 1.0
+	particles_distance_culling = true
+
+	local_lights = true
+	fxaa_enabled = false
+	taa_enabled = true
+	jitter_enabled = false
+	sharpen_enabled = true
+	motion_blur_enabled = true
+	ao_enabled = true
+	ao_secondary_enabled = true
+	ao_high_quality = true
+	dof_enabled = true
+	bloom_enabled = true
+	ssr_enabled = true
+	ssr_high_quality = false
+	light_shafts_enabled = true
+	lens_quality_enabled = true
+	lens_quality_high_quality = true
+	//lens_flares_enabled = false
+	sun_flare_enabled = true
+	
+	fsr_enabled = false
+	fsr_quality = 4
+
+	debug_rendering = false // TODO: move this to development settings
+
+	clustered_shading_enabled = true
+
+	gamma = 2.2
+
+	specular_aa = false
+
+	eye_adaptation_speed = 1.0
+
+	local_lights_distance_culling = true
+	local_lights_distance_culling_fade_distance = 60.0
+	local_lights_distance_culling_cut_distance = 80.0
+
+	outline_enabled = true
+	skin_material_enabled = true
+
+	render_heatmap_enabled = false
+
+	max_shadow_casting_lights = 8
+
+	lod_scatter_density = 1
+	lod_decoration_density = 1
+	lod_object_multiplier = 1
+
+	// Translated in seconds the fade out time is 1.0 / speed seconds
+	shadow_fade_in_speed = 4.0
+	shadow_fade_out_speed = 2.0
+
+	local_probes_enabled = true
+
+	// TODO:
+	// 1. Fix sorting issues between highres transparency and low res transparency. Also add option to render a transparent object as low res or high res.
+	// - I've fixed this for standard and unlit base but not for billboard base etc
+	// 2. Remove edge artifacts
+	// - Bicubic upsampling
+	// - TAA
+	// - Tweaking
+	// - https://mynameismjp.wordpress.com/2015/09/13/programmable-sample-points/
+	// 3. Fix support to graph based particles. And any other soft transparency
+
+	low_res_transparency = false
+	
+	mixed_resolution_rendering_size = [1280, 720]
+
+	volumetric_lighting_local_lights = true
+	volumetric_lighting_local_shadows = true
+	volumetric_data_size = [128 96 160]
+	volumetric_extrapolation_high_quality = true
+	volumetric_extrapolation_volumetric_shadows = true
+	volumetric_volumes_enabled = true
+	volumetric_reprojection_amount = 0.0
+	
+	capture_cubemap = false
+
+	// 32-bit hdr format can result in reprojection artefacts, it might be needed to use R16G16B16A16F or better in order to achieve high quality results
+	hdr_rgb_format = "R11G11B10F"
+
+	world_interaction_size = [1920, 1080]
+	deus_map_fog_mask_size = [1920, 1080]
+	clear_back_buffer_enabled = false
+	ui_bloom_enabled = true
+
+	dlss_g_enabled = false
+	nv_framerate_cap = 0
+	nv_low_latency_mode = true
+	nv_low_latency_boost = false
+	nv_low_latency_markers = true
+
+	global_shader_flags = 8388608 // Hack to avoid conversion problems between integer and floats. Limits the flag range to 23 bits
+	particle_light_remapping_table = []
+}
+
+development_render_settings = {
+	wireframe_enabled = true
+
+	simulate_color_blindness = false
+	color_blindness_mode = 0
+
+	gbuffer_material_id_visualization = false
+	gbuffer_albedo_visualization = false
+	gbuffer_normal_visualization = false
+	gbuffer_roughness_visualization = false
+	gbuffer_specular_visualization = false
+	gbuffer_metallic_visualization = false
+	gbuffer_ambient_diffuse_visualization = false
+	gbuffer_sun_shadow_visualization = false
+	gbuffer_velocity_visualization = false
+	gbuffer_ao_visualization = false
+	bloom_visualization = false
+	ssr_visualization = false
+	ssr_mask_visualization = false
+	static_shadow_visualization = false
+	shadow_atlas_visualization = false
+	cached_shadow_atlas_visualization = false 
+	sun_shadow_map_visualization = false
+	shadow_mask_visualization = false
+
+	gbuffer_albedo_xyz_luminance_visualization = false
+	gbuffer_albedo_xyz_luminance_clipping_visualization = false
+	gbuffer_albedo_lab_luminance_visualization = false
+	gbuffer_albedo_lab_luminance_clipping_visualization = false
+	light_shafts_visualization = false
+	linear_depth_visualization = false
+	coc_visualization = false
+	gbuffer_normalized_velocity_visualization = false
+	stencil_outline_visualization = false
+	skin_sss_visualization = false
+	gbuffer_ssao_visualization = false
+	gbuffer_baked_ao_visualization = false
+	stencil_skin_visualization = false
+	froxel_depth_visualization = false
+	light_density_visualization = false
+	gbuffer_density_visualization = false
+	gbuffer_density_shadow_bias_visualization = false
+	gbuffer_skin_sss_visualization = false
+	gbuffer_diffuse_visualization = false
+	particle_visualization = false
+	mipmap_visualization = false
+	reflection_probe_visualization = false
+	reflection_weight_visualization = false
+	radiation_probe_visualization = false
+	radiation_weight_visualization = false
+	lighting_visualization = false
+	brightness_visualization = false
+	auto_exposure_visualization = false
+	debug_compare_fsr = false
+
+	debug_lighting = false
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Setup predefined shader pass flags, all flags prefixed with dev_ are used by the tools
+
+shader_pass_flags = [
+	"dev_wireframe"
+	"dev_volume_visualization"
+	"outline_unit"
+	"outline_unit_z"
+	"one_bit_alpha"
+]
+
+// ---------------------------------------------------------------------------------------------------
+// This is meta data only used by the -old- level editor for exposing different debug visualization modes supported by the rendering pipe
+// New editor uses a more flexible data-driven system, see core/stingray_renderer/editor_visualization
+
+editor_visualization = {
+	// When the user change from one visualization mode to another all render settings listed under the reset_settings tag are first set to the value assigned in this block
+	reset_settings = {
+		debug_rendering = false
+		gbuffer_material_id_visualization = false
+		gbuffer_albedo_visualization = false
+		gbuffer_normal_visualization = false
+		gbuffer_roughness_visualization = false
+		gbuffer_specular_visualization = false
+		gbuffer_metallic_visualization = false
+		gbuffer_ambient_diffuse_visualization = false
+		gbuffer_sun_shadow_visualization = false
+		gbuffer_velocity_visualization = false
+		gbuffer_ao_visualization = false
+		bloom_visualization = false
+		ssr_visualization = false
+		ssr_mask_visualization = false
+		shadow_atlas_visualization = false
+		cached_shadow_atlas_visualization = false
+		sun_shadow_map_visualization = false
+		static_shadow_visualization = false
+		shadow_mask_visualization = false
+
+		gbuffer_albedo_xyz_luminance_visualization = false
+		gbuffer_albedo_xyz_luminance_clipping_visualization = false
+		gbuffer_albedo_lab_luminance_visualization = false
+		gbuffer_albedo_lab_luminance_clipping_visualization = false
+		light_shafts_visualization = false
+		linear_depth_visualization = false	
+		coc_visualization = false
+		gbuffer_normalized_velocity_visualization = false
+		skin_sss_visualization = false
+		gbuffer_ssao_visualization = false
+		gbuffer_baked_ao_visualization = false
+		stencil_skin_visualization = false
+		froxel_depth_visualization = false
+		light_density_visualization = false
+		gbuffer_density_visualization = false
+		gbuffer_density_shadow_bias_visualization = false
+		gbuffer_skin_sss_visualization = false
+		gbuffer_diffuse_visualization = false
+		reflection_probe_visualization = false
+		reflection_weight_visualization = false
+		radiation_probe_visualization = false
+		radiation_weight_visualization = false
+		lighting_visualization = false
+		brightness_visualization = false
+		auto_exposure_visualization = false
+	}
+
+	// The editor parses this list and populates the View drop down menu
+	modes = [
+
+		{ type="mode" display_name="Full Rendering" 										toggle_settings={ debug_rendering=false} }
+
+		{ type="category" display_name="Material" 	 	}
+		{ type="category" display_name="Lighting" 	 	}
+		{ type="category" display_name="Shadows" 	 	}
+		{ type="category" display_name="Post"			}
+		{ type="category" display_name="Debug" 		 	}
+		{ type="category" display_name="Stencil" 	 	}
+
+		{ type="mode" category="Material" display_name="Material ID"	 					toggle_settings={ debug_rendering=true gbuffer_material_id_visualization=true } }
+		{ type="mode" category="Material" display_name="Base Color"	 						toggle_settings={ debug_rendering=true gbuffer_albedo_visualization=true } }
+		{ type="mode" category="Material" display_name="Normals" 							toggle_settings={ debug_rendering=true gbuffer_normal_visualization=true } }
+		{ type="mode" category="Material" display_name="Roughness" 							toggle_settings={ debug_rendering=true gbuffer_roughness_visualization=true } }
+		{ type="mode" category="Material" display_name="Metallic"							toggle_settings={ debug_rendering=true gbuffer_metallic_visualization=true } }
+		{ type="mode" category="Material" display_name="AO"									toggle_settings={ debug_rendering=true gbuffer_baked_ao_visualization=true } }
+		{ type="mode" category="Material" display_name="Skin SSS"  							toggle_settings={ debug_rendering=true gbuffer_skin_sss_visualization=true } }
+		{ type="mode" category="Material" display_name="Density"  							toggle_settings={ debug_rendering=true gbuffer_density_visualization=true } }
+		{ type="mode" category="Material" display_name="Density Shadow Bias"  				toggle_settings={ debug_rendering=true gbuffer_density_shadow_bias_visualization=true } }
+		{ type="separator" category="Material"}
+		{ type="mode" category="Material" display_name="Diffuse (Masked Base color)" 		toggle_settings={ debug_rendering=true gbuffer_diffuse_visualization=true } }
+		{ type="mode" category="Material" display_name="Specular (Masked Base color)" 		toggle_settings={ debug_rendering=true gbuffer_specular_visualization=true } }
+
+		{ type="mode" category="Lighting" display_name="Lighing Only" 						toggle_settings={ debug_lighting=true lighting_visualization=true } }
+		{ type="mode" category="Lighting" display_name="Ambient Diffuse" 					toggle_settings={ debug_lighting=true gbuffer_ambient_diffuse_visualization=true } }
+		{ type="mode" category="Lighting" display_name="Skin SSS Result"  					toggle_settings={ debug_lighting=true skin_sss_visualization=true } }
+		{ type="separator" category="Lighting"}
+		{ type="mode" category="Lighting" display_name="Diffuse Probes"  					toggle_settings={ debug_lighting=true radiation_probe_visualization=true } }
+		{ type="mode" category="Lighting" display_name="Diffuse Weigths"  					toggle_settings={ debug_rendering=true radiation_weight_visualization=true } }
+		{ type="mode" category="Lighting" display_name="Reflection Probes"  				toggle_settings={ debug_lighting=true reflection_probe_visualization=true } }
+		{ type="mode" category="Lighting" display_name="Reflection Weigths"  				toggle_settings={ debug_rendering=true reflection_weight_visualization=true } }
+		{ type="separator" category="Lighting"}
+		{ type="mode" category="Lighting" display_name="Histogram" 							toggle_settings={ auto_exposure_visualization=true } }
+		{ type="mode" category="Lighting" display_name="SSAO"  								toggle_settings={ debug_rendering=true gbuffer_ssao_visualization=true } }
+		{ type="mode" category="Lighting" display_name="AO/SSAO Combined"					toggle_settings={ debug_rendering=true gbuffer_ao_visualization=true } }
+		{ type="mode" category="Lighting" display_name="SSR"  								toggle_settings={ ssr_visualization=true } }
+		{ type="mode" category="Lighting" display_name="SSR Mask"  							toggle_settings={ ssr_mask_visualization=true } }
+
+		{ type="mode" category="Shadows" display_name="Sun Shadows"  						toggle_settings={ debug_rendering=true gbuffer_sun_shadow_visualization=true } }
+		{ type="mode" category="Shadows" display_name="Sun Shadow Mapping"  				toggle_settings={ sun_shadow_map_visualization=true } }
+		{ type="mode" category="Shadows" display_name="Cached Sun Shadow Map"  				toggle_settings={ static_shadow_visualization=true } }
+		{ type="separator" category="Shadows"}
+		{ type="mode" category="Shadows" display_name="Atlased Shadow Mapping"  			toggle_settings={ shadow_atlas_visualization=true } }
+		{ type="mode" category="Shadows" display_name="Cached Atlased Shadow Mapping"  		toggle_settings={ cached_shadow_atlas_visualization=true } }
+		{ type="mode" category="Shadows" display_name="Atlased Shadow Mask"  				toggle_settings={ shadow_mask_visualization=true } }
+
+		{ type="mode" category="Post" display_name="Bloom"  								toggle_settings={ bloom_visualization=true } }
+		{ type="mode" category="Post" display_name="Screen Space Light Shafts" 				toggle_settings={ light_shafts_visualization=true } }
+		{ type="mode" category="Post" display_name="Depth Of Field COC" 					toggle_settings={ coc_visualization=true } }
+
+		{ type="mode" category="Debug" display_name="Albedo XYZ Luminance" 					toggle_settings={ debug_rendering=true gbuffer_albedo_xyz_luminance_visualization=true } }
+		{ type="mode" category="Debug" display_name="Albedo XYZ Luminance Clipping" 		toggle_settings={ debug_rendering=true gbuffer_albedo_xyz_luminance_clipping_visualization=true } }
+		{ type="mode" category="Debug" display_name="Albedo Lab Luminance" 					toggle_settings={ debug_rendering=true gbuffer_albedo_lab_luminance_visualization=true } }
+		{ type="mode" category="Debug" display_name="Albedo Lab Luminance Clipping" 		toggle_settings={ debug_rendering=true gbuffer_albedo_lab_luminance_clipping_visualization=true } }
+		{ type="mode" category="Debug" display_name="Brightness"  							toggle_settings={ debug_rendering=true brightness_visualization=true } }
+		//{ type="mode" category="Debug" display_name="Brightness (no fog)"  					toggle_settings={ debug_rendering=true brightness_visualization=true fog_enabled=false } }
+		{ type="separator" category="Debug"}
+		{ type="mode" category="Debug" display_name="Linear Depth" 							toggle_settings={ linear_depth_visualization=true } }
+		{ type="separator" category="Debug"}
+		{ type="mode" category="Debug" display_name="Velocity"  							toggle_settings={ debug_rendering=true gbuffer_velocity_visualization=true } }
+		{ type="mode" category="Debug" display_name="Normalized Velocity"  					toggle_settings={ debug_rendering=true gbuffer_normalized_velocity_visualization=true } }
+		{ type="separator" category="Debug"}
+		{ type="mode" category="Debug" display_name="FroxelBuffer Depth"					toggle_settings={ debug_rendering=true froxel_depth_visualization=true } }
+		{ type="mode" category="Debug" display_name="Light Density" 						toggle_settings={ debug_rendering=true light_density_visualization=true } }
+
+		{ type="mode" category="Stencil" display_name="Outline Stencil" 					toggle_settings={ debug_rendering=true stencil_outline_visualization=true } }
+		{ type="mode" category="Stencil" display_name="Skin Stencil" 						toggle_settings={ debug_rendering=true stencil_skin_visualization=true } }
+	]
+}
+
+// ---------------------------------------------------------------------------------------------------
+// This section contains mapping information for importing different kinds of materials/shaders
+shader_import = {
+	fbx = {
+		default = "core/stingray_renderer/shader_import/standard"
+	}
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Specifies which shader libraries to load at boot up.
+
+shader_libraries = [
+	"core/stingray_renderer/shader_libraries/default_shaders"
+	"core/stingray_renderer/shader_libraries/development"
+	"core/stingray_renderer/shader_libraries/lighting"
+	"core/stingray_renderer/shader_libraries/volumetric_lighting"
+	"core/stingray_renderer/shader_libraries/placeholders"
+	"core/stingray_renderer/shader_libraries/particle_billboard"
+	"core/stingray_renderer/shader_libraries/particle_ribbon"
+	"core/stingray_renderer/shader_libraries/terrain_utilities"
+	"core/stingray_renderer/shader_libraries/terrain"
+	"core/stingray_renderer/shader_libraries/decals"
+	"core/stingray_renderer/shader_libraries/water"
+	"core/stingray_renderer/shader_libraries/gui"
+	"core/stingray_renderer/shader_libraries/slug"
+	"core/stingray_renderer/shader_libraries/heatmap"
+	"core/stingray_renderer/shader_libraries/world_interaction"
+	"core/stingray_renderer/shader_libraries/shadows/shadow_map"
+	"core/stingray_renderer/shader_libraries/post_processing/post_processing"
+	"core/stingray_renderer/shader_libraries/post_processing/fxaa"
+	"core/stingray_renderer/shader_libraries/post_processing/screen_space_ambient_occlusion"
+	"core/stingray_renderer/shader_libraries/post_processing/screen_space_reflections"
+	"core/stingray_renderer/shader_libraries/post_processing/screen_space_skin_filter"
+	"core/stingray_renderer/shader_libraries/post_processing/motion_blur"
+	"core/stingray_renderer/shader_libraries/post_processing/depth_of_field"
+	"core/stingray_renderer/shader_libraries/post_processing/lens_flare"
+	"core/stingray_renderer/shader_libraries/post_processing/outline"
+	"core/stingray_renderer/shader_libraries/post_processing/auto_exposure"
+	"core/stingray_renderer/shader_libraries/post_processing/utilities"
+	"core/stingray_renderer/shader_libraries/post_processing/fidelity_fx/ffx_fsr"
+]
+
+
+// Mapping between between default shaders needed by the engine and their implementation in data.
+// By default these shaders are implemented in the core/stingray_renderer/default_shaders library
+default_shaders = {
+	// If boot ini-file configures the engine to not crash on missing shaders, the missing_shader will be used as a replacement shader
+	missing_shader = "missing_shader"
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Specifies global resources to allocate at start up
+
+global_resources = [
+	
+	{ type="static_branch" render_settings={ fsr_enabled=true }
+		pass = [
+			{ type="static_branch" render_caps={ mixed_resolution_rendering=true }
+				pass = [
+					{ name="output_target" type="render_target" size_from_render_setting="mixed_resolution_rendering_size" format="R8G8B8A8" }
+				]
+				fail = [
+					{ type="static_branch" render_settings={ fsr_quality=1 } pass = [
+						{ name="output_target" 		type="render_target" depends_on="back_buffer" 	format="R8G8B8A8"  w_scale=0.5 h_scale=0.5  }
+					]}
+					{ type="static_branch" render_settings={ fsr_quality=2 } pass = [
+						{ name="output_target" 		type="render_target" depends_on="back_buffer" 	format="R8G8B8A8"  w_scale=0.59 h_scale=0.59  }
+					]}
+					{ type="static_branch" render_settings={ fsr_quality=3 } pass = [
+						{ name="output_target" 		type="render_target" depends_on="back_buffer" 	format="R8G8B8A8"  w_scale=0.67 h_scale=0.67  }
+					]}
+					{ type="static_branch" render_settings={ fsr_quality=4 } pass = [
+						{ name="output_target" 		type="render_target" depends_on="back_buffer" 	format="R8G8B8A8"  w_scale=0.77 h_scale=0.77  }
+					]}
+				]
+			}
+
+			{ name="fsr_easu_output" 	type="render_target" depends_on="back_buffer"	format="R8G8B8A8"  UAV=true }
+			{ name="fsr_rcas_output" 	type="render_target" depends_on="back_buffer"	format="R8G8B8A8"  UAV=true }
+			{ name="fsr_input" 			type="render_target" depends_on="output_target" format="R8G8B8A8" }
+		]
+		fail = [
+			{ type="static_branch" render_caps={ mixed_resolution_rendering=true }
+				pass = [	
+					{ name="output_target" type="render_target" size_from_render_setting="mixed_resolution_rendering_size" format="R8G8B8A8" }
+				]
+				fail = [
+					{ type="static_branch" render_settings={ upscaling_enabled=true }
+						pass = [
+							// This upscaling_context is set as dummy and won't allocate memory for a context.
+							// It is only used to get the output_target resolution. The real upscaling_context is created per viewport.
+							{ name="dummy_upscaling" type="upscaling_context" mode_from_render_setting="upscaling_mode" dummy=true depends_on="back_buffer" quality_from_render_setting="upscaling_quality" }
+							
+							{ name="output_target" type="render_target" depends_on="dummy_upscaling" format="R8G8B8A8" }
+						]
+						fail = [
+							{ name="output_target" type="alias" aliased_resource="back_buffer" }
+						]
+					}
+				]
+			}
+		]
+	}
+
+	{ type="static_branch" render_caps={ development=true }
+		pass = [	
+			{ name="wireframe_target" type="render_target" depends_on="output_target" format="R8G8B8A8" clear_color=[0.0, 0.0, 0.0, 0.0] }
+			{ type="static_branch" render_caps={ mixed_resolution_rendering=true }
+				pass = [
+					{ name="wireframe_copy" type="render_target" depends_on="output_target" format="R8G8B8A8" }
+				]
+			}
+		]
+	}
+
+	{ type="static_branch" render_settings={ static_sun_shadows=true }
+		pass = [
+			{ name="static_sun_shadow_map" type="render_target" size_from_render_setting="static_sun_shadow_map_size" format="SHADOW_MAP" }
+		]
+	}
+
+	{ type="static_branch" render_settings={ sun_shadows=true }
+		pass = [
+			{ name="sun_shadow_map" type="render_target" size_from_render_setting="sun_shadow_map_size" format="SHADOW_MAP"  }
+		]
+	}
+
+	{ type="static_branch" render_settings={ hdr=true }
+		pass = [
+			{ name="offscreen_target" type="render_target" depends_on="back_buffer" format="R10G10B10A2" clear_color=[0.0, 0.0, 0.0, 0.0] }
+		]
+		fail = [
+			{ name="offscreen_target" type="render_target" depends_on="back_buffer" format="R8G8B8A8" clear_color=[0.0, 0.0, 0.0, 0.0] }
+		]
+	}
+	{ type="static_branch" render_caps={ mixed_resolution_rendering=true }
+		pass = [
+			{ type="static_branch" render_settings={ hdr=true }
+				pass = [
+					{ name="offscreen_output_target" type="render_target" depends_on="output_target" format="R10G10B10A2" clear_color=[0.0, 0.0, 0.0, 0.0] }
+				]
+				fail = [
+					{ name="offscreen_output_target" type="render_target" depends_on="output_target" format="R8G8B8A8" clear_color=[0.0, 0.0, 0.0, 0.0] }
+				]
+			}
+		]
+		fail = [
+			{ type="static_branch" render_settings={ fsr_enabled=true }
+				pass = [
+					{ type="static_branch" render_settings={ hdr=true }
+						pass = [
+							{ name="offscreen_output_target" type="render_target" depends_on="output_target" format="R10G10B10A2" clear_color=[0.0, 0.0, 0.0, 0.0] }
+						]
+						fail = [
+							{ name="offscreen_output_target" type="render_target" depends_on="output_target" format="R8G8B8A8" clear_color=[0.0, 0.0, 0.0, 0.0] }
+						]
+					}
+				]
+				fail = [
+					{ name="offscreen_output_target" type="alias" aliased_resource="offscreen_target" }
+				]
+			}
+		]
+	}
+	
+	{ name="local_lights_shadow_atlas" type="render_target" size_from_render_setting="local_lights_shadow_atlas_size" format="SHADOW_MAP" }
+	{ name="cached_local_lights_shadow_atlas" type="render_target" size_from_render_setting="cached_local_lights_shadow_atlas_size" format="SHADOW_MAP" }
+
+	{ name="depth_stencil_buffer" 		type="render_target" depends_on="output_target" 						format="DEPTH_STENCIL" }
+	{ name="depth_stencil_buffer_div2" 	type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 format="DEPTH_STENCIL" }
+
+	{ name="linear_depth" 			type="render_target" depends_on="output_target" 										format="R32F" }
+	{ name="linear_depth_div2" 		type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 				format="R32F" }
+	
+	{ name="luminance_adaptation" 	type="render_target" width=16 height=16 format="R16F" }
+	{ name="sun_visibility" 		type="render_target" width=4 height=4 format="R16F" } // TODO: make one pixel only
+
+	{ name="gbuffer0" type="render_target" depends_on="output_target" format="R8G8B8A8" srgb=true }
+	{ name="gbuffer1" type="render_target" depends_on="output_target" format="R8G8B8A8" }
+	{ name="gbuffer2" type="render_target" depends_on="output_target" format="R8G8" }
+
+	{ name="hdr0" 			type="render_target" depends_on="output_target" 										format="R16G16B16A16F" }
+	{ name="hdr1" 			type="render_target" depends_on="output_target" 										format="R16G16B16A16F" }
+	{ name="hdr2" 			type="render_target" depends_on="output_target" 										format="R16G16B16A16F" }
+	{ name="hdr0_div2" 		type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 				format="R16G16B16A16F" }
+	{ name="hdr1_div2" 		type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 				format="R16G16B16A16F" }
+	{ name="hdr0_div4" 		type="render_target" depends_on="output_target" w_scale=0.25 h_scale=0.25 				format="R16G16B16A16F" }
+	{ name="hdr1_div4" 		type="render_target" depends_on="output_target" w_scale=0.25 h_scale=0.25 				format="R16G16B16A16F" }
+	{ name="hdr0_div10" 	type="render_target" depends_on="output_target" w_scale=0.1 h_scale=0.1 				format="R16G16B16A16F" } // Alpha channel is not used
+	{ name="hdr0_div16" 	type="render_target" depends_on="output_target" w_scale=0.0625 h_scale=0.0625 			format="R16G16B16A16F" }
+	{ name="hdr1_div16" 	type="render_target" depends_on="output_target" w_scale=0.0625 h_scale=0.0625 			format="R16G16B16A16F" }
+	{ name="hdr0_div64" 	type="render_target" depends_on="output_target" w_scale=0.015625 h_scale=0.015625 		format="R16G16B16A16F" }
+	{ name="hdr1_div64" 	type="render_target" depends_on="output_target" w_scale=0.015625 h_scale=0.015625 		format="R16G16B16A16F" }
+	{ name="hdr0_div256" 	type="render_target" depends_on="output_target" w_scale=0.00390625 h_scale=0.00390625 	format="R16G16B16A16F" }
+	{ name="hdr1_div256" 	type="render_target" depends_on="output_target" w_scale=0.00390625 h_scale=0.00390625 	format="R16G16B16A16F" }
+
+	{ name="hdr0_rg" 		type="render_target" depends_on="output_target" 						format="R16G16F" }
+	{ name="hdr1_rg" 		type="render_target" depends_on="output_target" 						format="R16G16F" }
+	{ name="hdr0_rg_div10" 	type="render_target" depends_on="output_target" w_scale=0.1 h_scale=1 	format="R16G16F" }
+	{ name="hdr1_rg_div10" 	type="render_target" depends_on="output_target" w_scale=0.1 h_scale=0.1 format="R16G16F" }
+	
+	
+	{ name="hdr0_rgb" 		type="render_target" depends_on="output_target" format_from_render_setting="hdr_rgb_format" }
+	{ name="hdr1_rgb" 		type="render_target" depends_on="hdr0_rgb" }
+	{ name="hdr0_rgb_div2" 	type="render_target" depends_on="hdr0_rgb" w_scale=0.50 h_scale=0.50 }
+	{ name="hdr1_rgb_div2" 	type="render_target" depends_on="hdr0_rgb" w_scale=0.50 h_scale=0.50 }
+	{ name="hdr2_rgb_div2" 	type="render_target" depends_on="hdr0_rgb" w_scale=0.50 h_scale=0.50 }
+	{ name="hdr0_rgb_div4" 	type="render_target" depends_on="hdr0_rgb" w_scale=0.25 h_scale=0.25 }
+	{ name="hdr1_rgb_div4" 	type="render_target" depends_on="hdr0_rgb" w_scale=0.25 h_scale=0.25 }
+	{ name="hdr0_rgb_div10" type="render_target" depends_on="hdr0_rgb" w_scale=0.10 h_scale=0.10 }
+
+
+	{ name="hdr0_r" type="render_target" depends_on="output_target" format="R16F" }
+	{ name="hdr0_r_div2" type="render_target" depends_on="output_target" w_scale=0.50 h_scale=0.50 format="R16F" }
+	{ name="hdr1_r_div2" type="render_target" depends_on="output_target" w_scale=0.50 h_scale=0.50 format="R16F" }
+	{ name="hdr0_r_div4" type="render_target" depends_on="output_target" w_scale=0.25 h_scale=0.25 format="R16F" }
+	{ name="hdr1_r_div4" type="render_target" depends_on="output_target" w_scale=0.25 h_scale=0.25 format="R16F" }
+
+	{ name="ldr0" 		type="render_target" depends_on="output_target" 						format="R8G8B8A8" }
+	{ name="ldr1" 		type="render_target" depends_on="output_target" 						format="R8G8B8A8" }
+
+	{ name="ldr0_r" 		type="render_target" depends_on="output_target" 							format="R8" }
+	{ name="ldr1_r" 		type="render_target" depends_on="output_target" 							format="R8" }
+	{ name="ldr0_r_div2" 	type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 	format="R8" }
+	{ name="ldr1_r_div2" 	type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 	format="R8" }
+	
+	{ type="static_branch" render_settings={ light_shafts_enabled=true }
+		pass = [
+			{ name="ldr0_r_div4" type="render_target" depends_on="output_target" w_scale=0.25 h_scale=0.25 	format="R8" }
+			{ name="ldr1_r_div4" type="render_target" depends_on="output_target" w_scale=0.25 h_scale=0.25 	format="R8" }
+		]
+	}
+
+	{ type="static_branch" render_settings={ ao_enabled=true }
+		pass = [
+			{ name="linear_depth_mip6" type="render_target" depends_on="output_target" mip_levels=6 format="R32F" }
+
+			{ type="static_branch" render_settings={ ao_high_quality=true }
+				pass = [
+					{ name="ssao_buffer" type="render_target" depends_on="output_target" format="R8G8B8A8" }
+				]
+				fail = [
+					{ name="ssao_buffer" type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 format="R8G8B8A8" }
+				]
+			}
+		]
+	}
+
+	{ type="static_branch" render_settings={ ssr_enabled=true }
+		pass = [
+			{ name="hiz_depth_mip11" type="render_target" depends_on="output_target" mip_levels=11 format="R32F" }
+			{ type="static_branch" render_settings={ ssr_high_quality=true }
+				pass = [
+					{ name="hdr0_div2_mip6" type="render_target" depends_on="output_target" w_scale=1 h_scale=1 mip_levels=6 format="R16G16B16A16F"  UAV=true }
+					{ name="hdr1_div2_mip6" type="render_target" depends_on="output_target" w_scale=1 h_scale=1 mip_levels=6 format="R16G16B16A16F" }
+					{ name="ldr4_div2" 		type="render_target" depends_on="output_target" w_scale=1 h_scale=1 format="R8"  UAV=true }
+
+				]
+				fail = [
+					{ name="hdr0_div2_mip6" type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 mip_levels=6 format="R16G16B16A16F" UAV=true }
+					{ name="hdr1_div2_mip6" type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 mip_levels=6 format="R16G16B16A16F" }
+					{ name="ldr4_div2" 		type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 format="R8"  UAV=true }
+				]
+			}
+		]
+	}
+
+	/*
+	{ type="static_branch" render_settings={ lens_flares_enabled=true } render_caps={ development=true }
+		pass = [
+			{ name="flare_short1" 	type="render_target" depends_on="output_target" w_scale=0.050 h_scale=0.50 format="R11G11B10F" }
+			{ name="flare_short2" 	type="render_target" depends_on="output_target" w_scale=0.050 h_scale=0.50 format="R11G11B10F" }
+			{ name="flare_long1" 	type="render_target" depends_on="output_target" w_scale=0.005 h_scale=0.50 format="R11G11B10F" }
+			{ name="flare_long2" 	type="render_target" depends_on="output_target" w_scale=0.005 h_scale=0.50 format="R11G11B10F" }
+			{ name="flare1_div4" 	type="render_target" depends_on="output_target" w_scale=0.250 h_scale=0.25 format="R11G11B10F" }
+			{ name="flare2_div4" 	type="render_target" depends_on="output_target" w_scale=0.250 h_scale=0.25 format="R11G11B10F" }
+			{ name="lens_color_map" 	type="texture" resource="core/stingray_renderer/lookup_tables/lens_flare/lens_color" }
+			{ name="ghosts_color_map" 	type="texture" resource="core/stingray_renderer/lookup_tables/lens_flare/ghosts_color" }
+		]
+	}
+	*/
+
+	{ type="static_branch" render_caps={ mixed_resolution_rendering=true }
+		pass = [	
+			{ name="overlay_mask" 		type="render_target" depends_on="back_buffer" format="R8G8B8A8" }
+		]
+		fail = [
+			{ name="overlay_mask" 		type="alias" aliased_resource="ldr0" }
+		]
+	}
+
+	{ name="world_interaction" 	type="render_target" size_from_render_setting="world_interaction_size" format="R8G8" clear_color=[1.0 0.5, 0.5, 1.0] }
+	{ name="deus_map_fog_mask"	type="render_target" size_from_render_setting="deus_map_fog_mask_size" format="R8" clear_color=[0.0 0.0, 0.0, 0.0] }
+
+	{ name="fog_material_data0" type="render_target" image_type="image_3d" size_from_render_setting="volumetric_data_size" 	format="R16G16B16A16F" UAV=true }
+	{ name="fog_volume" 		type="render_target" image_type="image_3d" depends_on="fog_material_data0" 					format="R16G16B16A16F" UAV=true }
+
+	{ name="brdf_lut" 			type="texture" resource="core/stingray_renderer/lookup_tables/ibl_brdf_lut" }
+	{ name="noise" 				type="texture" resource="core/stingray_renderer/lookup_tables/noise" }
+
+	// Targets only present during development on authoring platforms
+	{ type="static_branch" platforms=["win"] render_caps={ development=true }
+		pass = [
+			{ name="cubemap_result" type="render_target" width=256 height=256 format="R16G16B16A16F" }
+			{ name="heatmap" 		type="render_target" width=4096 height=4096 format="R8" }
+			{ name="debug_overlay" 	type="render_target" depends_on="output_target" format="R8G8B8A8" }
+			{ name="heatmap_legend" type="texture" resource="core/stingray_renderer/lookup_tables/heatmap_legend" }
+		]
+	}
+
+	{ type="static_branch" render_caps={ development=true }
+		pass = [
+			{ name="target_exposure_pos" type="render_target" width=1 height=1 format="R32UINT" UAV=true }
+		]
+	}
+
+	{ name="quantized_luma" type="render_target" width=640 height=384 format="R8" }
+	{ name="histogram" type="render_target" width=256 height=1 format="R32UINT" UAV=true }
+
+	/*
+	{ type="static_branch" render_settings={ sun_shadows=true }
+		pass = [
+			{ name="variance_shadow_map" type="render_target" depends_on="sun_shadow_map" format="R32G32F" }
+			{ name="vsm_div4_0"  type="render_target" depends_on="variance_shadow_map" w_scale=0.250 h_scale=0.250 format="R32G32F" }
+			{ name="vsm_div4_1"  type="render_target" depends_on="variance_shadow_map" w_scale=0.250 h_scale=0.250 format="R32G32F" }
+			{ name="vsm_div8_0"  type="render_target" depends_on="variance_shadow_map" w_scale=0.125 h_scale=0.125 format="R32G32F" }
+			{ name="vsm_div8_1"  type="render_target" depends_on="variance_shadow_map" w_scale=0.125 h_scale=0.125 format="R32G32F" }
+
+			{ name="exponential_shadow_map" type="render_target" depends_on="sun_shadow_map" format="R32G32F" }
+			{ name="esm_div4_0"  type="render_target" depends_on="exponential_shadow_map" w_scale=0.250 h_scale=0.250 format="R32F" }
+			{ name="esm_div4_1"  type="render_target" depends_on="exponential_shadow_map" w_scale=0.250 h_scale=0.250 format="R32F" }
+			{ name="esm_div8_0"  type="render_target" depends_on="exponential_shadow_map" w_scale=0.125 h_scale=0.125 format="R32F" }
+			{ name="esm_div8_1"  type="render_target" depends_on="exponential_shadow_map" w_scale=0.125 h_scale=0.125 format="R32F" }
+		]
+	}
+	*/
+
+	{ type="static_branch" render_caps={ d3d12=true }
+		pass = [
+			{ name="fog_fence" type="device_fence" }
+			{ name="ssr_fence" type="device_fence" }
+		]
+	}
+]
+
+// ---------------------------------------------------------------------------------------------------
+// Layer configurations
+
+layer_configs = {
+	default = [
+		{ resource_generator="esram_allocation" }
+
+		//{ resource_generator="copy_offscreen" profiling_scope="transparent" }
+
+		{ resource_generator="dynamic_clear" }
+
+		{ render_targets=["ldr0", "ldr1_r"] depth_stencil_target="depth_stencil_buffer" clear_flags=["SURFACE", "DEPTH", "STENCIL"] profiling_scope="clear_render_targets" }
+		{ type="static_branch" render_settings={ skin_material_enabled=true }
+			pass = [
+				{ render_targets=["hdr0"] clear_flags=["SURFACE"] profiling_scope="clear_skin_sss" }
+			]
+			fail = [
+				// TODO: fixed the layer index, so we don't need to add dummy layers. 
+				// We could for instance count the number of layers per branch and use max(pass, fail) to increment the layer index with
+				{ name="dummy_clear" } 
+			]
+		}
+		{ type="static_branch" render_settings={ local_probes_enabled=true }
+			pass = [
+				{ render_targets=["hdr1", "hdr2"] clear_flags=["SURFACE"] profiling_scope="clear_reflections" }
+			]
+			fail = [
+				{ name="dummy_clear2" }
+			]
+		}
+
+
+		{ resource_generator="esram_gbuffer_allocation" }
+
+		// Base g-buffer layer, bulk of all materials renders into this
+		{ name="gbuffer_fpr" render_targets=["gbuffer0", "gbuffer1", "gbuffer2", "hdr0_rg"] depth_stencil_target="depth_stencil_buffer" sort="FRONT_BACK" profiling_scope="gbuffer_fpr" }
+		{ name="depth_prepass" depth_stencil_target="depth_stencil_buffer" sort="FRONT_BACK" profiling_scope="depth_prepass" }
+		{ resource_generator="resummarize_htile" /*profiling_scope="resummarize_htile"*/ } 
+		
+		{ name="gbuffer" render_targets=["gbuffer0", "gbuffer1", "gbuffer2", "hdr0_rg"] depth_stencil_target="depth_stencil_buffer" sort="FRONT_BACK" profiling_scope="gbuffer" }
+		{ name="gbuffer_terrain" render_targets=["gbuffer0", "gbuffer1", "gbuffer2", "hdr0_rg"] depth_stencil_target="depth_stencil_buffer" sort="FRONT_BACK" profiling_scope="gbuffer_terrain" }
+
+		{ name="world_interaction" render_targets=["world_interaction"] sort="FRONT_BACK" profiling_scope="world_interaction" clear_flags=["SURFACE"]}
+		{ name="deus_map_fog_mask" render_targets=["deus_map_fog_mask"] sort="FRONT_BACK" profiling_scope="deus_map_fog_mask" clear_flags=[]}
+		{ resource_generator="fade_world_interaction_after" }
+
+		{ name="gbuffer_alpha_masked" render_targets=["gbuffer0", "gbuffer1", "gbuffer2", "hdr0_rg"] depth_stencil_target="depth_stencil_buffer" sort="FRONT_BACK" profiling_scope="gbuffer_alpha_masked" }
+		
+		
+		// TODO: Merge this pass with gbuffer to make this a one pass method instead of two pass method
+		{ type="static_branch" render_settings={ outline_enabled = true }
+			pass = [
+				{ name="outline" render_targets=["ldr0"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="gbuffer_outline" }
+				{ name="outline_remove" depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="gbuffer_outline_remove" }
+			]
+			fail = [
+				{ name="dummy_outline" }
+				{ name="dummy_outline_remove" }
+			]
+		}
+
+		// This gbuffer pass does not affect the outline shader (outline z for instance)
+		{ name="gbuffer_post_outline" render_targets=["gbuffer0", "gbuffer1", "gbuffer2", "hdr0_rg"] depth_stencil_target="depth_stencil_buffer" sort="FRONT_BACK" profiling_scope="gbuffer" }
+
+		{ resource_generator="linearize_depth" profiling_scope="linearize_depth" }
+
+		{ resource_generator="ssao_ssr_hiz" }
+		
+		//if async
+		{ resource_generator="begin_transition_fog" /*profiling_scope="begin_transition_fog"*/ }
+		// TODO: ssr is dependent on roughness and normal, which means that we should calculate the ssr ray march after decals
+		{ resource_generator="begin_transition_ssr" /*profiling_scope="begin_transition_ssr"*/ }
+
+		{ type="static_branch" platforms=["win"]
+			pass = [
+				// Kick resource generator for rendering all shadow maps
+				{ name="shadow_mapping" resource_generator="shadow_mapping" profiling_scope="shadow mapping" }
+				{ resource_generator="clustered_shading" }
+			]
+		}
+		{ name="shadow_mask" resource_generator="shadow_mask" profiling_scope="shadow mask" }
+
+		//async compute pass will run at the same time as shadows on dx12
+		{ resource_generator="ssr_raymarch_compute" }
+		{ resource_generator="fill_fog_material" }
+
+		{ name="ao_sources" render_targets=["gbuffer2"] depth_stencil_target="depth_stencil_buffer" profiling_scope="ao_source" }
+		
+		// Decals
+		{ resource_generator="resolve_gbuffers_for_decals" }
+		{ name="decals" render_targets=["gbuffer0" "gbuffer1", "gbuffer2"] depth_stencil_target="depth_stencil_buffer" profiling_scope="decal" sort="EXPLICIT" max_resolve_count=2 }
+
+		{ type="static_branch" platforms=["win"] render_caps={ d3d12 = true }
+			pass = [
+				{ resource_generator="begin_transition_gbuffers" profiling_scope="begin_transition_gbuffers" }
+			]
+		}
+		
+		// Build motion vectors
+		{ resource_generator="generate_motion_vectors" profiling_scope="motion vectors" }
+
+		// xb1, xb12
+		{ resource_generator="esram_resolve_gbuffer2" }
+		{ resource_generator="wait_for_decompress_and_linearize" /*profiling_scope="wait_for_decompress_and_linearize"*/ }
+		
+		{ type="static_branch" render_caps={ development=true }
+			pass = [	
+				{ resource_generator="lighting_debug" }
+			]
+		}
+
+		// Layer for localized reflection probes
+		{ type="static_branch" render_settings={ local_probes_enabled = true }
+			pass = [
+				{ name="reflection" render_targets=["hdr1"] depth_stencil_target="depth_stencil_buffer" sort="FRONT_BACK" profiling_scope="reflection probes" }
+				{ name="radiance" render_targets=["hdr2"] depth_stencil_target="depth_stencil_buffer" sort="FRONT_BACK" profiling_scope="radiance probes" }
+				{ name="radiance&reflection" render_targets=["hdr1" "hdr2"] depth_stencil_target="depth_stencil_buffer" sort="FRONT_BACK" profiling_scope="radiance&reflections probes" }
+			]
+			fail = [
+				{ name="dummy_reflection" }
+				{ name="dummy_radiance" }
+				{ name="dummy_radiance&reflection" }
+			]
+		}
+
+		{ resource_generator="esram_discard_gbuffer2" }
+
+		// xb12
+		{ resource_generator="begin_transition_hdr1" /*profiling_scope="begin_transition_hdr1"*/ }
+		
+		// Kick main scene lighting
+		{ resource_generator="lighting" profiling_scope="lighting" }
+
+		// Add emissive
+		{ name="emissive" render_targets=["hdr0_rgb"] depth_stencil_target="depth_stencil_buffer" sort="FRONT_BACK" profiling_scope="emissive" }
+		
+		{ resource_generator="esram_gbuffer1_discard" }
+
+		// Skydome rendered directly into light accumulation 
+
+		{ name="skydome" render_targets=["hdr0_rgb"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="skydome" }
+		{ name="skydome_billboard" render_targets=["hdr0_rgb"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="skydome_billboard" }
+
+		// Kick debug visualization
+		{ type="static_branch" render_caps={ development=true }
+			pass=[
+				{ resource_generator="debug_visualization" } 
+			]
+		}
+
+		{ name="saturation_mask" render_targets=["ldr1_r"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="saturation_mask" }
+		{ resource_generator="apply_saturation_mask" }
+
+		{ resource_generator = "esram_fog_allocation" }
+		{ resource_generator="apply_fog" profiling_scope="apply fog" }
+		{ name="fog_plane" render_targets=["hdr0_rgb"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="fog_plane" }
+		{ resource_generator = "esram_fog_discard" }
+		{ type="static_branch" platforms=["win"]  render_caps={ d3d12 = true }
+			pass = [
+				{ resource_generator="resolve_hdr0" profiling_scope="resolve_hdr0" }
+			]
+		}
+
+		// TODO: make low res
+		{ name="water_mask" render_targets=["ldr1_r"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="water_mask" }
+		// Creates a buffer and history buffer for units interacting with foliage in the world
+		{ name="world_interaction_water" render_targets=["world_interaction"] sort="FRONT_BACK" profiling_scope="world_interaction_water" clear_flags=["SURFACE"] }		
+		{ name="hdr_transparent_depth" render_targets=["hdr0_rgb"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="hdr_transparent_depth" max_resolve_count=1 }
+		{ name="hdr_linear_depth" render_targets=["linear_depth", "hdr0_rg"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="hdr_linear_depth" }
+
+		{ resource_generator="esram_discard_ldr0" }
+
+		// TODO: Correct DoF for transparent objects
+		// see https://seblagarde.files.wordpress.com/2013/08/gdce13_lagarde_harduin_light.pdf
+
+		{ type="static_branch" render_settings={ low_res_transparency=true }
+			pass = [
+				{ type="static_branch" platforms=["win"] render_caps={ d3d12 = true }
+					pass = [
+						{ name="dummy_resolve" }
+					]
+				}
+
+				{ resource_generator="depth_downsampling" } 
+				
+				{ resource_generator="esram_hdr0_div2_allocation" }
+				
+				{ render_targets=["hdr0_div2"] clear_flags=["SURFACE"] profiling_scope="clear_render_targets" }
+				{ name="hdr_transparent_distortion" render_targets=["hdr0_div2"] depth_stencil_target="depth_stencil_buffer_div2" sort="BACK_FRONT" profiling_scope="hdr_transparent_distortion" }
+				{ name="hdr_transparent" render_targets=["hdr0_div2"] depth_stencil_target="depth_stencil_buffer_div2" sort="BACK_FRONT" profiling_scope="hdr_transparent" }
+				{ resource_generator="apply_hdr_transparent" profiling_scope="apply_hdr_transparent" }
+				
+				{ render_targets=["hdr0_div2"] clear_flags=["SURFACE"] profiling_scope="clear_render_targets" }
+				{ name="hdr_transparent_screen_space" render_targets=["hdr0_div2"] depth_stencil_target="depth_stencil_buffer_div2" sort="BACK_FRONT" profiling_scope="hdr_transparent_screen_space" }
+				{ resource_generator="apply_hdr_transparent" profiling_scope="apply_hdr_transparent" }
+				
+				{ resource_generator="esram_hdr0_div2_discard" }
+				
+			]
+			fail = [
+				{ type="static_branch" platforms=["win"] render_caps={ d3d12 = true }
+					pass = [
+						{ resource_generator="resolve_hdr0" profiling_scope="resolve_hdr0" }
+					]
+				}
+
+				// we need as many layers, to make sure that we have correct index if we change settings without restarting the engine.
+				{ name="dummy_downsample" }
+
+				{ name="dummy_esram_alloc" }
+
+				{ name="dummy_clear" }
+				{ name="hdr_transparent_distortion" render_targets=["hdr0_rgb"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="hdr_transparent_distortion" max_resolve_count=1 }
+				{ name="hdr_transparent" render_targets=["hdr0_rgb"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="hdr_transparent" max_resolve_count=1 } // TODO: only need one resolve for distortion and hdr transparent
+				{ name="dummy_apply" }
+
+				{ name="dummy_clear2" }
+				{ name="hdr_transparent_screen_space" render_targets=["hdr0_rgb"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="hdr_transparent_screen_space" }
+				{ name="dummy_apply2" }
+
+				{ name="dummy_esram_discard" }
+			]
+		}
+		{ name="hdr_linear_depth_2" render_targets=["linear_depth"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="hdr_linear_depth" }
+		
+		// Cube map capturing point, only present during development on authoring platforms
+		{ type="static_branch" platform=["win"] render_caps={ development=true }
+			pass = [
+				{ resource_generator="cubemap_capture" }
+			]
+		}
+
+		// Kick post processing
+		{ resource_generator="post_processing" profiling_scope="post_processing" }
+
+		// LDR transparency layer, primarily used for rendering HUD
+		
+		{ name="transparent" render_targets=["output_rt"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="transparent" }
+		
+		// Wireframe rendering, primarily used for level editors wireframe rendering
+		{ type="static_branch" render_caps={ development=true }
+			pass = [	
+				{ render_targets=["wireframe_target"] clear_flags=["SURFACE"] profiling_scope="clear_render_targets" }
+				{ name="wireframe" render_targets=["wireframe_target"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="wireframe"}
+				{ resource_generator="apply_wireframe" }
+			]
+		}
+
+		{ type="static_branch" render_caps={ mixed_resolution_rendering=true } // try with fsr
+			pass = [	
+				{ resource_generator="copy_output_target_to_back_buffer" }
+			]
+		}
+
+		{ resource_generator="post_processing_fsr" profiling_scope="fsr_pass" }
+
+		// TODO: rename GUI mask?
+		{ render_targets=["overlay_mask"] clear_flags=["SURFACE"] profiling_scope="clear_render_targets" }
+		{ name="transparent_mask" render_targets=["overlay_mask"] sort="BACK_FRONT" profiling_scope="overlay_transparent_mask" }
+		
+		{ resource_generator="clear_gui_hdr" }
+		{ name="gui_hdr" render_targets=["hdr0"] sort="BACK_FRONT" profiling_scope="gui hdr" }
+		{ resource_generator="gui_bloom" }
+		{ resource_generator="apply_gui_hdr" }
+
+		{ name="gui" render_targets=["back_buffer"] sort="BACK_FRONT" profiling_scope="gui" }
+		{ resource_generator="fullscreen_blur" }
+
+		{ type="static_branch" render_caps={ development=true }
+			pass = [
+				{ resource_generator="debug_shadows" }
+			]
+		}
+
+		// TODO: Add static branch at start up, which checks if we need heatmap or not
+		//{ type="static_branch" platform="win" render_caps={ development=true } test this!
+		{ type="static_branch" platforms=["win"] render_caps={ development=true }
+			pass = [
+				{ name="transparent_heatmap" render_targets=["heatmap"] sort="BACK_FRONT" profiling_scope="heatmap" }
+				{ resource_generator="heatmap_apply" }
+			]
+		}
+
+		//{ resource_generator="test_world_interaction_foliage" }
+		{ resource_generator="esram_discard" }
+	]
+
+	default_no_ui = {
+		inherit = "default"
+		exclude = [
+			"gui"
+			"transparent"
+		]
+	}
+
+	default_forward = [
+		{ render_targets=["hdr0", "output_rt"] depth_stencil_target="depth_stencil_buffer" clear_flags=["SURFACE", "DEPTH", "STENCIL"] profiling_scope="clear_render_targets" }
+		{ resource_generator="clear_back_buffer" }
+
+		{ name="shadow_mapping" resource_generator="shadow_mapping" profiling_scope="shadow mapping" }
+		{ resource_generator="clustered_shading" profiling_scope="clustered shading" }
+		
+		{ name="opaque_forward" render_targets=["hdr0", "hdr0_rg"] depth_stencil_target="depth_stencil_buffer" sort="FRONT_BACK" profiling_scope="opaque_forward" }
+
+		{ resource_generator="linearize_depth" profiling_scope="linearize_depth" }
+
+		// Build motion vectors
+		{ resource_generator="generate_motion_vectors" profiling_scope="motion vectors" }
+
+		// this is rendered in opaque_forward pass and thus not needed
+		//{ name="emissive" render_targets=["hdr0"] depth_stencil_target="depth_stencil_buffer" sort="FRONT_BACK" profiling_scope="emissive" }
+
+		{ name="skydome" render_targets=["hdr0"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="skydome" }
+		{ name="skydome_billboard" render_targets=["hdr0"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="skydome_billboard" }
+
+		{ name="hdr_transparent_depth" render_targets=["hdr0"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="hdr_transparent_depth" max_resolve_count=1 }
+		{ name="hdr_linear_depth" render_targets=["linear_depth"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="hdr_linear_depth" }
+
+		{ type="static_branch" render_settings={ low_res_transparency=true }
+			pass = [
+				{ resource_generator="depth_downsampling" } 
+				
+				{ render_targets=["hdr0_div2"] clear_flags=["SURFACE"] profiling_scope="clear_render_targets" }
+				{ name="hdr_transparent" render_targets=["hdr0_div2"] depth_stencil_target="depth_stencil_buffer_div2" sort="BACK_FRONT" profiling_scope="hdr_transparent" }
+				{ resource_generator="apply_hdr_transparent_forward" profiling_scope="apply_hdr_transparent" }
+				
+				{ render_targets=["hdr0_div2"] clear_flags=["SURFACE"] profiling_scope="clear_render_targets" }
+				{ name="hdr_transparent_screen_space" render_targets=["hdr0_div2"] depth_stencil_target="depth_stencil_buffer_div2" sort="BACK_FRONT" profiling_scope="hdr_transparent_screen_space" }
+				{ resource_generator="apply_hdr_transparent_forward" profiling_scope="apply_hdr_transparent" }
+			]
+			fail = [
+				// we need as many layers, to make sure that we have correct index if we change settings without restarting the engine.
+				{ name="dummy_downsample" }
+
+				{ name="dummy_clear" }
+				{ name="hdr_transparent" render_targets=["hdr0"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="hdr_transparent" max_resolve_count=1 }
+				{ name="dummy_apply" }
+
+				{ name="dummy_clear2" }
+				{ name="hdr_transparent_screen_space" render_targets=["hdr0"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="hdr_transparent_screen_space" max_resolve_count=1}
+				{ name="dummy_apply2" }
+			]
+		}
+		{ name="hdr_linear_depth_2" render_targets=["linear_depth"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="hdr_linear_depth" }
+
+		{ resource_generator="post_processing_forward" profiling_scope="post_processing" }
+
+		{ name="transparent" render_targets=["output_rt"] depth_stencil_target="depth_stencil_buffer" sort="BACK_FRONT" profiling_scope="transparent" }
+		
+		{ resource_generator="clear_gui_hdr" }
+		{ name="gui_hdr" render_targets=["hdr0"] sort="BACK_FRONT" profiling_scope="gui hdr" }
+		{ resource_generator="gui_bloom" }
+		{ resource_generator="apply_gui_hdr_forward" }
+
+		{ name="gui" render_targets=["output_rt"] sort="BACK_FRONT" profiling_scope="gui" }
+		{ render_targets=["overlay_mask"] clear_flags=["SURFACE"] profiling_scope="clear viewport mask" }
+		{ name="viewport_mask" render_targets=["overlay_mask"] sort="BACK_FRONT" profiling_scope="write viewport mask" }
+
+		{ type="static_branch" render_settings ={ fsr_enabled = true }
+			pass = [
+				{ resource_generator="post_processing_fsr_forward" }
+			]
+			fail = [
+				{ resource_generator="copy_output_target_to_back_buffer_forward" }
+			]
+		}
+	]
+
+	overlay = [
+		{ resource_generator="esram_overlay_allocation" }
+		{ render_targets=["overlay_mask"] clear_flags=["SURFACE"] profiling_scope="clear_render_targets" }
+		{ name="transparent_mask" render_targets=["overlay_mask"] sort="BACK_FRONT" profiling_scope="overlay_transparent_mask" }
+		{ name="transparent" render_targets=["back_buffer"] sort="BACK_FRONT" profiling_scope="overlay_transparent" }
+		
+		{ resource_generator="clear_gui_hdr" }
+		{ name="gui_hdr" render_targets=["hdr0"] sort="BACK_FRONT" profiling_scope="gui hdr" }
+		{ resource_generator="gui_bloom" }
+		{ resource_generator="apply_gui_hdr" }
+
+		{ name="gui" render_targets=["back_buffer"] sort="BACK_FRONT" profiling_scope="gui" }
+		{ resource_generator="fullscreen_blur" }
+
+		{ type="static_branch" render_caps={ development=true }
+			pass = [
+				{ resource_generator="global_dev_post_effect" profiling_scope="global_dev_post_effect" }
+			]
+		}
+
+		{ resource_generator="esram_overlay_discard" }
+	]
+}
+
+// ---------------------------------------------------------------------------------------------------
+// resource generators
+
+resource_generators = {
+
+	global_dev_post_effect = {
+		modifiers = [
+			// color blindness simulation pass
+			{ type="static_branch" render_caps={ development=true }
+				pass = [
+					{ type="dynamic_branch" render_settings={ debug_rendering=false, simulate_color_blindness=true } profiling_scope="color blindness" 
+						pass = [
+							{ type = "dynamic_branch" render_settings={ color_blindness_mode=0 } profiling_scope="protanomaly filter" 
+								pass = [
+									{ type="fullscreen_pass" shader="color_blindness_filter_protanomaly" input=["output_rt"] output=["ldr1"] }
+								]
+							}
+							{ type = "dynamic_branch" render_settings={ color_blindness_mode=1 } profiling_scope="deuteranomaly filter" 
+								pass = [
+									{ type="fullscreen_pass" shader="color_blindness_filter_deuteranomaly" input=["output_rt"] output=["ldr1"] }
+								]
+							}
+							{ type = "dynamic_branch" render_settings={ color_blindness_mode=2 } profiling_scope="tritanomaly filter" 
+								pass = [
+									{ type="fullscreen_pass" shader="color_blindness_filter_tritanomaly" input=["output_rt"] output=["ldr1"] }
+								]
+							}
+
+							{ type="fullscreen_pass" shader="copy" input="ldr1" output="output_rt" profiling_scope="copy" }
+						]
+					}
+				]
+			}
+		]
+	}
+
+	copy_output_target_to_back_buffer = {
+		modifiers = [
+			{ type = "fullscreen_pass" shader="copy:CUBIC_SAMPLER" input="output_rt" output="back_buffer" profiling_scope="copy_output_target_to_back_buffer" }
+		]
+	}
+
+	test_world_interaction_foliage = {
+		modifiers = [
+			{ type = "fullscreen_pass" shader="copy" input="world_interaction" output="back_buffer" profiling_scope="test" dest_rect = [ 0.849375 0.05 0.140625 0.25] }
+			{ type = "fullscreen_pass" shader="copy:POINT_SAMPLER" input="world_interaction_history" output="back_buffer" profiling_scope="test" dest_rect = [ 0.659375 0.05 0.140625 0.25] }
+		]
+	}
+
+	fade_world_interaction_after = {
+		modifiers = [
+			{ type = "fullscreen_pass" shader="world_interaction" input=["world_interaction"] output="world_interaction_history" profiling_scope="world_interaction"}
+			{ type = "fullscreen_pass" shader="copy:POINT_SAMPLER" input=["world_interaction_history"] output="world_interaction" profiling_scope="world_interaction_history"}
+		]
+	}
+	
+
+	copy_output_target_to_back_buffer_forward = {
+		modifiers = [
+			{ type = "fullscreen_pass" shader="copy:CUBIC_SAMPLER:PREMULTIPLIED:MASKED" input=["output_rt" "overlay_mask"] output="back_buffer" profiling_scope="copy_output_target_to_back_buffer_forward" }
+		]
+	}
+
+	begin_transition_gbuffers = {
+		modifiers = [
+			{ type="static_branch" platforms=["win"]  render_caps={ d3d12 = true }
+				pass = [
+					{ type = "resource_barrier"
+						actions = [
+							{ transition = ["gbuffer0" "gbuffer1"] states = [ "pixel_shader_resource" ] }
+							// { flush = true }
+						]
+					}
+				]
+			}
+		]
+	}
+	
+	begin_transition_hdr1 = {
+		modifiers = [
+			{ type="static_branch" platforms=["win"] render_caps={ d3d12 = true }
+				pass = [ 
+					{ type = "resource_barrier"
+						actions = [
+							{ transition = ["hdr1" ] states = [ "pixel_shader_resource" ] }
+						]
+					}
+				]
+			}
+		]
+	}
+	
+	resolve_hdr0 = {
+		modifiers = [
+			{ type="static_branch" platforms=["win"] render_caps={ d3d12 = true }
+				pass = [
+					{ type = "d3d12_copy_control"
+						actions = [
+							{ source="hdr0_rgb" queue="graphics" flags=[ "resolve_source" ] }
+						]
+					}
+				]
+			}
+		]
+	}
+	
+	resummarize_htile = {
+		modifiers = [
+		]
+	}
+	
+	
+	decompress_and_linearize = {
+		modifiers = [
+		]
+	}
+	
+	wait_for_decompress_and_linearize = {
+		modifiers = [
+		]
+	}
+	
+
+	test = {
+		modifiers = [
+			{ type = "fullscreen_pass" shader="copy" input="output_rt" output="debug_overlay" }
+		]
+	}
+	
+	apply_debug_overlay = {
+		modifiers = [
+			{ type = "fullscreen_pass" shader="copy" input="debug_overlay" output="output_rt" dest_rect=[0.1 0.4 0.5 0.5] }
+		]
+	}
+
+	apply_wireframe = {
+		modifiers = [
+			{ type="dynamic_branch" render_settings={ wireframe_enabled=true } profiling_scope="apply_wireframe"
+				pass = [
+					{ type="dynamic_branch" render_settings={ lens_quality_enabled=true } shading_environment={ lens_quality_enabled=true } profiling_scope="lens_quality"
+						pass = [
+							{ type="static_branch" render_caps={ mixed_resolution_rendering=true }
+								pass = [
+									{ type="resource_alias" alias={"temp"="wireframe_copy"} }
+								]
+								fail = [
+									{ type="resource_alias" alias={"temp"="ldr0"} }
+								]
+							}
+
+							{ type="fullscreen_pass" shader="lens_effects:SAMPLE_RGBA" input=["wireframe_target"] output=["temp"] profiling_scope="lens_quality" }
+							{ type="resource_swap" swaps = {"temp"="wireframe_target"} }									
+						]
+					}
+
+					{ type="fullscreen_pass" shader="copy:PREMULTIPLIED" input=["wireframe_target"] output=["back_buffer"] }
+				]
+			}
+		]
+	}
+
+	clear_gui_hdr = {
+		modifiers = [
+			{ type="dynamic_branch" shading_environment={ ui_enable_hdr_layer=true } render_settings={ ui_bloom_enabled=true } profiling_scope="copy pass"
+				pass = [
+					{ type="fullscreen_pass" output=["hdr0"] clear_flags=["SURFACE"] profiling_scope="clear_hdr" respect_dest_viewport=false }
+					{ type="fullscreen_pass" output=["hdr1_div2"] clear_flags=["SURFACE"] profiling_scope="clear_hdr" respect_dest_viewport=false }
+					{ type="fullscreen_pass" output=["hdr0_div2"] clear_flags=["SURFACE"] profiling_scope="clear_hdr" respect_dest_viewport=false }
+					{ type="fullscreen_pass" output=["hdr0_div4"] clear_flags=["SURFACE"] profiling_scope="clear_hdr" respect_dest_viewport=false }
+					{ type="fullscreen_pass" output=["hdr1_div4"] clear_flags=["SURFACE"] profiling_scope="clear_hdr" respect_dest_viewport=false }
+					{ type="fullscreen_pass" output=["hdr0_div16"] clear_flags=["SURFACE"] profiling_scope="clear_hdr" respect_dest_viewport=false }
+					{ type="fullscreen_pass" output=["hdr1_div16"] clear_flags=["SURFACE"] profiling_scope="clear_hdr" respect_dest_viewport=false }
+					{ type="fullscreen_pass" output=["hdr0_div64"] clear_flags=["SURFACE"] profiling_scope="clear_hdr" respect_dest_viewport=false }
+					{ type="fullscreen_pass" output=["hdr1_div64"] clear_flags=["SURFACE"] profiling_scope="clear_hdr" respect_dest_viewport=false }
+					{ type="fullscreen_pass" output=["hdr0_div256"] clear_flags=["SURFACE"] profiling_scope="clear_hdr" respect_dest_viewport=false }
+					{ type="fullscreen_pass" output=["hdr1_div256"] clear_flags=["SURFACE"] profiling_scope="clear_hdr" respect_dest_viewport=false }
+				]
+			}
+		]
+	}
+
+	gui_bloom = {
+		modifiers = [
+			{ type="dynamic_branch" shading_environment={ ui_enable_hdr_layer=true, ui_bloom_enabled=true } render_settings={ ui_bloom_enabled=true } profiling_scope="ui bloom pass"
+				pass = [
+					{ type="fullscreen_pass" shader="bright_pass:GUI" input=["hdr0"] output=["hdr1_div2"] variable_map={bloom_threshold_offset_falloff="ui_bloom_threshold_offset_falloff"} profiling_scope="bright pass" }
+
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr1_div2"] output=["hdr0_div2"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr0_div2"] output=["hdr1_div2"] }
+					{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_2x2" input=["hdr1_div2"] output=["hdr1_div4"] }
+
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr1_div4"] output=["hdr0_div4"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr0_div4"] output=["hdr1_div4"] }
+
+					{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr1_div4"] output=["hdr0_div16"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr0_div16"] output=["hdr1_div16"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr1_div16"] output=["hdr0_div16"] }
+
+					{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr0_div16"] output=["hdr0_div64"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr0_div64"] output=["hdr1_div64"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr1_div64"] output=["hdr0_div64"] }
+
+					{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr0_div64"] output=["hdr0_div256"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr0_div256"] output=["hdr1_div256"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr1_div256"] output=["hdr0_div256"] }
+
+					{ type="fullscreen_pass" shader="blend_bloom" input=["hdr1_div2" "hdr1_div4" "hdr0_div16" "hdr0_div64" "hdr0_div256"] output=["hdr0_div4"] 
+							variable_map = { 
+								bloom_threshold_offset_falloff="ui_bloom_threshold_offset_falloff",
+								bloom_lens_dirt_amount="ui_bloom_lens_dirt_amount",
+								bloom_tint="ui_bloom_tint"
+							} profiling_scope="blend_bloom" }
+					
+					{ type="fullscreen_pass" shader="apply_bloom" input=["hdr0_div4"] output=["hdr0"] profiling_scope="apply_gui_hdr" }
+				]
+			}
+		]
+	}
+
+	apply_gui_hdr = {
+		modifiers = [
+			{ type="dynamic_branch" shading_environment={ ui_enable_hdr_layer=true } render_settings={ ui_bloom_enabled=true } profiling_scope="copy pass"
+				pass = [
+					{ type="fullscreen_pass" shader="copy:PREMULTIPLIED" input=["hdr0"] output=["back_buffer"] }
+				]
+			}
+		]
+	}
+
+	apply_gui_hdr_forward = {
+		modifiers = [
+			{ type="dynamic_branch" shading_environment={ ui_enable_hdr_layer=true } render_settings={ ui_bloom_enabled=true } profiling_scope="copy pass"
+				pass = [
+					{ type="fullscreen_pass" shader="copy:PREMULTIPLIED" input=["hdr0"] output=["output_rt"] }
+				]
+			}
+		]
+	}
+
+	debug_shadows = {
+		modifiers = [
+			{ type="dynamic_branch" render_settings={ shadow_atlas_visualization=true }
+				pass = [
+					{ type="fullscreen_pass" shader="copy" input=["local_lights_shadow_atlas"] output=["back_buffer"] dest_rect=[0.0, 0.5, 0.5, 0.5] }
+				]
+			}
+			{ type="dynamic_branch" render_settings={ cached_shadow_atlas_visualization=true }
+				pass = [
+					{ type="fullscreen_pass" shader="copy" input=["cached_local_lights_shadow_atlas"] output=["back_buffer"] dest_rect=[0.0, 0.5, 0.5, 0.5] }
+				]
+			}
+			{ type="dynamic_branch" render_settings={ static_shadow_visualization=true }
+				pass = [
+					{ type="fullscreen_pass" shader="copy" input=["static_sun_shadow_map"] output=["back_buffer"] dest_rect=[0.0, 0.5, 0.5, 0.5] }
+				]
+			}
+			{ type="dynamic_branch" render_settings={ sun_shadow_map_visualization=true }
+				pass = [
+					{ type="fullscreen_pass" shader="copy" input=["sun_shadow_map"] output=["back_buffer"] dest_rect=[0.0, 0.5, 0.5, 0.5] }
+				]
+			}			
+		]
+	}
+
+	debug_visualization = {
+		modifiers = [
+			{ type="dynamic_branch" render_settings={ debug_rendering=true } profiling_scope="debug_visualization"
+				pass = [
+					{ type="dynamic_branch"  render_settings={ gbuffer_material_id_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:MATERIAL_ID_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch"  render_settings={ gbuffer_albedo_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:ALBEDO_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch"  render_settings={ gbuffer_albedo_xyz_luminance_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:ALBEDO_XYZ_LUMINANCE_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch"  render_settings={ gbuffer_albedo_xyz_luminance_clipping_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:ALBEDO_XYZ_LUMINANCE_CLIPPING_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch"  render_settings={ gbuffer_albedo_lab_luminance_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:ALBEDO_LAB_LUMINANCE_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch"  render_settings={ gbuffer_albedo_lab_luminance_clipping_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:ALBEDO_LAB_LUMINANCE_CLIPPING_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ gbuffer_normal_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:NORMAL_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ gbuffer_roughness_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:ROUGHNESS_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ gbuffer_diffuse_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:DIFFUSE_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ gbuffer_specular_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:SPECULAR_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ gbuffer_metallic_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:METALLIC_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ gbuffer_sun_shadow_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:SUN_SHADOW_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ gbuffer_velocity_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:VELOCITY_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ gbuffer_normalized_velocity_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:NORMALIZED_VELOCITY_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ gbuffer_ao_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:SSAO_ENABLED:AO_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ gbuffer_ssao_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:SSAO_ONLY:AO_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ gbuffer_baked_ao_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:AO_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ stencil_outline_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:OUTLINE_INSIDE" output=["output_rt"] depth_stencil_target="depth_stencil_buffer" }
+							{ type="fullscreen_pass" shader="gbuffer_debug:OUTLINE_OUTSIDE" output=["output_rt"] depth_stencil_target="depth_stencil_buffer" }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ stencil_skin_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="skin_debug" output=["output_rt"] depth_stencil_target="depth_stencil_buffer" }
+							{ type="fullscreen_pass" shader="skin_debug:SKIN" output=["output_rt"] depth_stencil_target="depth_stencil_buffer" }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ froxel_depth_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:FROXEL_DEPTH" output=["output_rt"] depth_stencil_target="depth_stencil_buffer" }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ reflection_weight_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:REFLECTION_WEIGHT_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ radiation_weight_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:RADIATION_WEIGHT_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ light_density_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="clustered_shading_debug" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ gbuffer_density_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:DENSITY_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ gbuffer_density_shadow_bias_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:DENSITY_SHADOW_BIAS_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ gbuffer_skin_sss_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:SKIN_SSS_VISUALIZATION" output=["output_rt"] }
+						]
+					}
+
+					{ type="fullscreen_pass" shader="gbuffer_debug:FILL_UNTOUCHED_PIXELS" output=["output_rt"] depth_stencil_target="depth_stencil_buffer" }
+
+				]
+			}
+		]
+	}
+
+	clustered_shading = {
+		modifiers = [
+			{ type="static_branch" platforms=["win"]
+				pass = [
+					{ type="clustered_shading"
+						buffers = [
+							{ name="cs_cluster_buffer" width=30 height=17 layers=16 content="cluster_data"	}
+							{ name="cs_light_index_buffer" width=2048 height=4 content="light_index" }
+							{ name="cs_light_data_buffer" width=2048 height=4 content="light_data" }
+							{ name="cs_light_shadow_matrices_buffer" width=2048 height=4 content="light_shadow_matrices" }
+							{ name="cs_light_shadow_lookup_buffer" width=2048 height=4 content="light_shadow_lookup" }
+						]
+						cluster_max_depth=40.0
+						atlased_shadow_mapping_modifier="local_shadows"
+						registry_name="clustered_shading"
+					}
+				]
+			}
+		]
+	}
+
+	shadow_mapping = {
+		modifiers = [
+			//{ type="find_global_light" write_found="sun_enabled" write_color="sun_color" write_direction="sun_direction" write_shadows_enabled="sun_shadows_enabled" }
+
+			{ type="static_branch" platforms=["win"]
+				pass = [
+					{ type="dynamic_branch" render_settings={ deferred_local_lights_cast_shadows=true }
+						pass = [
+							{ type="cached_atlased_shadow_mapping" min_max_resolution=[64, 256] cached_resolution=128 output=["local_lights_shadow_atlas", "cached_local_lights_shadow_atlas"] clear=true registry_name="local_shadows" padding=2 shader="shadow_clear_mask" }
+						]
+					}
+				]
+			}
+
+			// Render 4 slices cascaded shadow map from sun light if sun_shadows == true
+			{ type="dynamic_branch" render_settings={ sun_shadows=true } shading_environment={ sun_shadows_enabled=true, sun_enabled=true }
+				pass = [ 
+					{ type="cascaded_shadow_mapping" profiling_scope="cascaded_shadow_mapping" light_direction="sun_direction" padding=2
+						slices = [
+							{ depth_range="sun_shadow_slice_depth_ranges" viewport=[0.000001 0.000001 0.5 0.5] output="sun_shadow_map" cutter_material="shadow_cutter_slice0" mask_material="global_shadow_mask_slice0" expose_world_to_shadow="sun_world_to_shadow_slice0" expose_vp_min="vp_min_slice0" expose_vp_max="vp_max_slice0" expose_scale="shadow_scale_slice0" expose_bias="shadow_bias_slice0" expose_rotation="shadow_rotation" expose_camera_near_far="shadow_near_far0" clear=true }
+							{ depth_range="sun_shadow_slice_depth_ranges" viewport=[0.5 0.000001 0.5 0.5] output="sun_shadow_map" cutter_material="shadow_cutter_slice1" mask_material="global_shadow_mask_slice1" expose_world_to_shadow="sun_world_to_shadow_slice1" expose_vp_min="vp_min_slice1" expose_vp_max="vp_max_slice1" expose_scale="shadow_scale_slice1" expose_bias="shadow_bias_slice1" expose_camera_near_far="shadow_near_far1" clear=false }
+							{ depth_range="sun_shadow_slice_depth_ranges" viewport=[0.000001 0.5 0.5 0.5] output="sun_shadow_map" cutter_material="shadow_cutter_slice2" mask_material="global_shadow_mask_slice2" expose_world_to_shadow="sun_world_to_shadow_slice2" expose_vp_min="vp_min_slice2" expose_vp_max="vp_max_slice2" expose_scale="shadow_scale_slice2" expose_bias="shadow_bias_slice2" expose_camera_near_far="shadow_near_far2" clear=false }
+							{ depth_range="sun_shadow_slice_depth_ranges" viewport=[0.5 0.5 0.5 0.5] output="sun_shadow_map" cutter_material="shadow_cutter_slice3" mask_material="global_shadow_mask_slice3" expose_world_to_shadow="sun_world_to_shadow_slice3" expose_vp_min="vp_min_slice3" expose_vp_max="vp_max_slice3" expose_scale="shadow_scale_slice3" expose_bias="shadow_bias_slice3" expose_camera_near_far="shadow_near_far3" clear=false}
+						]
+					}
+				]
+			}
+
+			
+			{ type="dynamic_branch" render_settings={ static_sun_shadows=true } shading_environment={ ssm_enabled=true, sun_enabled=true }
+				pass = [
+					{ type="static_shadow_mapping" profiling_scope="static_shadow_mapping" light_direction="sun_direction" output="static_sun_shadow_map" mask_material="global_shadow_mask_fill_shadow" expose_rotation="ssm_shadow_rotation" }
+				]
+			}	
+		]
+	}
+
+	resolve_gbuffers_for_decals = {
+		modifiers = [
+			{ type="static_branch" platforms=["win"] render_caps={ d3d12 = true }
+				pass = [
+					{ type = "d3d12_copy_control"
+						actions = [
+							{ source="gbuffer0" queue="graphics" flags=[ "resolve_source" ] }
+							{ source="gbuffer1" queue="graphics" flags=[ "resolve_source" ] }
+						]
+					}
+				]
+			}
+		]
+	}
+
+	esram_allocation = {
+		modifiers = [
+		]
+	}
+
+	esram_discard = {
+		modifiers = [
+		]
+	}
+	
+
+	esram_gbuffer_allocation = {
+		modifiers = [
+		]
+	}
+
+	esram_resolve_gbuffer2 = {
+		modifiers = [
+		]
+	}
+
+	esram_discard_gbuffer2 = {
+		modifiers = [
+		]
+	}
+
+	esram_gbuffer1_discard = {
+		modifiers = [
+		]
+	}
+
+	esram_fog_allocation = {
+		modifiers = [
+		]
+	}
+
+	esram_fog_discard = {
+		modifiers = [
+		]
+	}
+
+	esram_discard_ldr0 = {
+		modifiers = [
+		]
+	}
+	
+	esram_overlay_allocation = {
+		modifiers = [
+		]
+	}
+
+	esram_overlay_discard = {
+		modifiers = [
+		]
+	}
+
+	esram_hdr0_div2_allocation = {
+		modifiers = [
+		]
+	}
+
+	esram_hdr0_div2_discard = {
+		modifiers = [
+		]
+	}		
+	
+	linearize_depth = {
+		modifiers = [
+			// Linearize clip-space depth and store in linear_depth target
+			{ type="fullscreen_pass" shader="linearize_depth" input=["depth_stencil_buffer"] output=["linear_depth"] }
+		]
+	}
+
+	generate_motion_vectors = {
+		modifiers = [
+			// Build and merge the skydome motion vectors
+			{ type="fullscreen_pass" shader="merge_skydome_motion_vectors" depth_stencil_target="depth_stencil_buffer" output=["hdr0_rg"] }
+		]
+	}
+
+	lighting_debug = {
+		modifiers = [
+			{ type="dynamic_branch" render_settings={ lighting_visualization=true }
+				pass = [
+					{ type="fullscreen_pass" shader="constant_base_color" depth_stencil_target="depth_stencil_buffer" output=["gbuffer0"] }
+				]
+			}
+		]
+	}
+
+	dynamic_clear = {
+		modifiers = [
+			// If the viewport is not fullscreen we might get bleeding effect due to these targets.
+			{ type="dynamic_branch" shading_environment={ dynamic_clear_enabled=true } profiling_scope="dynamic clear"
+				pass = [
+					{ type="fullscreen_pass" output=["hdr0_rgb", "hdr1_rgb"] clear_flags=["SURFACE"] profiling_scope="clear_hdr" respect_dest_viewport=false }
+					
+					{ type="dynamic_branch" render_settings={ dof_enabled=true } shading_environment={ dof_enabled=true } profiling_scope="clear dof"
+						pass = [
+							{ type="fullscreen_pass" output=["hdr0_rgb_div2", "hdr1_rgb_div2", "hdr2_rgb_div2"] clear_flags=["SURFACE"] respect_dest_viewport=false }
+						]
+					}
+
+					{ type="dynamic_branch" render_settings={ bloom_enabled=true } shading_environment={ bloom_enabled=true } profiling_scope="clear bloom"
+						pass = [
+							{ type="fullscreen_pass" output=["hdr0_div2", "hdr1_div2"] clear_flags=["SURFACE"] respect_dest_viewport=false }
+							{ type="fullscreen_pass" output=["hdr0_div4", "hdr1_div4"] clear_flags=["SURFACE"] respect_dest_viewport=false }
+							{ type="fullscreen_pass" output=["hdr0_div16", "hdr1_div16"] clear_flags=["SURFACE"] respect_dest_viewport=false }
+							{ type="fullscreen_pass" output=["hdr0_div64", "hdr1_div64"] clear_flags=["SURFACE"] respect_dest_viewport=false }
+							{ type="fullscreen_pass" output=["hdr0_div256", "hdr1_div256"] clear_flags=["SURFACE"] respect_dest_viewport=false }
+						]
+					}
+
+				]
+			}
+
+			{ type="dynamic_branch" shading_environment={ eye_adaptation_enabled=true, exposure_auto_enabled=true } profiling_scope="clear histogram"
+				pass = [
+					{ type="fullscreen_pass" output=["histogram"] clear_flags=["SURFACE"] respect_dest_viewport=false }
+				]
+			}
+		]
+	}
+
+	apply_saturation_mask = {
+		modifiers = [
+			{ type="dynamic_branch" render_settings={ capture_cubemap=false } shading_environment={ saturate_enabled=true } profiling_scope="saturate"
+				pass = [
+					{ type="fullscreen_pass" shader="saturate" input=["hdr0_rgb", "ldr1_r"] output=["hdr1_rgb"] profiling_scope="apply mask" }
+					{ type="fullscreen_pass" shader="copy:POINT_SAMPLER" input=["hdr1_rgb"] output=["hdr0_rgb"] profiling_scope="copy" }
+					{ type="fullscreen_pass" output=["ldr1_r"] clear_flags=["SURFACE"] profiling_scope="clear" } // water mask needs this cleared
+				]
+			}
+		]
+	}
+
+	//run hi-z and ssao before running ssr on the compute queue
+	ssao_ssr_hiz = {
+		modifiers = [
+			{ type = "static_branch" platforms=["win"]
+				pass = [
+					// SSAO
+					{ type="dynamic_branch" render_settings={ ao_enabled=true } shading_environment={ ao_enabled=true } profiling_scope="ssao"
+						pass = [
+							{ type="static_branch" render_settings={ ao_high_quality=false }
+								pass = [
+									{ type="generate_mips" output_mip_range=[1,5] profiling_scope="ssao_mip_generation"
+										modifiers = [
+											{ type="fullscreen_pass" shader="ssao_mip_pass:AO_HALF_RES" input=["linear_depth_mip6" "depth_stencil_buffer", "hdr0_rg"] output=["linear_depth_mip6"] }
+										]
+									}
+								]
+								fail = [
+									{ type="fullscreen_pass" shader="ssao_depth_copy_pass" input=["depth_stencil_buffer", "hdr0_rg"] output=["linear_depth_mip6"] profiling_scope="ssao_depth_copy_pass" }
+
+									{ type="generate_mips" output_mip_range=[1,5] profiling_scope="ssao_mip_generation"
+										modifiers = [
+											{ type="fullscreen_pass" shader="ssao_mip_pass" input=["linear_depth_mip6"] output=["linear_depth_mip6"] }
+										]
+									}
+
+								]
+							}
+
+							// Perform SSAO pass
+							{ type="static_branch" render_settings={ ao_high_quality=false }
+								pass = [
+									{ type="dynamic_branch" render_settings={ ao_secondary_enabled=true } shading_environment={ ao_secondary_enabled=true } profiling_scope="ssao pass"
+										pass = [
+											{ type="dynamic_branch" shading_environment={ ao_quality=1 }
+												pass = [
+													{ type="fullscreen_pass" shader="ssao_ao_pass:AO_LOW_QUALITY:AO_HALF_RES:SECONDARY_PASS" input=["linear_depth_mip6" "gbuffer1" "gbuffer0" "ssao_buffer_history" "hdr0_rg"] output=["ssao_buffer"] }
+												]
+												fail = [
+													{ type="dynamic_branch" shading_environment={ ao_quality=2 }
+														pass = [
+															{ type="fullscreen_pass" shader="ssao_ao_pass:AO_MID_QUALITY:AO_HALF_RES:SECONDARY_PASS" input=["linear_depth_mip6" "gbuffer1" "gbuffer0" "ssao_buffer_history" "hdr0_rg"] output=["ssao_buffer"] }
+														]
+														fail = [
+															{ type="fullscreen_pass" shader="ssao_ao_pass:AO_HIGH_QUALITY:AO_HALF_RES:SECONDARY_PASS" input=["linear_depth_mip6" "gbuffer1" "gbuffer0" "ssao_buffer_history" "hdr0_rg"] output=["ssao_buffer"] }
+														]
+													}
+												]
+											}
+										]
+										fail = [
+											{ type="dynamic_branch" shading_environment={ ao_quality=1 } profiling_scope="ssao pass"
+												pass = [
+													{ type="fullscreen_pass" shader="ssao_ao_pass:AO_LOW_QUALITY:AO_HALF_RES" input=["linear_depth_mip6" "gbuffer1" "gbuffer0" "ssao_buffer_history" "hdr0_rg"] output=["ssao_buffer"] }
+												]
+												fail = [
+													{ type="dynamic_branch" shading_environment={ ao_quality=2 }
+														pass = [
+															{ type="fullscreen_pass" shader="ssao_ao_pass:AO_MID_QUALITY:AO_HALF_RES" input=["linear_depth_mip6" "gbuffer1" "gbuffer0" "ssao_buffer_history" "hdr0_rg"] output=["ssao_buffer"] }
+														]
+														fail = [
+															{ type="fullscreen_pass" shader="ssao_ao_pass:AO_HIGH_QUALITY:AO_HALF_RES" input=["linear_depth_mip6" "gbuffer1" "gbuffer0" "ssao_buffer_history" "hdr0_rg"] output=["ssao_buffer"] }
+														]
+													}
+												]
+											}
+										]
+									}
+								]
+								fail = [
+									{ type="dynamic_branch" render_settings={ ao_secondary_enabled=true } shading_environment={ ao_secondary_enabled=true } profiling_scope="ssao pass"
+										pass = [
+											{ type="dynamic_branch" shading_environment={ ao_quality=1 }
+												pass = [
+													{ type="fullscreen_pass" shader="ssao_ao_pass:AO_LOW_QUALITY:SECONDARY_PASS" input=["linear_depth_mip6" "gbuffer1" "gbuffer0" "ssao_buffer_history" "hdr0_rg"] depth_stencil_target="depth_stencil_buffer" output=["ssao_buffer"] }
+												]
+												fail = [
+													{ type="dynamic_branch" shading_environment={ ao_quality=2 }
+														pass = [
+															{ type="fullscreen_pass" shader="ssao_ao_pass:AO_MID_QUALITY:SECONDARY_PASS" input=["linear_depth_mip6" "gbuffer1" "gbuffer0" "ssao_buffer_history" "hdr0_rg"] depth_stencil_target="depth_stencil_buffer" output=["ssao_buffer"] }
+														]
+														fail = [
+															{ type="fullscreen_pass" shader="ssao_ao_pass:AO_HIGH_QUALITY:SECONDARY_PASS" input=["linear_depth_mip6" "gbuffer1" "gbuffer0" "ssao_buffer_history" "hdr0_rg"] depth_stencil_target="depth_stencil_buffer" output=["ssao_buffer"] }
+														]
+													}
+												]
+											}
+										]
+										fail = [
+											{ type="dynamic_branch" shading_environment={ ao_quality=1 }
+												pass = [
+													{ type="fullscreen_pass" shader="ssao_ao_pass:AO_LOW_QUALITY" input=["linear_depth_mip6" "gbuffer1" "gbuffer0" "ssao_buffer_history" "hdr0_rg"] depth_stencil_target="depth_stencil_buffer" output=["ssao_buffer"] }
+												]
+												fail = [
+													{ type="dynamic_branch" shading_environment={ ao_quality=2 }
+														pass = [
+															{ type="fullscreen_pass" shader="ssao_ao_pass:AO_MID_QUALITY" input=["linear_depth_mip6" "gbuffer1" "gbuffer0" "ssao_buffer_history" "hdr0_rg"] depth_stencil_target="depth_stencil_buffer" output=["ssao_buffer"] }
+														]
+														fail = [
+															{ type="fullscreen_pass" shader="ssao_ao_pass:AO_HIGH_QUALITY" input=["linear_depth_mip6" "gbuffer1" "gbuffer0" "ssao_buffer_history" "hdr0_rg"] depth_stencil_target="depth_stencil_buffer" output=["ssao_buffer"] }
+														]
+													}
+												]
+											}
+										]
+									}
+								]
+							}
+
+							{ type="fullscreen_pass" shader="copy:POINT_SAMPLER" input=["ssao_buffer"] output=["ssao_buffer_history"] profiling_scope="ssao history copy" }
+						]
+					}
+
+					// SSR Hi-Z
+					{ type="dynamic_branch" render_settings={ ssr_enabled=true } shading_environment={ ssr_enabled=true } profiling_scope="ssr_hiz"
+						pass = [
+							// Build the hi-z structures
+							{ type="fullscreen_pass" shader="ssr_hiz_pass:LEVEL_0" input=["depth_stencil_buffer"] output=["hiz_depth_mip11"] profiling_scope="mip0" }
+
+							// Generate the ssr hiz struct
+							{ type="generate_mips" output_mip_range=[1,10] profiling_scope="mip_generation"
+								modifiers = [
+									{ type="fullscreen_pass" shader="ssr_hiz_pass" input=["hiz_depth_mip11"] output=["hiz_depth_mip11"] }
+								]
+							}
+						]
+					}
+				]
+			}
+		]
+	}
+
+	shadow_mask = {
+		modifiers = [
+			// Build per-pixel sun shadow intensity mask (4 cascades)
+			{ type="dynamic_branch" render_settings={ sun_shadows=true } shading_environment={ sun_shadows_enabled=true, sun_enabled=true } profiling_scope="sun shadow mask"
+				pass = [
+					{ type="mesh_renderer" material="shadow_cutter_slice0" unit_resource="core/stingray_renderer/proxy_geometry/shadow_cutter" mesh="g_box" output=[""] depth_stencil_target="depth_stencil_buffer" }
+					{ type="fullscreen_pass" material="global_shadow_mask_slice0" input=["sun_shadow_map"] depth_stencil_target="depth_stencil_buffer" output=["ldr0_r"] }
+					{ type="mesh_renderer" material="shadow_cutter_slice1" unit_resource="core/stingray_renderer/proxy_geometry/shadow_cutter" mesh="g_box" output=[""] depth_stencil_target="depth_stencil_buffer" }
+					{ type="fullscreen_pass" material="global_shadow_mask_slice1" input=["sun_shadow_map"] depth_stencil_target="depth_stencil_buffer" output=["ldr0_r"] }
+					{ type="mesh_renderer" material="shadow_cutter_slice2" unit_resource="core/stingray_renderer/proxy_geometry/shadow_cutter" mesh="g_box" output=[""] depth_stencil_target="depth_stencil_buffer" }
+					{ type="fullscreen_pass" material="global_shadow_mask_slice2" input=["sun_shadow_map"] depth_stencil_target="depth_stencil_buffer" output=["ldr0_r"] }
+					{ type="mesh_renderer" material="shadow_cutter_slice3" unit_resource="core/stingray_renderer/proxy_geometry/shadow_cutter" mesh="g_box" output=[""] depth_stencil_target="depth_stencil_buffer" }
+					{ type="fullscreen_pass" material="global_shadow_mask_slice3" input=["sun_shadow_map"] depth_stencil_target="depth_stencil_buffer" output=["ldr0_r"] }
+				]
+			}
+
+			// Fill pixels not covered by shadow map with default shadow intensity
+			{ type="dynamic_branch" render_settings={ static_sun_shadows=true } shading_environment={ ssm_enabled=true, sun_enabled=true }
+				pass = [
+					{ type="fullscreen_pass" material="global_shadow_mask_fill_shadow" input=["static_sun_shadow_map"] depth_stencil_target="depth_stencil_buffer" output=["ldr0_r"]  profiling_scope="static sun shadow mask" }	
+				]
+				fail = [
+					{ type="fullscreen_pass" material="global_shadow_mask_fill" depth_stencil_target="depth_stencil_buffer" output=["ldr0_r"]  profiling_scope="sun shadow mask" }
+				]
+			}
+		]
+	}
+
+	begin_transition_fog = {
+		modifiers = [
+			{ type="static_branch" platforms=["win"] render_caps={ d3d12 = true } render_settings={ async_fog=true}
+				pass = [
+					//transition over to common on gfx queue so it can then properly transition on the compute queue
+					{type="resource_barrier" 
+						actions = [
+							{ transition = ["fog_material_data0"] states = ["common"]}
+						]
+					}
+					//signal compute queue that it can start the fill fog pass
+					{type="fence_control"
+						actions = [
+							{ write = ["fog_fence"] queue = "graphics" }
+						]
+					}
+				]
+			}
+		]
+	}
+
+	begin_transition_ssr = {
+		modifiers = [
+			{ type="static_branch" platforms=["win"] render_caps={ d3d12 = true} render_settings={ async_ssr=true ssr_enabled=true}
+				pass = [
+					//transition over to common on gfx queue so it can then properly transition on the compute queue
+					{type="resource_barrier" 
+						actions = [
+							{ transition = ["gbuffer1" "hdr0_rgb_history0" "hiz_depth_mip11" "hdr0_rg" "ssr_history", "gbuffer0", "hdr0_div2_mip6" "ldr4_div2"] states = [ "common" ] }
+						]
+					}
+					//signal compute queue that the hi-z pass is done and it can start ssr_raymarch
+					{type="fence_control"
+						actions = [
+							{ write = ["ssr_fence"] queue = "graphics" }
+						]
+					}
+				]
+			}
+		]
+	}
+
+	ssr_raymarch_compute = {
+		modifiers = [
+			{ type="dynamic_branch" render_settings={ ssr_enabled=true } shading_environment={ ssr_enabled=true } profiling_scope="ssr_raymarch"
+				pass = [
+					{ type="static_branch" platforms=["win"] render_caps={ d3d12 = true} render_settings={ async_ssr = true }
+						pass = [
+							//wait on compute until hi-z is done
+							{type="fence_control"
+								actions = [
+									{ wait = ["ssr_fence"] queue = "compute" }
+								]
+							}
+
+							{ type="compute_kernel" shader="ssr_ray_march_pass:SSR_LOW_QUALITY:COMPUTE" input=["gbuffer1" "hdr0_rgb_history0" "hiz_depth_mip11" "hdr0_rg" "ssr_history", "gbuffer0", "hdr0_div2_mip6" "ldr4_div2"] thread_count_x="hdr0_div2_mip6" thread_count_y="hdr0_div2_mip6" thread_count_z=1 thread_count_divider=[8 8 1] async=true profiling_scope="ssr_ray_march_pass_compute" }
+							//signal gfx queue that ssr_raymarch is complete
+							{ type="fence_control"
+								actions = [
+									{ write = ["ssr_fence"] queue = "compute" }
+								]
+							}
+						]
+						fail = [
+							{ type="compute_kernel" shader="ssr_ray_march_pass:SSR_LOW_QUALITY:COMPUTE" input=["gbuffer1" "hdr0_rgb_history0" "hiz_depth_mip11" "hdr0_rg" "ssr_history", "gbuffer0", "hdr0_div2_mip6" "ldr4_div2"] thread_count_x="hdr0_div2_mip6" thread_count_y="hdr0_div2_mip6" thread_count_z=1 thread_count_divider=[8 8 1] async=false profiling_scope="ssr_ray_march_pass_compute" }
+						]
+					}
+				]
+			}
+		]
+	}
+
+	lighting = {
+		modifiers = [
+			{ type = "static_branch" platforms=["win"]
+				pass = [
+					// SSR
+					{ type="dynamic_branch" render_settings={ ssr_enabled=true } shading_environment={ ssr_enabled=true } profiling_scope="ssr"
+						pass = [
+							{ type="static_branch" render_caps={ d3d12 = true} render_settings={ async_ssr=true}
+								pass = [
+									//wait until ssr is completed on the compute queue
+									{ type="fence_control"
+										actions = [
+											{ wait = ["ssr_fence"] queue = "graphics" }
+										]
+									}
+								]
+							}
+							{ type="generate_mips" output_mip_range=[1,5] profiling_scope="ssr_filter_pass"
+								modifiers = [
+									{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_MIP" input=["hdr0_div2_mip6"] output=["hdr0_div2_mip6"] }
+								]
+							}
+							{ type="generate_mips" output_mip_range=[1,5] profiling_scope="ssr_filter_pass"
+								modifiers = [
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr0_div2_mip6"] output=["hdr1_div2_mip6"] }
+								]
+							}
+							{ type="generate_mips" output_mip_range=[1,5] profiling_scope="ssr_filter_pass"
+								modifiers = [
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr1_div2_mip6"] output=["hdr0_div2_mip6"] }
+								]
+							}
+
+							// We copy these buffers even if we are in debug rendering (useful to see how the ssr reprojection behaves). Remember, this needs
+							// to happen at the very end of the post process layer since we are using 'ssr_history' to save the ssr history info.
+							{ type="dynamic_branch" render_settings={ ssr_enabled=true } shading_environment={ ssr_enabled=true } profiling_scope="copy history"
+								pass = [
+									// Copy the ssr history. Note: we copy a ressource (hdr0_div2_mip6) with 6 mip levels into one with 1 mip level (ssr_history).
+									// This is intended since we only want to reproject the unblurred reflection buffer
+									// TODO: can we copy this in the SSR pass?
+									{ type="fullscreen_pass" shader="copy:POINT_SAMPLER" input=["hdr0_div2_mip6"] output=["ssr_history"] }
+								]
+							}
+						]
+					}
+				]
+			}
+
+			// Currently the clustered shading for opaques is only done on win, ps4 & xb1. Other platforms still takes the old path.
+			{ type="dynamic_branch" shading_environment={ sun_enabled=true } profiling_scope="global_light"
+				pass = [
+					{ type="dynamic_branch" render_settings={ ssr_enabled=true } shading_environment={ ssr_enabled=true }
+						pass = [
+							{ type="fullscreen_pass" shader="global_lighting:SUN:SSR_ENABLED" depth_stencil_target="depth_stencil_buffer" output=["hdr0_rgb" "hdr0"] }
+						]
+						fail = [
+							{ type="fullscreen_pass" shader="global_lighting:SUN" depth_stencil_target="depth_stencil_buffer" output=["hdr0_rgb" "hdr0"] }
+						]
+					}
+				]
+				fail = [
+					{ type="dynamic_branch" render_settings={ ssr_enabled=true } shading_environment={ ssr_enabled=true }
+						pass = [
+							{ type="fullscreen_pass" shader="global_lighting:SSR_ENABLED" depth_stencil_target="depth_stencil_buffer" output=["hdr0_rgb" "hdr0"] }
+						]
+						fail = [
+							{ type="fullscreen_pass" shader="global_lighting" depth_stencil_target="depth_stencil_buffer" output=["hdr0_rgb" "hdr0"] }
+						]
+					}
+				]
+			}
+
+			// clear hdr1 and hdr2 that contains probe data
+			{ type = "static_branch" render_caps={ development=true }
+				pass = [
+					{ type="dynamic_branch" render_settings={ skin_material_enabled=true, reflection_probe_visualization=false, radiation_probe_visualization=false } profiling_scope="skin_clear"
+						pass = [
+							{ type="fullscreen_pass" output=["hdr1", "hdr2"] clear_flags=["SURFACE"] }
+						]
+					}
+				]
+				fail = [
+					{ type="dynamic_branch" render_settings={ skin_material_enabled=true } profiling_scope="skin_sss"
+						pass = [
+							{ type="fullscreen_pass" output=["hdr1", "hdr2"] clear_flags=["SURFACE"] }
+						]
+					}
+				]
+			}
+
+			// Run deferred shading modifier for laying down local dynamic light sources
+			{ type="dynamic_branch" render_settings={ local_lights=true } profiling_scope="local_lights"
+				pass = [
+					{ type="deferred_shading" output=["hdr0_rgb" "hdr0"] depth_stencil_target="depth_stencil_buffer"
+						proxy_geometry="core/stingray_renderer/proxy_geometry/light_proxies"
+						atlased_shadow_mapping_modifier="local_shadows"
+						light_types = [
+							{ type="omni" lighting_shader="light_source:OMNI" lighting_and_shadow_shader="light_source:OMNI:SHADOW_MAPPING" proxy_mesh="g_omni" }
+							{ type="spot" lighting_shader="light_source:SPOT" lighting_and_shadow_shader="light_source:SPOT:SHADOW_MAPPING" proxy_mesh="g_spot" }
+							{ type="box" lighting_shader="light_source:BOX" lighting_and_shadow_shader="light_source:BOX:SHADOW_MAPPING" proxy_mesh="g_box" }
+						]
+					}
+				]
+			}
+
+			// Screen space subsurface scattering (SSSSS)
+			{ type = "static_branch" render_caps={ development=true }
+				pass = [
+					// TODO: copy of the fail pass but... with development render settings. Can we make this code prettier? since it basically is the same
+					// We don't want to overwrite hdr1 and hdr2 when using probe visualization
+					{ type="dynamic_branch" render_settings={ skin_material_enabled=true, reflection_probe_visualization=false, radiation_probe_visualization=false } profiling_scope="skin_sss"
+						pass = [
+							{ type = "fullscreen_pass" shader="skin_filter:DIRECTION_X:STEP0" depth_stencil_target="depth_stencil_buffer" input=["hdr0" "linear_depth"] output=["hdr2"] }
+							{ type = "fullscreen_pass" shader="skin_filter:DIRECTION_Y:STEP0" depth_stencil_target="depth_stencil_buffer" input=["hdr2" "linear_depth"] output=["hdr1" "hdr0"] }
+							{ type = "fullscreen_pass" shader="skin_filter:DIRECTION_X:STEP1" depth_stencil_target="depth_stencil_buffer" input=["hdr1" "linear_depth"] output=["hdr2"] }
+							{ type = "fullscreen_pass" shader="skin_filter:DIRECTION_Y:STEP1" depth_stencil_target="depth_stencil_buffer" input=["hdr2" "linear_depth"] output=["hdr1" "hdr0"] }
+							{ type = "fullscreen_pass" shader="skin_filter:DIRECTION_X:STEP2" depth_stencil_target="depth_stencil_buffer" input=["hdr1" "linear_depth"] output=["hdr2"] }
+							{ type = "fullscreen_pass" shader="skin_filter:DIRECTION_Y:STEP2" depth_stencil_target="depth_stencil_buffer" input=["hdr2" "linear_depth"] output=["hdr1" "hdr0"] }
+				
+							{ type = "fullscreen_pass" shader="copy:POINT_SAMPLER:ADD:SKIN" depth_stencil_target="depth_stencil_buffer" input=["hdr0"] output=["hdr0_rgb"] profiling_scope="blend" }
+						]
+					}
+				]
+				fail = [
+					{ type="dynamic_branch" render_settings={ skin_material_enabled=true } profiling_scope="skin_sss"
+						pass = [
+							{ type = "fullscreen_pass" shader="skin_filter:DIRECTION_X:STEP0" depth_stencil_target="depth_stencil_buffer" input=["hdr0" "linear_depth"] output=["hdr2"] }
+							{ type = "fullscreen_pass" shader="skin_filter:DIRECTION_Y:STEP0" depth_stencil_target="depth_stencil_buffer" input=["hdr2" "linear_depth"] output=["hdr1" "hdr0"] }
+							{ type = "fullscreen_pass" shader="skin_filter:DIRECTION_X:STEP1" depth_stencil_target="depth_stencil_buffer" input=["hdr1" "linear_depth"] output=["hdr2"] }
+							{ type = "fullscreen_pass" shader="skin_filter:DIRECTION_Y:STEP1" depth_stencil_target="depth_stencil_buffer" input=["hdr2" "linear_depth"] output=["hdr1" "hdr0"] }
+							{ type = "fullscreen_pass" shader="skin_filter:DIRECTION_X:STEP2" depth_stencil_target="depth_stencil_buffer" input=["hdr1" "linear_depth"] output=["hdr2"] }
+							{ type = "fullscreen_pass" shader="skin_filter:DIRECTION_Y:STEP2" depth_stencil_target="depth_stencil_buffer" input=["hdr2" "linear_depth"] output=["hdr1" "hdr0"] }
+				
+							{ type = "fullscreen_pass" shader="copy:POINT_SAMPLER:ADD:SKIN" depth_stencil_target="depth_stencil_buffer" input=["hdr0"] output=["hdr0_rgb"] profiling_scope="blend" }
+						]
+					}
+				]
+			}
+
+			{ type = "static_branch" render_caps={ development=true }
+				pass = [
+					{ type="dynamic_branch" render_settings={ gbuffer_ambient_diffuse_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:AMBIENT_DIFFUSE_VISUALIZATION" output=["hdr0_rgb"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ skin_sss_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="copy" input=["hdr0"] output=["hdr0_rgb"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ reflection_probe_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="copy" input=["hdr1"] output=["hdr0_rgb"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ radiation_probe_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="copy" input=["hdr2"] output=["hdr0_rgb"] }
+						]
+					}
+				]
+			}
+		]
+	}
+
+	fill_fog_material = {
+		modifiers = [
+			{ type="dynamic_branch" shading_environment={ fog_enabled=true, volumetric_lighting_enabled=true}
+				pass = [
+					{ type="static_branch" platforms=["win"] render_caps={ d3d12=true} render_settings={ async_fog=true}
+						pass = [
+							{type="fence_control"
+								actions = [
+									{ wait = ["fog_fence"] queue = "compute" }
+								]
+							}
+
+							{ type="compute_kernel" shader="cs_fog_material_data" input=["fog_material_data0"] thread_count_x="fog_material_data0" thread_count_y="fog_material_data0" thread_count_z="fog_material_data0" thread_count_divider=[4 4 4] async=true profiling_scope="fill fog volume" }
+						
+							{ type = "fence_control" 
+								actions = [
+									{ write = ["fog_fence"] queue = "compute" }
+								]
+							}
+						]
+					}
+				]
+			}
+		]
+	}
+
+	apply_fog = {
+		modifiers = [
+			{ type="dynamic_branch" shading_environment={ fog_enabled=true, volumetric_lighting_enabled=true }
+				pass = [
+					{ type="static_branch" platforms=["win"] render_caps={ d3d12=true} render_settings={ async_fog=true}
+						pass = [
+							{ type = "fence_control" 
+								actions = [
+									{ wait = ["fog_fence"] queue = "graphics" }
+								]
+							}
+						]
+						fail = [
+							{ type="compute_kernel" shader="cs_fog_material_data" input=["fog_material_data0"] thread_count_x="fog_material_data0" thread_count_y="fog_material_data0" thread_count_z="fog_material_data0" thread_count_divider=[4 4 4] async=false profiling_scope="fill fog volume" }
+						]
+					}
+				]
+			}
+
+			{ type="dynamic_branch" shading_environment={ fog_enabled=true }
+				pass = [
+					{ type="dynamic_branch" shading_environment={ volumetric_lighting_enabled=true }
+						pass = [
+							//{ type="compute_kernel" shader="cs_fog_material_data" input=["fog_material_data0"] thread_count_x="fog_material_data0" thread_count_y="fog_material_data0" thread_count_z="fog_material_data0" thread_count_divider=[4 4 4] async=false profiling_scope="fill fog volume" }
+							
+							{ type="resource_alias" alias={"fog_light_data"="fog_volume"} }
+
+							{ type="compute_kernel" shader="cs_fog_light_data" input=["fog_material_data0", "fog_light_data"] thread_count_x="fog_light_data" thread_count_y="fog_light_data" thread_count_z="fog_light_data" thread_count_divider=[4 4 4] async=false profiling_scope="fog light data" }
+							
+							/*
+							// Disabled since we do not use any other shadow map than the standard atm
+							{ type="dynamic_branch" render_settings={ sun_shadows=false } profiling_scope="fog light data"
+								pass = [
+									{ type="compute_kernel" shader="cs_fog_light_data" input=["fog_material_data0", "fog_light_data"] thread_count_x="fog_light_data" thread_count_y="fog_light_data" thread_count_z="fog_light_data" thread_count_divider=[4 4 4] async=false }
+								]
+								fail = [
+									{ type="dynamic_branch" shading_environment={ volumetric_shadow_type=0 }
+										pass = [
+											{ type="compute_kernel" shader="cs_fog_light_data" input=["fog_material_data0", "fog_light_data"] thread_count_x="fog_light_data" thread_count_y="fog_light_data" thread_count_z="fog_light_data" thread_count_divider=[4 4 4] async=false }
+										]
+									}
+								]
+							}
+							{ type="dynamic_branch" render_settings={ sun_shadows=true } shading_environment={ volumetric_shadow_type=1 } profiling_scope="fog light data vsm"
+								pass = [
+									{ type="fullscreen_pass" shader="init_variance_shadow_map" input=["sun_shadow_map"] output=["variance_shadow_map"] }
+									{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["variance_shadow_map"] output=["vsm_div4_0"] }
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["vsm_div4_0"] output=["vsm_div4_1"] }
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["vsm_div4_1"] output=["vsm_div4_0"] }
+									
+									{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_2x2" input=["vsm_div4_0"] output=["vsm_div8_0"] }
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["vsm_div8_0"] output=["vsm_div8_1"] }
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["vsm_div8_1"] output=["vsm_div8_0"] }
+
+									{ type="compute_kernel" shader="cs_fog_light_data:VSM" input=["fog_material_data0", "fog_light_data", "vsm_div8_0"] thread_count_x="fog_light_data" thread_count_y="fog_light_data" thread_count_z="fog_light_data" thread_count_divider=[4 4 4] async=false }
+								]
+							}
+							{ type="dynamic_branch" render_settings={ sun_shadows=true } shading_environment={ volumetric_shadow_type=2 } profiling_scope="fog light data esm"
+								pass = [
+									{ type="fullscreen_pass" shader="init_exponential_shadow_map" input=["sun_shadow_map"] output=["exponential_shadow_map"] }
+									{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["exponential_shadow_map"] output=["esm_div4_0"] }
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["esm_div4_0"] output=["esm_div4_1"] }
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["esm_div4_1"] output=["esm_div4_0"] }
+									
+									{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_2x2" input=["esm_div4_0"] output=["esm_div8_0"] }
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["esm_div8_0"] output=["esm_div8_1"] }
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["esm_div8_1"] output=["esm_div8_0"] }
+
+									{ type="compute_kernel" shader="cs_fog_light_data:ESM" input=["fog_material_data0", "fog_light_data", "esm_div8_0"] thread_count_x="fog_light_data" thread_count_y="fog_light_data" thread_count_z="fog_light_data" thread_count_divider=[4 4 4] async=false }
+								]
+							}
+							*/
+
+							{ type="compute_kernel" shader="cs_fog_reprojection" input=["fog_light_data", "fog_light_data_history" "fog_material_data0"] thread_count_x="fog_material_data0" thread_count_y="fog_material_data0" thread_count_z="fog_material_data0" thread_count_divider=[3 3 3] async=false profiling_scope="fog reprojection" }
+							{ type="compute_kernel" shader="cs_copy_3d" input=["fog_material_data0", "fog_light_data_history"] thread_count_x="fog_light_data_history" thread_count_y="fog_light_data_history" thread_count_z="fog_light_data_history" thread_count_divider=[4 4 4] async=false profiling_scope="fog history" }
+							{ type="compute_kernel" shader="cs_fog_integration" input=["fog_material_data0", "fog_volume"] thread_count_x="fog_volume" thread_count_y="fog_volume" thread_count_z=1 thread_count_divider=[8 8 1] async=false profiling_scope="integrate fog volume" }
+						]
+					}
+					{ type = "static_branch" render_caps={ development=true }
+						pass = [
+							{ type="dynamic_branch" shading_environment={ fog_debug=true } 
+								pass = [
+									{ type="fullscreen_pass" shader="apply_fog:DEVELOPMENT:DEBUG_FOG:CALCULATE_LIGHTING" output=["hdr0_rgb"] profiling_scope="sample fog volume" }
+								]
+								fail = [
+									{ type="fullscreen_pass" shader="apply_fog:DEVELOPMENT" output=["hdr0_rgb"] profiling_scope="sample fog volume" }
+								]
+							}
+						]
+						fail = [
+							{ type="fullscreen_pass" shader="apply_fog" output=["hdr0_rgb"] profiling_scope="sample fog volume" }
+						]
+					}
+				]
+			}
+		]
+	}
+
+	depth_downsampling = {
+		modifiers = [
+			{ type="static_branch" render_settings={ low_res_transparency=true }
+				pass = [
+					{ type="fullscreen_pass" shader="downsample_depth" input=["depth_stencil_buffer"] output=["linear_depth_div2"] depth_stencil_target="depth_stencil_buffer_div2" profiling_scope="depth_downsampling" }
+				]
+			}
+		]
+	}
+
+	apply_hdr_transparent = {
+		modifiers = [
+			{ type="static_branch" render_settings={ low_res_transparency=true }
+				pass = [
+					{ type="fullscreen_pass" shader="copy:PREMULTIPLIED" input=["hdr0_div2"] output=["hdr0_rgb"] profiling_scope="apply_hdr_transparent" }
+				]
+			}
+		]
+	}
+
+	apply_hdr_transparent_forward = {
+		modifiers = [
+			{ type="static_branch" render_settings={ low_res_transparency=true }
+				pass = [
+					{ type="fullscreen_pass" shader="copy:PREMULTIPLIED" input=["hdr0_div2"] output=["hdr0"] profiling_scope="apply_hdr_transparent_forward" }
+				]
+			}
+		]
+	}
+
+	post_processing = {
+		modifiers = [
+			{ type="dynamic_branch" render_settings={ debug_rendering=false }
+				pass = [
+					{ type = "static_branch" platforms=["win"]
+						pass = [
+							{ type="dynamic_branch" render_settings={ taa_enabled=true } profiling_scope="taa"
+								pass = [
+									{ type="fullscreen_pass" shader="temporal_aa:CUBIC_INTERPOLATION" input=["hdr0_rgb" "hdr0_rgb_history0" "hdr0_rg" "linear_depth"] output=["hdr1_rgb"] profiling_scope="taa_pass" }
+									{ type="fullscreen_pass" shader="copy:POINT_SAMPLER" input=["hdr1_rgb"] output=["hdr0_rgb_history0"] profiling_scope="taa_history_copy"}
+									{ type="resource_swap" swaps = {"hdr0_rgb"="hdr1_rgb"} }
+								]
+								fail = [
+									{ type="dynamic_branch" render_settings={ ssr_enabled=true } shading_environment={ ssr_enabled=true }
+										pass=[
+											{ type="fullscreen_pass" shader="copy:POINT_SAMPLER" input=["hdr0_rgb"] output=["hdr0_rgb_history0"] profiling_scope="hdr0_history_copy"}
+										]
+									}
+								]
+							}
+
+							{ type="dynamic_branch" render_settings={ sharpen_enabled=true } shading_environment={ sharpen_enabled=true } profiling_scope="sharpen"
+								pass = [
+									{ type="fullscreen_pass" shader="sharpen" input=["hdr0_rgb"] output=["hdr1_rgb"] }
+									{ type="resource_swap" swaps = {"hdr0_rgb"="hdr1_rgb"} }
+								]
+							}
+
+							{ type="dynamic_branch" render_settings={ dof_enabled=true } shading_environment={ dof_enabled=true } profiling_scope="depth_of_field"
+								pass = [
+
+									{ type="fullscreen_pass" shader="calculate_coc" input=["linear_depth"] output=["ldr0_r_div2"] profiling_scope="coc" }
+
+									{ type="static_branch" render_settings={ taa_enabled=true } profiling_scope="taa_coc"
+										pass = [
+											{ type="fullscreen_pass" shader="temporal_aa:SIMPLE" input=["ldr0_r_div2" "ldr0_r_div2_history0" "hdr0_rg"] output=["ldr1_r_div2"] profiling_scope="taa_coc" }
+											{ type="fullscreen_pass" shader="copy:POINT_SAMPLER" input=["ldr1_r_div2"] output=["ldr0_r_div2_history0"] profiling_scope="taa_coc_copy" }
+											{ type="resource_swap" swaps = {"ldr0_r_div2"="ldr1_r_div2"} }
+										]
+									}
+		
+									{ type="fullscreen_pass" shader="depth_of_field:HORIZONTAL_PASS" input=["hdr0_rgb" "ldr0_r_div2"] output=["hdr0_rgb_div2"] profiling_scope="dof horizontal"  }
+									{ type="fullscreen_pass" shader="depth_of_field:ASCENDING_DIAGONAL_PASS" input=["hdr0_rgb_div2" "ldr0_r_div2"] output=["hdr1_rgb_div2"] profiling_scope="dof ascending" }
+									{ type="fullscreen_pass" shader="depth_of_field:DESCENDING_DIAGONAL_PASS" input=["hdr0_rgb_div2" "ldr0_r_div2" "hdr1_rgb_div2"] output=["hdr2_rgb_div2"] profiling_scope="dof descending" }
+									{ type="fullscreen_pass" shader="merge_depth_of_field" input=["hdr2_rgb_div2" "hdr0_rgb" "ldr0_r_div2"] output=["hdr1_rgb"] profiling_scope="dof merge"}
+									{ type="resource_swap" swaps = {"hdr0_rgb"="hdr1_rgb"} }
+
+								]
+							}
+
+							{ type="dynamic_branch" render_settings={ motion_blur_enabled=true } shading_environment={ motion_blur_enabled=true } profiling_scope="motion_blur"
+								pass = [
+
+									// Motion Blur
+									{ type="fullscreen_pass" shader="mb_tile_max:HORIZONTAL_PASS" input=["hdr0_rg"] output=["hdr0_rg_div10"] profiling_scope="mb_tile_max_h" }
+									{ type="fullscreen_pass" shader="mb_tile_max:VERTICAL_PASS" input=["hdr0_rg_div10"] output=["hdr1_rg_div10"] profiling_scope="mb_tile_max_v" }
+									{ type="fullscreen_pass" shader="mb_neighbour_max" input=["hdr1_rg_div10"] output=["hdr0_div10"] profiling_scope="mb_neighbour_max" }
+									{ type="fullscreen_pass" shader="mb_bake_radius_depth" input=["hdr0_rg" "linear_depth"] output=["hdr1_rg"] profiling_scope="mb_bake_velocity_depth" }
+									{ type="fullscreen_pass" shader="mb_reconstruct_filter_blur" input=["hdr0_rgb" "hdr0_rg" "hdr1_rg" "hdr0_div10"] output=["hdr1_rgb"] profiling_scope="mb_reconstruct_filter_blur1" }
+									{ type="fullscreen_pass" shader="mb_reconstruct_filter_blur" input=["hdr1_rgb" "hdr0_rg" "hdr1_rg" "hdr0_div10"] output=["hdr0_rgb"] profiling_scope="mb_reconstruct_filter_blur2" }
+
+								]
+							}
+
+							{ type="dynamic_branch" render_settings={ lens_quality_enabled=true, lens_quality_high_quality=true } shading_environment={ lens_quality_enabled=true } profiling_scope="lens_quality"
+								pass = [ 
+									{ type="fullscreen_pass" shader="lens_effects" input=["hdr0_rgb"] output=["hdr1_rgb"] profiling_scope="lens_quality" }
+									{ type="resource_swap" swaps = {"hdr0_rgb"="hdr1_rgb"} }									
+								]
+							}
+
+							{ type="dynamic_branch" render_settings={ hdr=false, display_noise_enabled=true, fsr_enabled=false } profiling_scope="display noise" 
+								pass = [ 
+									{ type="fullscreen_pass" shader="add_display_noise" input=["hdr0_rgb"] output=["hdr1_rgb"] }
+									{ type="resource_swap" swaps = {"hdr0_rgb"="hdr1_rgb"} }
+								]
+							}
+
+						]
+					}
+
+					
+					// Bloom
+					{ type="dynamic_branch" render_settings={ bloom_enabled=true } shading_environment={ bloom_enabled=true } profiling_scope="bloom"
+						pass = [
+							{ type="fullscreen_pass" shader="bright_pass" input=["hdr0_rgb"] output=["hdr1_div2"] }
+
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr1_div2"] output=["hdr0_div2"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr0_div2"] output=["hdr1_div2"] }
+							{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_2x2" input=["hdr1_div2"] output=["hdr1_div4"] }
+
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr1_div4"] output=["hdr0_div4"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr0_div4"] output=["hdr1_div4"] }
+
+							{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr1_div4"] output=["hdr0_div16"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr0_div16"] output=["hdr1_div16"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr1_div16"] output=["hdr0_div16"] }
+
+							{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr0_div16"] output=["hdr0_div64"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr0_div64"] output=["hdr1_div64"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr1_div64"] output=["hdr0_div64"] }
+
+							{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr0_div64"] output=["hdr0_div256"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr0_div256"] output=["hdr1_div256"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr1_div256"] output=["hdr0_div256"] }
+
+							{ type="fullscreen_pass" shader="blend_bloom" input=["hdr1_div2" "hdr1_div4" "hdr0_div16" "hdr0_div64" "hdr0_div256"] output=["hdr0_div4"] profiling_scope="blend_bloom" }
+						]
+						fail = [
+							{ type="dynamic_branch" shading_environment={ eye_adaptation_enabled=true, exposure_auto_enabled=false }
+								pass = [
+									// We need to downsample the luminance
+									// TODO: this pass would be faster if we use R16 targets instead of R16G16B16A16.
+									{ type="fullscreen_pass" shader="bright_pass" input=["hdr0_rgb"] output=["hdr1_div2"] }
+									{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_2x2" input=["hdr1_div2"] output=["hdr1_div4"] }
+									{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr1_div4"] output=["hdr0_div16"] }
+									{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr0_div16"] output=["hdr0_div64"] }
+									{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr0_div64"] output=["hdr0_div256"] }
+								]
+							}
+						]
+					}
+
+					// Histogram and auto exposure
+					{ type="dynamic_branch" shading_environment={ eye_adaptation_enabled=true, exposure_auto_enabled=true } profiling_scope="auto_exposure"
+						pass = [
+							{ type="fullscreen_pass" shader="quantize_luma" input=["hdr0_rgb"] output=["quantized_luma"] respect_dest_viewport=false profiling_scope="quantize_luma" }
+							{ type="compute_kernel" shader="compute_histogram" thread_count_x=40 thread_count_y=1 thread_count_z=1 thread_count_divider=[1 1 1] profiling_scope="compute_histogram" }
+							
+							{ type="static_branch" render_caps={ development=true }
+								pass = [
+									{ type="compute_kernel" shader="adapt_exposure:DEVELOPMENT" thread_count_x=1 thread_count_y=1 thread_count_z=1 thread_count_divider=[1 1 1] profiling_scope="adapt_exposure" }
+								]
+								fail = [
+									{ type="compute_kernel" shader="adapt_exposure" thread_count_x=1 thread_count_y=1 thread_count_z=1 thread_count_divider=[1 1 1] profiling_scope="adapt_exposure" }
+								]
+							}
+						]
+					}
+					
+					/*
+					{ type="dynamic_branch" render_settings={ lens_flares_enabled=true } profiling_scope="lens_flare"
+						pass = [
+							{ type="dynamic_branch" shading_environment={ isomorphic_lens_flares_enabled=true } profiling_scope="isomorphic_lens_flare"
+								pass = [
+									{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input="hdr0_rgb" output="flare1_div4" }
+									{ type="fullscreen_pass" shader="ghosts_bright_pass" input="flare1_div4" output="flare2_div4" }
+									{ type="fullscreen_pass" shader="lens_flare" input="flare2_div4" output="flare1_div4" }
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["flare1_div4"] output=["flare2_div4"] }
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["flare2_div4"] output=["flare1_div4"] }
+								]
+							}
+
+							{ type="dynamic_branch" shading_environment={ anamorphic_lens_flares_enabled=true } profiling_scope="anamorphic_lens_flare"
+								pass = [
+									{ type="fullscreen_pass" shader="flare_bright_pass:SHORT" input=["hdr0_rgb"] output=["flare_short1"] }
+									{ type="fullscreen_pass" shader="flare_bright_pass:LONG" input=["hdr0_rgb"] output=["flare_long1"] }
+
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["flare_short1"] output=["flare_short2"] }
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["flare_short2"] output=["flare_short1"] }
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["flare_short1"] output=["flare_short2"] }
+
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["flare_long1"] output=["flare_long2"] }
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["flare_long2"] output=["flare_long1"] }
+									{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["flare_long1"] output=["flare_long2"] }
+								]
+							}
+
+							// merge 
+							{ type="dynamic_branch" shading_environment={ isomorphic_lens_flares_enabled=true } profiling_scope="isomorphic_lens_flare"
+								pass = [
+									{ type="fullscreen_pass" shader="flare_merge_pass" input=["hdr0_rgb" "flare1_div4"] output=["hdr1_rgb"] }
+									{ type="resource_swap" swaps = {"hdr0_rgb"="hdr1_rgb"} }
+								]
+							}
+
+							{ type="dynamic_branch" shading_environment={ anamorphic_lens_flares_enabled=true } profiling_scope="anamorphic_lens_flare"
+								pass = [
+									{ type="fullscreen_pass" shader="flare_merge_pass" input=["hdr0_rgb" "flare_short2"] output=["hdr1_rgb"] }
+									{ type="fullscreen_pass" shader="flare_merge_pass" input=["hdr1_rgb" "flare_long2"] output=["hdr0_rgb"] }
+								]
+							}
+						]
+					}
+					*/
+
+					{ type = "dynamic_branch" render_settings={ light_shafts_enabled=true } shading_environment={ light_shafts_enabled=true } profiling_scope="light_shaft"
+						pass = [
+							{ type="fullscreen_pass" shader="screen_space_light_shafts_mask:FAR_PLANE" depth_stencil_target="depth_stencil_buffer" output=["ldr1_r"] profiling_scope="mask pass 1" }
+							{ type="fullscreen_pass" shader="screen_space_light_shafts_mask" depth_stencil_target="depth_stencil_buffer" input=["ldr0_r", "gbuffer0", "gbuffer1"] output=["ldr1_r"] profiling_scope="mask pass 2" }
+
+							{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input="ldr1_r" output="ldr0_r_div4" profiling_scope="downsample mask" }
+							
+							// reduce flicker caused by halton offset
+							{ type="dynamic_branch" render_settings={ jitter_enabled=true } profiling_scope="taa_mask"
+								pass = [
+									{ type="fullscreen_pass" shader="temporal_aa:SIMPLE" input=["ldr0_r_div4" "light_shafts_history" "hdr0_rg"] output=["ldr1_r_div4"] profiling_scope="taa" }
+									{ type="fullscreen_pass" shader="copy:POINT_SAMPLER" input=["ldr1_r_div4"] output=["light_shafts_history"] profiling_scope="taa_copy" }
+									{ type="resource_swap" swaps = {"ldr0_r_div4"="ldr1_r_div4"} }
+								]
+							}
+
+							// TODO: output to a R16 target and multiply with color in scene_combine
+							{ type="fullscreen_pass" shader="screen_space_light_shafts" input=["ldr0_r_div4"] output=["hdr0_rgb_div4"] profiling_scope="ray march" }
+						]
+					}
+
+
+					{ type = "dynamic_branch" render_settings={ sun_flare_enabled=true } shading_environment={ sun_flare_enabled=true } profiling_scope="sun flare"
+						pass = [
+							// instead of clearing hdr1_rgb we should use the stencil mask
+							{ type="fullscreen_pass" output=["hdr1_rgb"] clear_flags=["SURFACE"] profiling_scope="clear" }
+							{ type="fullscreen_pass" shader="sun_visibility" input=["sun_visibility_history"] output=["sun_visibility"] profiling_scope="sun visibility" }
+							{ type="fullscreen_pass" shader="copy:POINT_SAMPLER" input=["sun_visibility"] output=["sun_visibility_history"] profiling_scope="copy history" }
+
+							{ type = "dynamic_branch" shading_environment={ temp_sun_flare_radial_alignment=true }
+								pass = [
+									{ type="mesh_renderer" shader="sun_flare:RADIAL:BILLBOARD_CAMERA_ALIGNED" unit_resource="core/units/billboard" mesh="g_billboard_01" output=["hdr1_rgb"] profiling_scope="radial" }
+								]
+								fail = [
+									{ type="mesh_renderer" shader="sun_flare:RADIAL" unit_resource="core/units/billboard" mesh="g_billboard_01" output=["hdr1_rgb"] profiling_scope="radial" }
+								]
+							}
+
+							{ type = "dynamic_branch" shading_environment={ temp_sun_flare_streaks_alignment=true }
+								pass = [
+									{ type="mesh_renderer" shader="sun_flare:STREAKS:BILLBOARD_CAMERA_ALIGNED" unit_resource="core/units/billboard" mesh="g_billboard_01" output=["hdr1_rgb"] profiling_scope="streaks" }
+								]
+								fail = [
+									{ type="mesh_renderer" shader="sun_flare:STREAKS" unit_resource="core/units/billboard" mesh="g_billboard_01" output=["hdr1_rgb"] profiling_scope="streaks" }
+								]
+							}
+
+							{ type = "dynamic_branch" shading_environment={ temp_sun_flare_stripe_alignment=true }
+								pass = [
+									{ type="mesh_renderer" shader="sun_flare:STRIPE:BILLBOARD_CAMERA_ALIGNED" unit_resource="core/units/billboard" mesh="g_billboard_01" output=["hdr1_rgb"] profiling_scope="stripe" }
+								]
+								fail = [
+									{ type="mesh_renderer" shader="sun_flare:STRIPE" unit_resource="core/units/billboard" mesh="g_billboard_01" output=["hdr1_rgb"] profiling_scope="stripe" }
+								]
+							}
+
+							{ type = "dynamic_branch" shading_environment={ temp_sun_flare_star_alignment=true }
+								pass = [
+									{ type="mesh_renderer" shader="sun_flare:STAR:BILLBOARD_CAMERA_ALIGNED" unit_resource="core/units/billboard" mesh="g_billboard_01" output=["hdr1_rgb"] profiling_scope="star" }
+								]
+								fail = [
+									{ type="mesh_renderer" shader="sun_flare:STAR" unit_resource="core/units/billboard" mesh="g_billboard_01" output=["hdr1_rgb"] profiling_scope="star" }
+								]
+							}
+						]
+					}
+
+					// We do this in order to avoid read and write from output_target during fxaa pass.
+					{ type = "dynamic_branch" render_settings={ fxaa_enabled=true }
+						pass = [
+							{ type="resource_alias" alias={"scene_combine_output"="gbuffer1"} }
+						]
+						fail = [
+							{ type="dynamic_branch" render_settings={ lens_quality_enabled=true, lens_quality_high_quality=false } shading_environment={ lens_quality_enabled=true }
+								pass = [ 
+									{ type="resource_alias" alias={"scene_combine_output"="gbuffer1"} }
+								]
+								fail = [
+									{ type="resource_alias" alias={"scene_combine_output"="output_rt"} }
+								]
+							}
+						]
+					}
+
+					{ type = "dynamic_branch" render_settings={ bloom_enabled=true } shading_environment={ bloom_enabled=true } profiling_scope="scene_combine"
+						pass = [
+							{ type = "dynamic_branch" render_settings={ light_shafts_enabled=true } shading_environment={ light_shafts_enabled=true }
+								pass = [
+									{ type = "dynamic_branch" render_settings={ sun_flare_enabled=true } shading_environment={ sun_flare_enabled=true }
+										pass = [
+											{ type = "dynamic_branch" render_settings={ hdr=true }
+												pass = [
+													{ type="fullscreen_pass" shader="scene_combine:BLOOM_ENABLED:LIGHT_SHAFTS_ENABLED:SUN_FLARE_ENABLED" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+												fail = [
+													{ type="fullscreen_pass" shader="scene_combine:BLOOM_ENABLED:LIGHT_SHAFTS_ENABLED:SUN_FLARE_ENABLED" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+											}
+										]
+										fail = [
+											{ type = "dynamic_branch" render_settings={ hdr=true }
+												pass = [
+													{ type="fullscreen_pass" shader="scene_combine:BLOOM_ENABLED:LIGHT_SHAFTS_ENABLED" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+												fail = [
+													{ type="fullscreen_pass" shader="scene_combine:BLOOM_ENABLED:LIGHT_SHAFTS_ENABLED" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+											}
+										]
+									}
+								]
+								fail = [
+									{ type = "dynamic_branch" render_settings={ sun_flare_enabled=true } shading_environment={ sun_flare_enabled=true }
+										pass = [
+											{ type = "dynamic_branch" render_settings={ hdr=true }
+												pass = [
+													{ type="fullscreen_pass" shader="scene_combine:BLOOM_ENABLED:SUN_FLARE_ENABLED" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+												fail = [
+													{ type="fullscreen_pass" shader="scene_combine:BLOOM_ENABLED:SUN_FLARE_ENABLED" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+											}
+										]
+										fail = [
+											
+											{ type = "dynamic_branch" render_settings={ hdr=true }
+												pass = [
+													{ type="fullscreen_pass" shader="scene_combine:BLOOM_ENABLED" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+												fail = [
+													{ type="fullscreen_pass" shader="scene_combine:BLOOM_ENABLED" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+						fail = [
+							{ type = "dynamic_branch" render_settings={ light_shafts_enabled=true } shading_environment={ light_shafts_enabled=true }
+								pass = [
+									{ type = "dynamic_branch" render_settings={ sun_flare_enabled=true } shading_environment={ sun_flare_enabled=true }
+										pass = [
+											{ type = "dynamic_branch" render_settings={ hdr=true }
+												pass = [
+													{ type="fullscreen_pass" shader="scene_combine:LIGHT_SHAFTS_ENABLED:SUN_FLARE_ENABLED" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+												fail = [
+													{ type="fullscreen_pass" shader="scene_combine:LIGHT_SHAFTS_ENABLED:SUN_FLARE_ENABLED" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+											}
+										]
+										fail = [
+											{ type = "dynamic_branch" render_settings={ hdr=true }
+												pass = [
+													{ type="fullscreen_pass" shader="scene_combine:LIGHT_SHAFTS_ENABLED" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+												fail = [
+													{ type="fullscreen_pass" shader="scene_combine:LIGHT_SHAFTS_ENABLED" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+											}
+										]
+									}
+								]
+								fail = [
+									{ type = "dynamic_branch" render_settings={ sun_flare_enabled=true } shading_environment={ sun_flare_enabled=true }
+										pass = [
+											{ type = "dynamic_branch" render_settings={ hdr=true }
+												pass = [
+													{ type="fullscreen_pass" shader="scene_combine:SUN_FLARE_ENABLED" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+												fail = [
+													{ type="fullscreen_pass" shader="scene_combine:SUN_FLARE_ENABLED" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+											}
+										]
+										fail = [
+											{ type = "dynamic_branch" render_settings={ hdr=true }
+												pass = [
+													{ type="fullscreen_pass" shader="scene_combine" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+												fail = [
+													{ type="fullscreen_pass" shader="scene_combine" input=["hdr0_rgb" "hdr0_div4" "hdr0_rgb_div4" "hdr1_rgb"] output=["scene_combine_output"] }
+												]
+											}
+										]
+									}
+								]
+							}
+						]
+					}
+
+					{ type="static_branch" render_settings={ outline_enabled = true }
+						pass = [
+							{ type="dynamic_branch" shading_environment={ outline_enabled=true } profiling_scope="apply_outline"
+								pass = [
+
+									{ type="fullscreen_pass" output=["ldr1"] clear_flags=["SURFACE"] profiling_scope="clear" }
+									{ type="dynamic_branch" render_settings={ jitter_enabled=true } profiling_scope="taa"
+										pass = [
+											{ type="fullscreen_pass" shader="temporal_aa:SIMPLE:SAMPLE_RGBA:OUTLINE" depth_stencil_target="depth_stencil_buffer" input=["ldr0" "outline_history" "hdr0_rg"] output=["ldr1"] profiling_scope="taa_pass" }
+											{ type="fullscreen_pass" shader="copy:POINT_SAMPLER" input=["ldr1"] output=["outline_history"] profiling_scope="copy history"}
+											{ type="resource_swap" swaps = {"ldr0"="ldr1"} }
+										]
+									}
+									{ type="fullscreen_pass" shader="signed_distance_field_2d:HORIZONTAL_PASS" input=["ldr0"] depth_stencil_target="depth_stencil_buffer" output=["ldr1"] profiling_scope="sdf horizontal" }
+
+									{ type="dynamic_branch" render_settings={ lens_quality_enabled=true, lens_quality_high_quality=true } shading_environment={ lens_quality_enabled=true } profiling_scope="lens_quality"
+										pass = [
+											{ type="fullscreen_pass" output=["ldr0"] clear_flags=["SURFACE"] profiling_scope="clear" }
+											{ type="fullscreen_pass" shader="signed_distance_field_2d:VERTICAL_PASS:LENS_EFFECT" input=["ldr1"] depth_stencil_target="depth_stencil_buffer" output=["ldr0"] profiling_scope="sdf vertical" }	
+											{ type="fullscreen_pass" shader="lens_effects:SAMPLE_RGBA" input=["ldr0"] output=["ldr1"] profiling_scope="lens_quality" }
+											{ type="fullscreen_pass" shader="copy:POINT_SAMPLER:PREMULTIPLIED" input=["ldr1"] output=["scene_combine_output"] profiling_scope="copy" }
+										]
+										fail = [
+											{ type="fullscreen_pass" shader="signed_distance_field_2d:VERTICAL_PASS" input=["ldr1"] depth_stencil_target="depth_stencil_buffer" output=["scene_combine_output"] profiling_scope="sdf vertical" }
+										]
+									}
+
+								]
+							}
+						]
+					}
+
+					
+
+					{ type = "dynamic_branch" render_settings={ fxaa_enabled=true }
+						pass = [
+							{ type="dynamic_branch" render_settings={ lens_quality_enabled=true, lens_quality_high_quality=false } shading_environment={ lens_quality_enabled=true }
+								pass = [ 
+									{ type="fullscreen_pass" shader="lens_effects" input=["scene_combine_output"] output=["ldr0"] profiling_scope="lens_quality" }
+									{ type="fullscreen_pass" shader="fxaa" input="ldr0" depth_stencil_target="depth_stencil_buffer" output=["output_rt"] profiling_scope="fxaa" } 
+								]
+								fail = [
+									{ type="fullscreen_pass" shader="fxaa" input="scene_combine_output" depth_stencil_target="depth_stencil_buffer" output=["output_rt"] profiling_scope="fxaa" } 
+								]
+							}
+
+						]
+						fail = [
+							{ type="dynamic_branch" render_settings={ lens_quality_enabled=true, lens_quality_high_quality=false } shading_environment={ lens_quality_enabled=true } profiling_scope="lens_quality"
+								pass = [ 
+									{ type="fullscreen_pass" shader="lens_effects" input=["scene_combine_output"] output=["output_rt"] profiling_scope="lens_quality" }
+								]
+							}
+						]
+					}
+				]
+				fail = [
+				]
+			}
+
+			{ type = "static_branch" render_caps={ development=true }
+				pass = [
+					{ type="dynamic_branch" render_settings={ ssr_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:SSR_VISUALIZATION" input=["hdr0_div2_mip6"] output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ ssr_mask_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="copy:ALPHA_TO_RGB" input=["hdr0_div2_mip6"] output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ light_shafts_visualization=true, light_shafts_enabled=true  } shading_environment={ light_shafts_enabled=true }
+						pass = [
+							{ type="fullscreen_pass" shader="copy" input=["hdr1_rgb_div4"] output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ bloom_visualization=true bloom_enabled=true } shading_environment={ bloom_enabled=true }
+						pass = [
+							{ type="fullscreen_pass" output=["hdr0_rgb"] clear_flags=["SURFACE"] respect_dest_viewport=false }
+							{ type="fullscreen_pass" shader="scene_combine:BLOOM_ENABLED" input=["hdr0_rgb" "hdr0_div4"] output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ coc_visualization=true  dof_enabled=true } shading_environment={ dof_enabled=true }
+						pass = [
+							{ type="fullscreen_pass" shader="coc_visualization" input=["ldr0_r_div2"] output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ linear_depth_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="gbuffer_debug:LINEAR_DEPTH" output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ brightness_visualization=true }
+						pass = [
+							{ type="fullscreen_pass" shader="brightness_visualization" input=["hdr0_rgb"] output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ auto_exposure_visualization=true } shading_environment={ exposure_auto_enabled=true }
+						pass = [
+							{ type="fullscreen_pass" shader="display_histogram" input=["hdr0_rgb"] output=["output_rt"] }
+						]
+					}
+					{ type="dynamic_branch" render_settings={ auto_exposure_visualization=true } shading_environment={ exposure_auto_enabled=false }
+						pass = [
+							{ type="fullscreen_pass" output=["histogram"] clear_flags=["SURFACE"] respect_dest_viewport=false }
+							{ type="fullscreen_pass" shader="legacy_quantize_luma" input=["hdr0_rgb"] output=["quantized_luma"] respect_dest_viewport=false profiling_scope="quantize_luma" }
+							{ type="compute_kernel" shader="compute_histogram" thread_count_x=40 thread_count_y=1 thread_count_z=1 thread_count_divider=[1 1 1] profiling_scope="compute_histogram" }
+							{ type="compute_kernel" shader="adapt_exposure:DEVELOPMENT" thread_count_x=1 thread_count_y=1 thread_count_z=1 thread_count_divider=[1 1 1] profiling_scope="adapt_exposure" }
+							{ type="fullscreen_pass" shader="legacy_display_histogram" input=["hdr0_rgb"] output=["output_rt"] }
+						]
+					}
+				]
+			}
+
+			{ type="dynamic_branch" shading_environment={ eye_adaptation_enabled=true, exposure_auto_enabled=false } profiling_scope="eye_adaptation" 
+				pass = [
+					{ type="dynamic_branch" shading_environment={ eye_adaptation_use_new=true } profiling_scope="eye_adaptation" 
+						pass = [
+							{ type="fullscreen_pass" shader="average_luminance_feedback" input=["hdr0_div64" "luminance_adaptation_history"] output=["luminance_adaptation"] }
+						]
+						fail = [
+							{ type="fullscreen_pass" shader="average_luminance_feedback" input=["hdr0_div256" "luminance_adaptation_history"] output=["luminance_adaptation"] }
+						]
+					}
+
+					{ type="fullscreen_pass" shader="copy:POINT_SAMPLER" input=["luminance_adaptation"] output=["luminance_adaptation_history"] }
+				]
+			}
+		]
+	}
+
+	post_processing_forward = {
+		modifiers = [
+			{ type="dynamic_branch" render_settings={ debug_rendering=false }
+				pass = [
+					{ type = "static_branch" platforms=["win"]
+						pass = [
+							{ type="dynamic_branch" render_settings={ taa_enabled=true } profiling_scope="taa"
+								pass = [
+									{ type="fullscreen_pass" shader="temporal_aa:CUBIC_INTERPOLATION:SAMPLE_RGBA" input=["hdr0" "hdr0_history0" "hdr0_rg" "linear_depth"] output=["hdr1"] }
+									{ type="fullscreen_pass" shader="copy:POINT_SAMPLER" input=["hdr1"] output=["hdr0_history0"] profiling_scope="taa_history_copy"}
+									{ type="resource_swap" swaps = {"hdr0"="hdr1"} }
+								]
+								fail = [
+									{ type="dynamic_branch" render_settings={ ssr_enabled=true } shading_environment={ ssr_enabled=true }
+										pass=[
+											{ type="fullscreen_pass" shader="copy:POINT_SAMPLER" input=["hdr0"] output=["hdr0_history0"] profiling_scope="hdr0_history0"}
+										]
+									}
+								]
+							}					
+						]
+					}
+
+					{ type="dynamic_branch" render_settings={ sharpen_enabled=true, fsr_enabled=false } shading_environment={ sharpen_enabled=true } profiling_scope="sharpen"
+						pass = [
+							{ type="fullscreen_pass" shader="sharpen" input=["hdr0"] output=["hdr1"] }
+							{ type="resource_swap" swaps = {"hdr0"="hdr1"} }
+						]
+					}
+
+					{ type="static_branch" render_settings={ upscaling_enabled=true }
+						pass = [{ type="resource_alias" alias={"scene_combine_output"="back_buffer"} }]
+						fail = [{ type="resource_alias" alias={"scene_combine_output"="output_rt"} }]
+					}
+					// Bloom
+					{ type="dynamic_branch" render_settings={ bloom_enabled=true } shading_environment={ bloom_enabled=true } profiling_scope="bloom"
+						pass = [
+							{ type="fullscreen_pass" shader="bright_pass" input=["hdr0"] output=["hdr1_div2"] }
+
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr1_div2"] output=["hdr0_div2"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr0_div2"] output=["hdr1_div2"] }
+							{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_2x2" input=["hdr1_div2"] output=["hdr1_div4"] }
+
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr1_div4"] output=["hdr0_div4"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr0_div4"] output=["hdr1_div4"] }
+
+							{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr1_div4"] output=["hdr0_div16"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr0_div16"] output=["hdr1_div16"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr1_div16"] output=["hdr0_div16"] }
+
+							{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr0_div16"] output=["hdr0_div64"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr0_div64"] output=["hdr1_div64"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr1_div64"] output=["hdr0_div64"] }
+
+							{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr0_div64"] output=["hdr0_div256"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr0_div256"] output=["hdr1_div256"] }
+							{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr1_div256"] output=["hdr0_div256"] }
+
+							{ type="fullscreen_pass" shader="blend_bloom" input=["hdr1_div2" "hdr1_div4" "hdr0_div16" "hdr0_div64" "hdr0_div256"] output=["hdr0_div4"] profiling_scope="blend_bloom" }
+						
+							{ type="static_branch" render_caps={ mixed_resolution_rendering=true }
+								pass = [	
+									{ type="fullscreen_pass" shader="scene_combine:BLOOM_ENABLED" input=["hdr0", "hdr0_div4"] output=["scene_combine_output"] profiling_scope="scene_combine" }
+								]
+								fail = [
+									{ type="static_branch" render_settings = { fsr_enabled = true }
+										pass = [	
+											{ type="fullscreen_pass" shader="scene_combine:BLOOM_ENABLED" input=["hdr0", "hdr0_div4"] output=["scene_combine_output"] profiling_scope="scene_combine" }
+										]
+										fail = [
+											{ type="fullscreen_pass" shader="scene_combine:BLOOM_ENABLED:PREMULTIPLIED" input=["hdr0", "hdr0_div4"] output=["scene_combine_output"] profiling_scope="scene_combine" }
+										]
+									}
+								]
+							}
+						]
+						fail = [
+							{ type="static_branch" render_caps={ mixed_resolution_rendering=true }
+								pass = [	
+									{ type="fullscreen_pass" shader="scene_combine" input=["hdr0"] output=["scene_combine_output"] profiling_scope="scene_combine" }
+								]
+								fail = [
+									{ type="fullscreen_pass" shader="scene_combine:PREMULTIPLIED" input=["hdr0"] output=["scene_combine_output"] profiling_scope="scene_combine" }
+								]
+							}
+						]
+					}
+				]
+			}
+		]
+	}
+
+	post_processing_fsr = {
+		modifiers = [
+			{ type="static_branch" render_settings={ fsr_enabled=true, debug_rendering=false }
+				pass = [
+					
+					// Run FSR in two passes, EASU and RCAS
+					// Use FP16 when possible and when it allows for higher performance
+					{ type="static_branch" render_caps={ d3d12=false }
+						pass = [
+							{ type="compute_kernel" shader="fidelity_fx_fsr:SAMPLE_EASU:FP32_FALLBACK" input=["output_target", "fsr_easu_output"] thread_count_x="fsr_easu_output" thread_count_y="fsr_easu_output" thread_count_z=1 thread_count_divider=[16 16 1] }
+							{ type="compute_kernel" shader="fidelity_fx_fsr:SAMPLE_RCAS:FP32_FALLBACK" input=["fsr_easu_output", "fsr_rcas_output"] thread_count_x="fsr_rcas_output" thread_count_y="fsr_rcas_output" thread_count_z=1 thread_count_divider=[16 16 1] }
+						]
+						fail = [
+							{ type="compute_kernel" shader="fidelity_fx_fsr:SAMPLE_EASU" input=["output_target", "fsr_easu_output"] thread_count_x="fsr_easu_output" thread_count_y="fsr_easu_output" thread_count_z=1 thread_count_divider=[16 16 1] }
+							{ type="compute_kernel" shader="fidelity_fx_fsr:SAMPLE_RCAS" input=["fsr_easu_output", "fsr_rcas_output"] thread_count_x="fsr_rcas_output" thread_count_y="fsr_rcas_output" thread_count_z=1 thread_count_divider=[16 16 1] }
+						]
+					}
+
+					{ type="static_branch" render_settings={ debug_compare_fsr=true } profiling_scope="fsr_debug"
+						pass = [
+							// Copy bilinearly for comparison
+							{ type="fullscreen_pass" shader="copy" input=["output_target"] output=["back_buffer"] }
+							// Only copy right half for comparison
+							{ type="fullscreen_pass" shader="copy:COPY_HALF" input=["fsr_rcas_output"] output=["back_buffer"] }
+						]
+						fail = [
+							// Copy fsr result to back buffer
+							{ type="dynamic_branch" render_settings={ lens_quality_enabled=true, lens_quality_high_quality=false } shading_environment={ lens_quality_enabled=true } profiling_scope="fsr_copy"
+								pass = [
+									{ type="fullscreen_pass" shader="lens_effects" input=["fsr_rcas_output"] output=["back_buffer"] profiling_scope="lens_quality" }
+								]
+								fail = [
+									{ type="fullscreen_pass" shader="copy" input=["fsr_rcas_output"] output=["back_buffer"] profiling_scope="fsr_copy_pass" }
+								]
+							}
+						]
+					}
+					
+				]
+			}
+		]
+	}
+
+	post_processing_fsr_forward = {
+		modifiers = [
+			{ type="static_branch" render_settings={ fsr_enabled=true, debug_rendering=false }
+				pass = [
+					
+					// Run FSR in two passes, EASU and RCAS
+					// Use FP16 when possible and when it allows for higher performance
+					{ type="static_branch" render_caps={ d3d12=false }
+						pass = [
+							{ type="compute_kernel" shader="fidelity_fx_fsr:SAMPLE_EASU:FP32_FALLBACK:SAMPLE_RGBA" input=["output_rt", "fsr_easu_output"] thread_count_x="fsr_easu_output" thread_count_y="fsr_easu_output" thread_count_z=1 thread_count_divider=[16 16 1] }
+							{ type="compute_kernel" shader="fidelity_fx_fsr:SAMPLE_RCAS:FP32_FALLBACK:SAMPLE_RGBA" input=["fsr_easu_output", "fsr_rcas_output"] thread_count_x="fsr_rcas_output" thread_count_y="fsr_rcas_output" thread_count_z=1 thread_count_divider=[16 16 1] }
+						]
+						fail = [
+							{ type="compute_kernel" shader="fidelity_fx_fsr:SAMPLE_EASU:SAMPLE_RGBA" input=["output_rt", "fsr_easu_output"] thread_count_x="fsr_easu_output" thread_count_y="fsr_easu_output" thread_count_z=1 thread_count_divider=[16 16 1] }
+							{ type="compute_kernel" shader="fidelity_fx_fsr:SAMPLE_RCAS:SAMPLE_RGBA" input=["fsr_easu_output", "fsr_rcas_output"] thread_count_x="fsr_rcas_output" thread_count_y="fsr_rcas_output" thread_count_z=1 thread_count_divider=[16 16 1] }
+						]
+					}
+
+					{ type="static_branch" render_settings={ debug_compare_fsr=true } profiling_scope="fsr_debug"
+						pass = [
+							// Copy bilinearly for comparison
+							{ type="fullscreen_pass" shader="copy" input=["output_rt"] output=["back_buffer"] }
+							// Only copy right half for comparison
+							{ type="fullscreen_pass" shader="copy:COPY_HALF" input=["fsr_rcas_output"] output=["back_buffer"] }
+						]
+						fail = [
+							// Copy fsr result to back buffer
+							{ type="dynamic_branch" render_settings={ lens_quality_enabled=true, lens_quality_high_quality=false } shading_environment={ lens_quality_enabled=true } profiling_scope="fsr_copy"
+								pass = [
+									{ type="compute_kernel" shader="fidelity_fx_fsr:SAMPLE_EASU:FP32_FALLBACK:SAMPLE_RGBA" input=["output_rt", "fsr_easu_output"] thread_count_x="fsr_easu_output" thread_count_y="fsr_easu_output" thread_count_z=1 thread_count_divider=[16 16 1] }
+								]
+								fail = [
+									{ type="compute_kernel" shader="fidelity_fx_fsr:SAMPLE_EASU:SAMPLE_RGBA" input=["output_rt", "fsr_easu_output"] thread_count_x="fsr_easu_output" thread_count_y="fsr_easu_output" thread_count_z=1 thread_count_divider=[16 16 1] }
+								]
+							}
+									{ type="compute_kernel" shader="fidelity_fx_fsr:SAMPLE_RCAS:SAMPLE_RGBA" input=["fsr_easu_output", "fsr_rcas_output"] thread_count_x="fsr_rcas_output" thread_count_y="fsr_rcas_output" thread_count_z=1 thread_count_divider=[16 16 1] }
+						]
+					}
+
+					// Copy fsr result to back buffer
+					{ type="dynamic_branch" render_settings={ lens_quality_enabled=true, lens_quality_high_quality=false } shading_environment={ lens_quality_enabled=true } profiling_scope="fsr_copy"
+						pass = [
+							{ type="fullscreen_pass" shader="lens_effects:SAMPLE_RGBA:PREMULTIPLIED" input=["fsr_rcas_output"] output=["back_buffer"] profiling_scope="lens_quality" }
+						]
+						fail = [
+							{ type="fullscreen_pass" shader="copy:CUBIC_SAMPLER:PREMULTIPLIED:MASKED" input=["fsr_rcas_output" "overlay_mask"] output=["back_buffer"] profiling_scope="fsr_copy_pass" }
+						]
+					}					
+				]
+			}
+		]
+	}
+
+	copy_opaque_hdr0_rgb = {
+		modifiers = [
+			{ type = "fullscreen_pass" shader="copy:POINT_SAMPLER" input="hdr0_rgb" output="pre_transparency_hdr0" profiling_scope="copy" }
+		]
+	}
+	copy_opaque_hdr0 = {
+		modifiers = [
+			{ type = "fullscreen_pass" shader="copy:POINT_SAMPLER" input="hdr0" output="pre_transparency_hdr0" profiling_scope="copy" }
+		]
+	}
+
+	streamline_common = {
+		modifiers = [
+			{ type="streamline_common" context = "upscaling_instance" motion_vectors="hdr0_rg" depth="depth_stencil_buffer" profiling_scope="streamline_common" }
+		]
+	}
+
+	upscale = {
+		modifiers = [
+			{ type="static_branch" render_settings={ upscaling_enabled=true }
+				pass = [
+					{ type="upscale_pass" buffers={ color="hdr0_rgb" motion_vectors="hdr0_rg" depth="depth_stencil_buffer" opaque_color="pre_transparency_hdr0" context="upscaling_instance" output="upscaling_output" } profiling_scope="upscale_pass" }
+				]
+			}
+		]
+	}
+	upscale_forward = {
+		modifiers = [
+			{ type="static_branch" render_settings={ upscaling_enabled=true }
+				pass = [
+					{ type="upscale_pass" buffers={ color="hdr0" motion_vectors="hdr0_rg" depth="depth_stencil_buffer" opaque_color="pre_transparency_hdr0" context="upscaling_instance" output="upscaling_output" } profiling_scope="upscale_pass" }
+				]
+			}
+		]
+	}
+
+	clear_back_buffer = {
+		modifiers = [
+			{ type="dynamic_branch" render_settings={ clear_back_buffer_enabled=true }
+				pass = [
+					{ type="fullscreen_pass" output=["back_buffer"] clear_flags=["SURFACE"] profiling_scope="clear_back_buffer" respect_dest_viewport=false }
+				]
+			}
+			{ type="static_branch" render_settings ={ fsr_enabled = true }
+				pass = [
+					{ type="fullscreen_pass" output=["output_rt"] clear_flags=["SURFACE"] profiling_scope="clear_output_target" respect_dest_viewport=false }
+				]
+			}
+		]
+	}
+
+	fullscreen_blur = {
+		modifiers = [
+			{ type = "dynamic_branch" shading_environment={ fullscreen_blur_enabled=true } profiling_scope="fullscreen blur"
+				pass = [
+					{ type="fullscreen_pass" shader="copy" input=["back_buffer"] output=["hdr1_div2"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr1_div2"] output=["hdr0_div2"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr0_div2"] output=["hdr1_div2"] }
+					
+					{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_2x2" input=["hdr1_div2"] output=["hdr1_div4"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr1_div4"] output=["hdr0_div4"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr0_div4"] output=["hdr1_div4"] }
+
+					{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr1_div4"] output=["hdr0_div16"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr0_div16"] output=["hdr1_div16"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr1_div16"] output=["hdr0_div16"] }
+
+					{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr0_div16"] output=["hdr0_div64"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr0_div64"] output=["hdr1_div64"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr1_div64"] output=["hdr0_div64"] }
+
+					{ type="fullscreen_pass" shader="filter:DOWNSAMPLE_4x4" input=["hdr0_div64"] output=["hdr0_div256"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_X" input=["hdr0_div256"] output=["hdr1_div256"] }
+					{ type="fullscreen_pass" shader="filter:SEPARABLE_BILINEAR_GAUSSIAN_5TAP_Y" input=["hdr1_div256"] output=["hdr0_div256"] }
+
+					{ type="fullscreen_pass" shader="blend_blur" input=["hdr1_div2" "hdr1_div4" "hdr0_div16" "hdr0_div64" "hdr0_div256"] output=["back_buffer"] profiling_scope="blend_blur" }
+				]
+			}
+		]
+	}
+
+	cubemap_capture = {
+		modifiers = [
+			{ type="dynamic_branch" render_settings={ capture_cubemap=true }
+				pass = [
+					{ type="fullscreen_pass" shader="copy:CUBE_CAPTURE" respect_src_viewport=false respect_dest_viewport=false input="hdr0_rgb" output=["cubemap_result"] profiling_scope="cubemap_capture" }
+				]
+			}
+		]
+	}
+
+	terrain_decoration = {
+		modifiers = [
+			{ type = "fullscreen_pass" shader="terrain_decoration" input=["hmap" "material_map"] output=["buffer0" "buffer1"] }
+		]
+	}
+
+	heatmap_apply = {
+		modifiers = [
+			{ type="dynamic_branch" render_settings={ render_heatmap_enabled=true }
+				pass = [
+					{ type="fullscreen_pass" shader="heatmap_apply" output=["back_buffer"] profiling_scope="heatmap" }
+				]
+			}
+			
+		]
+	}
+	
+	lookup_tables = {
+		modifiers = [
+			//{ type = "fullscreen_pass" shader="init_luminance_adaptation" output=["luminance_adaptation_history"] }
+		]
+	}
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Lookup table generation - resource generators specified in this array will run _once_ after the renderer has completed its boot process
+
+lookup_tables = [ "lookup_tables" ]
+
+// ---------------------------------------------------------------------------------------------------
+// Viewports
+
+viewports = {
+	default = {
+		// resources instanced once per viewport
+		resources = [
+			{ name="upscaling_instance" main=true mode_from_render_setting="upscaling_mode" type="upscaling_context" depends_on="back_buffer" quality_from_render_setting="upscaling_quality" }
+			{ type="static_branch" render_settings={ upscaling_enabled=true }
+				pass = [
+					{ name="upscaling_output" type="render_target" depends_on="back_buffer" format_from_render_setting="hdr_rgb_format" UAV=true } 
+					{ name="pre_transparency_hdr0" type="render_target" depends_on="hdr0_rgb" }
+				]
+			}
+
+			{ name="hdr0_rgb_history0" type="render_target" depends_on="hdr0_rgb" }
+
+			{ type="static_branch" render_settings={ taa_enabled=true }
+				pass = [
+					{ name="ldr0_r_div2_history0" type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 format="R8" }
+				]
+			}
+
+			{ type="static_branch" render_settings={ jitter_enabled=true }
+				pass = [
+					{ name="light_shafts_history" type="render_target" depends_on="output_target" w_scale=0.25 h_scale=0.25 format="R8" }
+				]
+			}
+
+			{ type="static_branch" render_settings={ ssr_high_quality=true }
+				pass = [
+					{ name="ssr_history" type="render_target" depends_on="output_target" w_scale=1 h_scale=1 format="R16G16B16A16F" }
+				]
+				fail = [
+					{ name="ssr_history" type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 format="R16G16B16A16F" }
+				]
+			}
+
+			{ type="static_branch" render_settings={ ao_high_quality=true }
+				pass = [
+					{ name="ssao_buffer_history" type="render_target" depends_on="output_target" w_scale=1 h_scale=1 format="R8G8B8A8" }
+				]
+				fail = [
+					{ name="ssao_buffer_history" type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 format="R8G8B8A8" }
+				]
+			}
+
+			{ name="sun_visibility_history" type="render_target" depends_on="sun_visibility" format="R16F" }
+			{ name="luminance_adaptation_history" type="render_target" width=16 height=16 format="R16F" }
+			{ name="outline_history" type="render_target" depends_on="output_target" w_scale=1.0 h_scale=1.0 format="R8G8B8A8" }
+			{ name="fog_light_data_history" type="render_target" image_type="image_3d" size_from_render_setting="volumetric_data_size" format="R16G16B16A16F" UAV=true } // TODO: init from render setting
+			{ name="world_interaction_history" type="render_target" depends_on="world_interaction" w_scale=1 h_scale=1 format="R8G8" clear_color=[1.0 0.5, 0.5, 1.0] }
+
+			{ name="current_exposure" type="render_target" width=1 height=1 format="R32F" UAV=true }
+			{ name="current_exposure_pos" type="render_target" width=1 height=1 format="R32UINT" UAV=true }
+		]
+
+		layer_config = "default"
+		output_rt = "output_target"
+		output_dst = "depth_stencil_target"
+	}
+
+	default_offscreen = {
+		// resources instanced once per viewport
+		resources = [
+			{ name="hdr0_rgb_history0" type="render_target" depends_on="hdr0_rgb" }
+
+			{ type="static_branch" render_settings={ taa_enabled=true }
+				pass = [
+					{ name="ldr0_r_div2_history0" type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 format="R8" }
+				]
+			}
+
+			{ type="static_branch" render_settings={ jitter_enabled=true }
+				pass = [
+					{ name="light_shafts_history" type="render_target" depends_on="output_target" w_scale=0.25 h_scale=0.25 format="R8" }
+				]
+			}
+
+			{ type="static_branch" render_settings={ ssr_high_quality=true }
+				pass = [
+					{ name="ssr_history" type="render_target" depends_on="output_target" w_scale=1 h_scale=1 format="R16G16B16A16F" }
+				]
+				fail = [
+					{ name="ssr_history" type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 format="R16G16B16A16F" }
+				]
+			}
+
+			{ type="static_branch" render_settings={ ao_high_quality=true }
+				pass = [
+					{ name="ssao_buffer_history" type="render_target" depends_on="output_target" w_scale=1 h_scale=1 format="R8G8B8A8" }
+				]
+				fail = [
+					{ name="ssao_buffer_history" type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 format="R8G8B8A8" }
+				]
+			}
+
+			{ name="sun_visibility_history" type="render_target" depends_on="sun_visibility" format="R16F" }
+			{ name="luminance_adaptation_history" type="render_target" width=16 height=16 format="R16F" }
+			{ name="outline_history" type="render_target" depends_on="output_target" w_scale=1.0 h_scale=1.0 format="R8G8B8A8" }
+			{ name="fog_light_data_history" type="render_target" image_type="image_3d" size_from_render_setting="volumetric_data_size" format="R16G16B16A16F" UAV=true } // TODO: init from render setting
+			{ name="world_interaction_history" type="render_target" depends_on="world_interaction" w_scale=1 h_scale=1 format="R8G8" clear_color=[1.0 0.5, 0.5, 1.0] }
+
+			{ name="current_exposure" type="render_target" width=1 height=1 format="R32F" UAV=true }
+			{ name="current_exposure_pos" type="render_target" width=1 height=1 format="R32UINT" UAV=true }
+		]
+
+		layer_config = "default"
+		output_rt = "offscreen_output_target"
+		output_dst = "depth_stencil_target"
+		back_buffer = "offscreen_target" // override the backbuffer
+	}
+
+	default_forward = {
+		// resources instanced once per viewport
+		resources = [
+			{ name="upscaling_instance" main=true mode_from_render_setting="upscaling_mode" type="upscaling_context" depends_on="back_buffer" quality_from_render_setting="upscaling_quality" }
+			{ type="static_branch" render_settings={ upscaling_enabled=true }
+				pass = [
+					{ name="upscaling_output" type="render_target" depends_on="back_buffer" format="R16G16B16A16F" UAV=true } 
+					{ name="pre_transparency_hdr0" type="render_target" depends_on="hdr0" }
+				]
+			}
+
+			{ name="intermediate_output" type="render_target" depends_on="output_target" format="R8G8B8A8" UAV=true } 
+
+			{ name="hdr0_history0" type="render_target" depends_on="output_target" format="R16G16B16A16F" }
+		]
+
+		layer_config = "default_forward"
+		output_rt = "intermediate_output"
+		output_dst = "depth_stencil_target"
+	}
+
+	default_no_ui = {
+		// resources instanced once per viewport
+		resources = [
+			{ name="hdr0_rgb_history0" type="render_target" depends_on="hdr0_rgb" }
+
+			{ type="static_branch" render_settings={ taa_enabled=true }
+				pass = [
+					{ name="ldr0_r_div2_history0" type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 format="R8" }
+				]
+			}
+
+			{ type="static_branch" render_settings={ jitter_enabled=true }
+				pass = [
+					{ name="light_shafts_history" type="render_target" depends_on="output_target" w_scale=0.25 h_scale=0.25 format="R8" }
+				]
+			}
+
+			{ type="static_branch" render_settings={ ssr_high_quality=true }
+				pass = [
+					{ name="ssr_history" type="render_target" depends_on="output_target" w_scale=1 h_scale=1 format="R16G16B16A16F" }
+				]
+				fail = [
+					{ name="ssr_history" type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 format="R16G16B16A16F" }
+				]
+			}
+
+			{ type="static_branch" render_settings={ ao_high_quality=true }
+				pass = [
+					{ name="ssao_buffer_history" type="render_target" depends_on="output_target" w_scale=1 h_scale=1 format="R8G8B8A8" }
+				]
+				fail = [
+					{ name="ssao_buffer_history" type="render_target" depends_on="output_target" w_scale=0.5 h_scale=0.5 format="R8G8B8A8" }
+				]
+			}
+
+			{ name="sun_visibility_history" type="render_target" depends_on="sun_visibility" format="R16F" }
+			{ name="luminance_adaptation_history" type="render_target" width=16 height=16 format="R16F" }
+			{ name="outline_history" type="render_target" depends_on="output_target" w_scale=1.0 h_scale=1.0 format="R8G8B8A8" }
+			{ name="fog_light_data_history" type="render_target" image_type="image_3d" size_from_render_setting="volumetric_data_size" format="R16G16B16A16F" UAV=true } // TODO: init from render setting
+			{ name="world_interaction_history" type="render_target" depends_on="world_interaction" w_scale=1 h_scale=1 format="R8G8" clear_color=[1.0 0.5, 0.5, 1.0] }
+
+		]
+
+		layer_config = "default_no_ui"
+		output_rt = "output_target"
+		output_dst = "depth_stencil_target"
+	}
+
+	overlay = {
+		// resources instanced once per viewport
+		resources = [
+		]
+
+		layer_config = "overlay"
+		output_rt = "back_buffer"
+		output_dst = "depth_stencil_target"
+	}
+}
+
+default_shading_environment = "core/stingray_renderer/environments/midday/midday"
+default_terrain_material = "core/stingray_renderer/shaders/terrain_default"

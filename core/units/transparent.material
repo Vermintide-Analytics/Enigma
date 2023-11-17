@@ -1,0 +1,36 @@
+
+shader = {
+	connections = [
+	]
+	constants = [
+		{
+			connector_id = "34259752-b962-4b65-92c3-903a57338519"
+			id = "e94b3e90-a38f-45d4-bdb2-2611002617a6"
+			instance_id = "0bb96d70-945d-4026-a73e-ef0e4da3b0d9"
+			value = [0]
+		}
+	]
+	groups = [
+	]
+	nodes = [
+		{
+			content_size = [160 0]
+			export = {
+			}
+			id = "0bb96d70-945d-4026-a73e-ef0e4da3b0d9"
+			options = [
+				"d1a42a54-0794-4d57-9aa0-eb35acb6b35c"
+				"8df1b8f7-17c2-4ae4-8c4e-25517ec1df46"
+			]
+			position = [-12 -31]
+			samplers = {
+			}
+			type = "core/stingray_renderer/output_nodes/standard_base"
+		}
+	]
+	version = 3
+}
+textures = {
+}
+variables = {
+}

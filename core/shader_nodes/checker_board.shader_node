@@ -1,0 +1,16 @@
+group = "Utility"
+display_name = "Checker Board"
+inputs = {
+	"c9a6aeb6-ccc7-484e-b7a0-5f05748fe933" = { name = "uvw" display_name = "UVW" type = "vector3" }
+}
+
+output = {
+	type = "float"
+}
+
+code = """
+	// TODO: make a smoothstep version as well
+	float3 coord = uvw - floor(uvw);
+	float result = (coord.x < 0.5) ^ (coord.y < 0.5) ^ (coord.z < 0.5);
+	RESULT(result);
+"""

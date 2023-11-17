@@ -1,0 +1,41 @@
+
+cameras = {
+	camera = {
+		far_range = 1000
+		near_range = 0.1
+		node = "rp_root"
+		projection = "perspective"
+		vertical_fov = 0.7854
+	}
+	shadow_cull_camera = {
+		far_range = 1000
+		near_range = 0.1
+		node = "rp_root"
+		projection = "perspective"
+		vertical_fov = 0.785398163397448
+	}
+}
+data = {
+	LevelEditor = {
+		is_gizmo_unit = true
+	}
+}
+materials = [
+	"core/units/camera"
+]
+renderables = {
+	g_camera = {
+		always_keep = false
+		culling = "bounding_volume"
+		generate_uv_unwrap = false
+		occluder = false
+		shadow_caster = false
+		surface_queries = false
+		viewport_visible = true
+	}
+}
+visibility_groups = {
+	camera = [
+		"g_camera"
+	]
+}

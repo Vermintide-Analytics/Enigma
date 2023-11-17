@@ -1,0 +1,338 @@
+includes = [ "core/stingray_renderer/shader_libraries/common/common.shader_source" ]
+
+render_states = {
+	skin_filter = {
+		inherits = "default"
+		states = {
+			z_write_enable = "false"
+			z_enable = "false"
+
+			stencil_enable = "true"
+			stencil_ref = "0x8"
+			stencil_mask = "0x18"
+			stencil_write_mask = "0x0"
+
+			stencil_func = "equal"
+			stencil_fail = "stencil_op_keep"
+			stencil_pass = "stencil_op_keep"
+			stencil_z_fail = "stencil_op_keep"
+
+			stencil_func_back_side = "equal"
+			stencil_fail_back_side = "stencil_op_keep"
+			stencil_pass_back_side = "stencil_op_keep"
+			stencil_z_fail_back_side = "stencil_op_keep"
+
+			defined_STEP0 = {
+				blend_factor_r = "0.3251"
+				blend_factor_g = "0.45"
+				blend_factor_b = "0.3583"
+			}
+			defined_STEP1 = {
+				blend_factor_r = "0.34"
+				blend_factor_g = "0.1864"
+				blend_factor_b = "0.0"
+			}
+			defined_STEP2 = {
+				blend_factor_r = "0.46"
+				blend_factor_g = "0.0"
+				blend_factor_b = "0.0402"
+			}
+
+			defined_INDEPENDENT_BLEND = {
+				defined_DIRECTION_X = {
+					independent_blend_enable = "false"
+				}
+				defined_DIRECTION_Y = {
+					independent_blend_enable = "true"
+					// blend_enable0 should be set to false but due to a bug in the latest nvidia driver that causes blending to get disabled for MRT1 as well..?!
+					//blend_enable0 = "true"
+					//src_blend0 = "blend_one"
+					//dest_blend0 = "blend_zero"
+					blend_enable0 = "false" // I'm pretty sure this bug has been resolved
+					blend_enable1 = "true"
+					src_blend1 = "blend_blend_factor"
+					dest_blend1 = "blend_inv_blend_factor"
+				}
+			}
+
+			ndefined_INDEPENDENT_BLEND = {
+				defined_BLEND = {
+					blend_enable = "true"
+					src_blend = "blend_blend_factor"
+					dest_blend = "blend_inv_blend_factor"
+				}
+			}
+		}
+	}
+
+	skin_debug = {
+		inherits = "default"
+		states = {
+			z_write_enable = "false"
+			z_enable = "false"
+
+			stencil_enable = "true"
+			defined_SKIN = {
+				stencil_ref = "0x8"
+			}
+			ndefined_SKIN = {
+				stencil_ref = "0x0"
+			}
+			stencil_mask = "0x18"
+			stencil_write_mask = "0x0"
+
+			stencil_func = "equal"
+			stencil_fail = "stencil_op_keep"
+			stencil_pass = "stencil_op_keep"
+			stencil_z_fail = "stencil_op_keep"
+
+			stencil_func_back_side = "equal"
+			stencil_fail_back_side = "stencil_op_keep"
+			stencil_pass_back_side = "stencil_op_keep"
+			stencil_z_fail_back_side = "stencil_op_keep"
+		}
+	}	
+}
+
+hlsl_shaders = {
+	skin_filter = {
+		includes = [ "common", "gbuffer_access" ]
+		samplers = {
+			input_texture0 = { sampler_states = "clamp_linear" }
+			input_texture1 = { sampler_states = "clamp_point" }
+		}
+
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+			DECLARE_SAMPLER_2D(input_texture1);
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.uv = input.uv;
+
+				return o;
+			}
+
+			#if defined(BLEND)
+				float4 blend_result(PS_INPUT input) {
+					return TEX2D(input_texture0, input.uv);
+				}
+			#else
+				float4 skin_blur(PS_INPUT input, uniform float2 step_value) : SV_TARGET0 {
+					// Gaussian weights for the six samples around the current pixel:
+					//   -3 -2 -1 +1 +2 +3
+					float w[6] = { 0.006,   0.061,   0.242,  0.242,  0.061, 0.006 };
+					float o[6] = {  -1.0, -0.6667, -0.3333, 0.3333, 0.6667,   1.0 };
+
+					// Fetch color and linear depth for current pixel:
+					float4 colorM = TEX2D(input_texture0, input.uv);
+					float depthM = TEX2D(input_texture1, input.uv);
+
+					// Accumulate center sample, multiplying it with its gaussian weight:
+					float4 colorBlurred = colorM;
+					colorBlurred.rgb *= 0.382;
+
+					// Calculate the step that we will use to fetch the surrounding pixels,
+					// where "step" is:
+					//     step = sssStrength * gaussianWidth * pixelSize * dir
+					// The closer the pixel, the stronger the effect needs to be, hence
+					// the factor 1.0 / depthM.
+					//colorM.a = 1;
+					float2 finalStep = colorM.a * step_value / depthM;
+					float correction = 1600; //8000;
+
+					// Accumulate the other samples:
+					[unroll]
+					for (int i = 0; i < 6; i++) {
+						// Fetch color and depth for current sample:
+						float2 offset = input.uv + o[i] * finalStep;
+						float3 color = TEX2D(input_texture0, offset).rgb;
+						float depth = TEX2D(input_texture1, offset).r;
+
+						// If the difference in depth is huge, we lerp color back to "colorM":
+						float s = min(0.0125 * correction * abs(depthM - depth), 1.0);
+						color = lerp(color, colorM.rgb, s);
+
+						// Accumulate:
+						colorBlurred.rgb += w[i] * color;
+					}
+
+					// The result will be alpha blended with current buffer by using specific
+					// RGB weights. For more details, I refer you to the GPU Pro chapter :)
+					return colorBlurred;
+				}
+
+				float4 skin_main(PS_INPUT input) {
+					float sss_strength = 12.5; //31.5;
+					float maxdd = 0.001;
+
+					#ifdef STEP0
+						float gaussian_width = sqrt((0.0516 - 0.0064));
+					#elif defined(STEP1)
+						float gaussian_width = sqrt((0.2719 - 0.0516));
+					#elif defined(STEP2)
+						float gaussian_width = sqrt((2.0062 - 0.2719));
+					#endif
+
+					#ifdef DIRECTION_X
+						float2 dir = float2(1,0);
+					#else
+						float2 dir = float2(0,1);
+					#endif
+
+					float2 step_val = sss_strength * gaussian_width * (float2(1,1) / output_rt_size.xy) * dir;
+
+					float4 c = skin_blur(input, step_val);
+
+					return c;
+				}
+			#endif
+
+			#if defined(DIRECTION_X) || (defined(DIRECTION_Y) && !defined(INDEPENDENT_BLEND))
+				DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+				float4 ps_main(PS_INPUT input) : SV_TARGET0 {
+					return skin_main(input);
+				}
+			#elif defined(BLEND)
+				DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+				float4 ps_main(PS_INPUT input) : SV_TARGET0 {
+					return blend_result(input);
+				}
+			#else
+				struct PS_OUTPUT {
+					float4 acc : SV_TARGET0;
+					float4 final : SV_TARGET1;
+				};
+
+				DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+				PS_OUTPUT ps_main(PS_INPUT input) {
+					PS_OUTPUT o;
+					float4 c = skin_main(input);
+					o.acc = c;
+					o.final = c;
+					return o;
+				}
+			#endif
+		"""
+	}
+
+	skin_debug = {
+		includes = [ "common" ]
+		samplers = {
+		}
+
+		code="""
+			DECLARE_SAMPLER_2D(input_texture0);
+			DECLARE_SAMPLER_2D(input_texture1);
+
+			Texture2D linear_depth;
+
+			struct VS_INPUT {
+				float4 position : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+				float2 uv : TEXCOORD0;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				o.uv = input.uv;
+
+				return o;
+			}
+
+			// Upsampling method based on Destiny VDP
+			// http://advances.realtimerendering.com/destiny/i3d_2015/I3D_Tatarchuk_keynote_2015_for_web.pdf
+			// http://advances.realtimerendering.com/s2013/Tatarchuk-Destiny-SIGGRAPH2013.pdf
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			half4 ps_main(PS_INPUT input) : SV_TARGET0 {
+				#if defined(SKIN)
+					return float4(0, 1, 0, 0.8);
+				#else
+					return float4(0, 0, 0, 0.5);
+				#endif
+			}
+		"""
+	}
+}
+
+shaders = {
+	skin_filter = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="skin_filter" render_states="skin_filter" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines="INDEPENDENT_BLEND" }
+				//{ defines="SEPARATE_BLEND" platforms="D3D11 D3D12" }
+			]
+		}
+	}
+	
+	skin_debug = {
+		editor_advanced_mode = true
+
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="skin_debug" render_states="skin_debug" }
+				]
+			}
+		}
+
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		}
+	}
+}
+
+static_compile = [
+	{ shader="skin_filter" defines=["DIRECTION_X" "STEP0"] }
+	{ shader="skin_filter" defines=["DIRECTION_Y" "STEP0"] }
+	{ shader="skin_filter" defines=["DIRECTION_X" "STEP1"] }
+	{ shader="skin_filter" defines=["DIRECTION_Y" "STEP1"] }
+	{ shader="skin_filter" defines=["DIRECTION_X" "STEP2"] }
+	{ shader="skin_filter" defines=["DIRECTION_Y" "STEP2"] }
+	{ shader="skin_filter" defines=["BLEND STEP0"] }
+	{ shader="skin_filter" defines=["BLEND STEP1"] }
+	{ shader="skin_filter" defines=["BLEND STEP2"] }
+
+	{ shader="skin_debug" }
+	{ shader="skin_debug" defines=["SKIN"] }
+]

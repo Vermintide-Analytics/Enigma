@@ -1,0 +1,18 @@
+group = "Fatshark"
+display_name = "Global Shader Flag"
+
+inputs = {
+	"2e5761b5-4f90-4e47-ad57-c98513481885" = { name = "shader_flag_index" display_name = "Shader Flag Index" type = "scalar" is_required = true}
+	"fb6fa0dd-5977-4eae-a0c0-66b80f042154" = { name = "success" display_name = "Success Output Value" type = "scalar" is_required = true}
+	"932bc8fd-8732-48a3-ae1e-deec95d9aa0e" = { name = "failed" display_name = "Failed Output Value" type = "scalar" is_required = true}
+}
+
+output = {
+	type = { typeof: "success" }
+}
+
+code = """
+	uint mask = 1 << (uint)shader_flag_index;
+	uint value = (uint)global_shader_flags & mask;
+	RESULT(value > 0 ? success : failed);
+"""

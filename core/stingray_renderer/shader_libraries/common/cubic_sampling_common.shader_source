@@ -1,0 +1,224 @@
+// TODO: can we make these as template functions?
+
+hlsl_shaders = {
+	sampling_common = {
+		code = """
+			#if defined(SAMPLE_RGBA)
+				#define SAMPLE_TYPE float4
+				#define SAMPLE_CHANNELS rgba
+			#elif defined(SAMPLE_RGB)
+				#define SAMPLE_TYPE float3
+				#define SAMPLE_CHANNELS rgb
+			#else
+				#error unsupported sample mode
+			#endif
+		"""
+	}
+
+	bicubic_sampling = {
+		code = """
+			SAMPLE_TYPE bicubic_sample_2d(Sampler2D tex, float2 uv, float2 texture_size) {
+				uv *= texture_size;
+				float2 inv_texture_size = 1.0/texture_size;
+				float2 tc = floor(uv-0.5) + 0.5;
+
+				float2 f = uv - tc;
+				float2 f2 = f * f;
+				float2 f3 = f * f2;
+				float4x4 M = {
+					-1.0,  3.0, -3.0,  1.0,
+					 3.0, -6.0,  3.0,  0.0,
+					-3.0,  0.0,  3.0,  0.0,
+					 1.0,  4.0,  1.0,  0.0
+				};
+				M /= 6.0;
+				float4 wx = mul(float4(f3.x, f2.x, f.x, 1), M);
+				float4 wy = mul(float4(f3.y, f2.y, f.y, 1), M);
+				float2 w0 = float2(wx.x, wy.x);
+				float2 w1 = float2(wx.y, wy.y);
+				float2 w2 = float2(wx.z, wy.z);
+				float2 w3 = float2(wx.w, wy.w);
+
+				float2 g0 = w0 + w1;
+				float2 g1 = w2 + w3;
+				float2 h0 = w1 / g0 - 1;
+				float2 h1 = w3 / g1 + 1;
+
+				float2 c00 = (tc + h0) * inv_texture_size;
+				float2 c11 = (tc + h1) * inv_texture_size;
+
+				SAMPLE_TYPE t00 = TEX2D(tex, c00).SAMPLE_CHANNELS;
+				SAMPLE_TYPE t10 = TEX2D(tex, float2(c11.x, c00.y)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE t01 = TEX2D(tex, float2(c00.x, c11.y)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE t11 = TEX2D(tex, c11).SAMPLE_CHANNELS;
+
+				t00 = lerp(t01, t00, g0.y);
+				t10 = lerp(t11, t10, g0.y);
+				return lerp(t10, t00, g0.x);				
+			}
+		"""
+	}
+
+	lagrange_cubic_sampling = {
+		code = """
+			// From http://mathworld.wolfram.com/LagrangeInterpolatingPolynomial.html
+			SAMPLE_TYPE lagrange_3rd_degree_interpolation(SAMPLE_TYPE y0, SAMPLE_TYPE y1, SAMPLE_TYPE y2, SAMPLE_TYPE y3, float x)
+			{
+				const float x_minus_x0 = x + 1.0;
+				const float x_minus_x1 = x;
+				const float x_minus_x2 = x - 1.0;
+				const float x_minus_x3 = x - 2.0;
+				const float x_minus_x0_mul_x_minus_x1 = x_minus_x0 * x_minus_x1;
+				const float x_minus_x2_mul_x_minus_x3 = x_minus_x2 * x_minus_x3;
+
+				SAMPLE_TYPE t0 = y0 * x_minus_x1 * x_minus_x2_mul_x_minus_x3 * -0.1666666f;
+				SAMPLE_TYPE t1 = y1 * x_minus_x0 * x_minus_x2_mul_x_minus_x3 * 0.5f;
+				SAMPLE_TYPE t2 = y2 * x_minus_x0_mul_x_minus_x1 * x_minus_x3 * -0.5f;
+				SAMPLE_TYPE t3 = y3 * x_minus_x0_mul_x_minus_x1 * x_minus_x2 * 0.166666f;
+
+				return t0 + t1 + t2 + t3;
+			}
+
+			SAMPLE_TYPE lagrange_cubic_sample_2d(Sampler2D tex, float2 uv, float2 texture_size)
+			{
+				float2 pixel_size = 1.0 / texture_size;
+				float2 offseted_uv = uv * texture_size + 0.5;
+				float2 pixel_coordinate = frac(offseted_uv);
+				offseted_uv = floor(offseted_uv) / texture_size - pixel_size * 0.5;
+				int3 st = int3(offseted_uv * texture_size, 0);
+
+				SAMPLE_TYPE c00 = tex.tex.Load(st, int2(-1,-1)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c10 = tex.tex.Load(st, int2( 0,-1)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c20 = tex.tex.Load(st, int2( 1,-1)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c30 = tex.tex.Load(st, int2( 2,-1)).SAMPLE_CHANNELS;
+
+				SAMPLE_TYPE c01 = tex.tex.Load(st, int2(-1, 0)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c11 = tex.tex.Load(st, int2( 0, 0)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c21 = tex.tex.Load(st, int2( 1, 0)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c31 = tex.tex.Load(st, int2( 2, 0)).SAMPLE_CHANNELS;
+
+				SAMPLE_TYPE c02 = tex.tex.Load(st, int2(-1, 1)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c12 = tex.tex.Load(st, int2( 0, 1)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c22 = tex.tex.Load(st, int2( 1, 1)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c32 = tex.tex.Load(st, int2( 2, 1)).SAMPLE_CHANNELS;
+
+				SAMPLE_TYPE c03 = tex.tex.Load(st, int2(-1, 2)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c13 = tex.tex.Load(st, int2( 0, 2)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c23 = tex.tex.Load(st, int2( 1, 2)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c33 = tex.tex.Load(st, int2( 2, 2)).SAMPLE_CHANNELS;
+
+				SAMPLE_TYPE l0 = lagrange_3rd_degree_interpolation(c00, c10, c20, c30, pixel_coordinate.x);
+				SAMPLE_TYPE l1 = lagrange_3rd_degree_interpolation(c01, c11, c21, c31, pixel_coordinate.x);
+				SAMPLE_TYPE l2 = lagrange_3rd_degree_interpolation(c02, c12, c22, c32, pixel_coordinate.x);
+				SAMPLE_TYPE l3 = lagrange_3rd_degree_interpolation(c03, c13, c23, c33, pixel_coordinate.x);
+
+				return lagrange_3rd_degree_interpolation(l0, l1, l2, l3, pixel_coordinate.y);
+			}
+
+			// Samples a texture with Catmull-Rom filtering, using 9 bilinear texture fetches instead of 16 point fetches.
+		   // See http://vec3.ca/bicubic-filtering-in-fewer-taps/ for more details
+		   // Credits: https://twitter.com/MyNameIsMJP/status/777783169835675648
+		   SAMPLE_TYPE catmull_rom_sample_2d(Sampler2D tex, float2 uv, float2 texture_size)
+		   {
+			    // We're going to sample a a 4x4 grid of texels surrounding the target UV coordinate. We'll do this by rounding
+			    // down the sample location to get the exact center of our "starting" texel. The starting texel will be at
+			    // location [1, 1] in the grid, where [0, 0] is the top left corner.
+			    float2 sample_pos = uv * texture_size;
+			    float2 tex_pos1 = floor(sample_pos - 0.5f) + 0.5f;
+
+			    // Compute the fractional offset from our starting texel to our original sample location, which we'll
+			    // feed into the Catmull-Rom spline function to get our filter weights.
+			    float2 f = sample_pos - tex_pos1;
+
+			    // Compute the Catmull-Rom weights using the fractional offset that we calculated earlier.
+			    // These equations are pre-expanded based on our knowledge of where the texels will be located,
+			    // which lets us avoid having to evaluate a piece-wise function.
+			    float2 w0 = f * ( -0.5 + f * (1.0 - 0.5*f));
+			    float2 w1 = 1.0 + f * f * (1.5*f - 2.5);
+			    float2 w2 = f * ( 0.5 + f * (2.0 - 1.5*f) );
+			    float2 w3 = f * f * (-0.5 + 0.5 * f);
+
+			    // Work out weighting factors and sampling offsets that will let us use bilinear filtering to
+			    // simultaneously evaluate the middle 2 samples from the 4x4 grid.
+			    float2 w12 = w1 + w2;
+			    float2 offset12 = w2 / (w1 + w2);
+
+			    // Compute the final UV coordinates we'll use for sampling the texture
+			    float2 tex_pos0 = tex_pos1 - 1;
+			    float2 tex_pos3 = tex_pos1 + 2;
+			    float2 tex_pos12 = tex_pos1 + offset12;
+
+			    tex_pos0 /= texture_size;
+			    tex_pos3 /= texture_size;
+			    tex_pos12 /= texture_size;
+
+			    SAMPLE_TYPE result = 0.0f;
+			    result += TEX2DLOD(tex, float2(tex_pos0.x, tex_pos0.y),  0.0f).SAMPLE_CHANNELS * w0.x * w0.y;
+			    result += TEX2DLOD(tex, float2(tex_pos12.x, tex_pos0.y), 0.0f).SAMPLE_CHANNELS * w12.x * w0.y;
+			    result += TEX2DLOD(tex, float2(tex_pos3.x, tex_pos0.y),  0.0f).SAMPLE_CHANNELS * w3.x * w0.y;
+
+			    result += TEX2DLOD(tex, float2(tex_pos0.x, tex_pos12.y),  0.0f).SAMPLE_CHANNELS * w0.x * w12.y;
+			    result += TEX2DLOD(tex, float2(tex_pos12.x, tex_pos12.y), 0.0f).SAMPLE_CHANNELS * w12.x * w12.y;
+			    result += TEX2DLOD(tex, float2(tex_pos3.x, tex_pos12.y),  0.0f).SAMPLE_CHANNELS * w3.x * w12.y;
+
+			    result += TEX2DLOD(tex, float2(tex_pos0.x, tex_pos3.y),  0.0f).SAMPLE_CHANNELS * w0.x * w3.y;
+			    result += TEX2DLOD(tex, float2(tex_pos12.x, tex_pos3.y), 0.0f).SAMPLE_CHANNELS * w12.x * w3.y;
+			    result += TEX2DLOD(tex, float2(tex_pos3.x, tex_pos3.y),  0.0f).SAMPLE_CHANNELS * w3.x * w3.y;
+
+			    return result;
+		   }
+		"""
+	}
+
+	hermite_cubic_sampling = {
+		code = """
+			SAMPLE_TYPE hermite_cubic(SAMPLE_TYPE A, SAMPLE_TYPE B, SAMPLE_TYPE C, SAMPLE_TYPE D, float t)
+			{
+				const float t2 = t*t;
+			    const float t3 = t2*t;
+			    SAMPLE_TYPE a = (-A + (3.0*B) - (3.0*C) + D)*0.5;
+			    SAMPLE_TYPE b = (2.0*A - (5.0*B) + 4.0*C - D)*0.5;
+			    SAMPLE_TYPE c = (-A + C)*0.5;
+			   	SAMPLE_TYPE d = B;
+			    
+			    return a*t3 + b*t2 + c*t + d;
+			}
+
+			SAMPLE_TYPE hermite_cubic_sample_2d(Sampler2D tex, float2 uv, float2 texture_size)
+			{
+				float2 pixel_size = 1.0 / texture_size;
+				float2 offseted_uv = uv * texture_size + 0.5;
+				float2 pixel_coordinate = frac(offseted_uv);
+				offseted_uv = floor(offseted_uv) / texture_size - pixel_size * 0.5;
+				int3 st = int3(offseted_uv * texture_size, 0);
+
+				SAMPLE_TYPE c00 = tex.tex.Load(st, int2(-1,-1)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c10 = tex.tex.Load(st, int2( 0,-1)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c20 = tex.tex.Load(st, int2( 1,-1)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c30 = tex.tex.Load(st, int2( 2,-1)).SAMPLE_CHANNELS;
+
+				SAMPLE_TYPE c01 = tex.tex.Load(st, int2(-1, 0)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c11 = tex.tex.Load(st, int2( 0, 0)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c21 = tex.tex.Load(st, int2( 1, 0)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c31 = tex.tex.Load(st, int2( 2, 0)).SAMPLE_CHANNELS;
+
+				SAMPLE_TYPE c02 = tex.tex.Load(st, int2(-1, 1)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c12 = tex.tex.Load(st, int2( 0, 1)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c22 = tex.tex.Load(st, int2( 1, 1)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c32 = tex.tex.Load(st, int2( 2, 1)).SAMPLE_CHANNELS;
+
+				SAMPLE_TYPE c03 = tex.tex.Load(st, int2(-1, 2)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c13 = tex.tex.Load(st, int2( 0, 2)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c23 = tex.tex.Load(st, int2( 1, 2)).SAMPLE_CHANNELS;
+				SAMPLE_TYPE c33 = tex.tex.Load(st, int2( 2, 2)).SAMPLE_CHANNELS;
+
+				SAMPLE_TYPE c0 = hermite_cubic(c00, c10, c20, c30, pixel_coordinate.x);
+				SAMPLE_TYPE c1 = hermite_cubic(c01, c11, c21, c31, pixel_coordinate.x);
+				SAMPLE_TYPE c2 = hermite_cubic(c02, c12, c22, c32, pixel_coordinate.x);
+				SAMPLE_TYPE c3 = hermite_cubic(c03, c13, c23, c33, pixel_coordinate.x);
+
+				return hermite_cubic(c0, c1, c2, c3, pixel_coordinate.y);
+			}
+		"""
+	}
+}

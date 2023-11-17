@@ -1,0 +1,7 @@
+shader = "slug_text:SLUG_SUPER:SLUG_WEIGHT:MASKED"
+textures = {
+    curve_map = ""
+    band_map = ""
+}
+variables = {
+}

@@ -1,0 +1,41 @@
+group = "Utility"
+display_name = "Sphere Mask"
+inputs = {
+	"cee0c217-6176-4243-9bc6-6288d14b426c" = { name = "position" display_name = "Position" type = "auto" }
+	"d76bf11a-3549-4e8d-9eb8-531e8b87c7a0" = { name = "center" display_name = "Center" type = "auto" }
+	"78a11cf1-3b70-4490-8344-33e5fea0a4ea" = { name = "radius" display_name = "Radius" type = "float" }
+	"137ac837-5ac4-4e49-91a5-baf207f4db59" = { name = "hardness" display_name = "Hardness" type = "float" }
+}
+
+output = {
+	type = "float"
+}
+
+options = {
+    "fd5e9d89-c069-4f11-94d2-dda9cd6f5dd3" = "USE_LINEARSTEP"
+    "15eb9cb0-3cb2-4651-ae68-88f929c44bb5" = "USE_SMOOTHSTEP"
+}
+
+ui = [
+	{
+		type = "drop_down"
+		display_name = "Interpolation"
+		options = {
+			"Linearstep" = "fd5e9d89-c069-4f11-94d2-dda9cd6f5dd3"
+			"Smoothstep" = "15eb9cb0-3cb2-4651-ae68-88f929c44bb5"
+		}
+		default = "fd5e9d89-c069-4f11-94d2-dda9cd6f5dd3"
+	}
+]
+
+code = """
+    float3 vec = position - center;
+    float dst = dot(vec, vec);
+    float radius_sqrd = radius * radius;
+    #ifdef USE_LINEARSTEP
+	    float result = linearstep(hardness * radius_sqrd, radius_sqrd, dst);
+    #else
+    	float result = smoothstep(hardness * radius_sqrd, radius_sqrd, dst);
+    #endif
+	RESULT(result);
+"""

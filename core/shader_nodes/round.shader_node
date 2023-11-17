@@ -1,0 +1,13 @@
+group = "Math/Round"
+display_name = "Round"
+inputs = {
+	"30cbe165-6e1a-41a8-b772-b779d7395fa5" = { name = "a" display_name = "A" type = "auto" }
+}
+
+output = {
+	type = { typeof: "a" }
+}
+
+code = """
+	RESULT(round(a));
+"""

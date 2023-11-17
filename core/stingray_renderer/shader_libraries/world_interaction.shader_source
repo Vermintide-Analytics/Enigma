@@ -1,0 +1,89 @@
+includes = [ "core/stingray_renderer/shader_libraries/common/common.shader_source" ]
+
+render_states = {
+	filter = {
+		inherits = "default"
+		states = {
+			z_write_enable = "false"
+			z_enable = "false"
+		}
+	}
+
+	filter_world_interaction = {
+		inherits = "filter"
+		states = {
+			write_mask0 = "red|green"
+			blend_enable = "true"
+			blend_op = "blend_op_add"
+			src_blend = "blend_src_alpha"
+			dest_blend = "blend_inv_src_alpha"
+		}
+	}
+}
+
+hlsl_shaders = {
+	world_interaction = {		
+		includes = [ "common" ]
+
+		code="""
+			Texture2D<float4> input_texture0;
+						
+			struct VS_INPUT {
+				float4 position : POSITION;			
+			};
+			
+			struct PS_INPUT {
+				float4 position : SV_POSITION;
+			};
+
+			CBUFFER_START(c0)
+				float4x4 world_view_proj;
+			CBUFFER_END
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			PS_INPUT vs_main(VS_INPUT input) {
+				PS_INPUT o;
+				o.position = mul(input.position, world_view_proj);
+				return o;
+			}
+
+			DEFAULT_ROOT_SIGNATURE_ATTRIBUTE
+			float4 ps_main(PS_INPUT input) : SV_TARGET0 {
+				float4 current = input_texture0.Load(int3(input.position.xy, 0));
+				float value = dot(current.rg, float2(0.5,0.5));
+				if( abs(value - 0.5) < 0.1 )
+					return float4(current.rgb, 0.05); 
+				else
+					return float4(current.rgb, 1.0);
+			}
+		"""
+	}
+
+}
+
+shaders = {
+	world_interaction = {
+		editor_advanced_mode = true
+		
+		contexts = {
+			default = {
+				passes_sort_mode="immediate"
+				passes = [
+					{ hlsl_shader="world_interaction" render_states="filter_world_interaction" }
+				]
+			}
+		}	
+		
+		compile = {
+			default = [
+				{ defines=[] }
+			]
+		} 
+	}
+ 	
+	
+}
+
+static_compile = [
+	{ shader="world_interaction" }
+]

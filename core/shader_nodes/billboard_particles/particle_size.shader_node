@@ -1,0 +1,22 @@
+group = "Particle Billboard"
+display_name = "Particle Size"
+
+depends_on = [
+	"core/stingray_renderer/output_nodes/particle_base", 
+	"core/stingray_renderer/output_nodes/particle_gbuffer_base", 
+	"core/stingray_renderer/output_nodes/particle_distortion_base",
+]
+
+
+imports = {
+	vertex_size = { type = "float2" semantic = "TEXCOORD7" domain = "vertex" }
+}
+
+domain = "vertex"
+output = {
+	type = "float2"
+}
+
+code = """
+	RESULT(vertex_size);
+"""

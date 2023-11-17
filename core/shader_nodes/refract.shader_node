@@ -1,0 +1,20 @@
+group = "Math/Vector"
+display_name = "Refract"
+inputs = {
+	"061d4f41-aed3-4f91-843f-bcb4ed0084ed" = { name = "ray" display_name = "In Vector" type = { vector2:[] vector3:[] vector4:[] } }
+	"93312e6b-6a60-4ac1-991e-d999857424a9" = { name = "normal" display_name = "Normal" type = { vector2:[] vector3:[] vector4:[] } }
+	"1eabad46-a82f-4f11-9e92-414d90b5fff3" = { name = "index" display_name = "Index" type = "scalar" }
+}
+
+output = {
+  type = { typeof: "ray" }
+}
+
+code_blocks = {
+
+	default = {
+		code = """
+				RESULT(refract(ray, normal, index));
+		"""
+	}
+}
