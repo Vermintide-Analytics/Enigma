@@ -32,11 +32,24 @@ local template_template = {
     on_discard_server = nil,
     on_discard_remote = nil,
 
+    on_surge_begin_local = nil,
+    on_surge_begin_server = nil,
+    on_surge_begin_remote = nil,
+    on_surge_end_local = nil,
+    on_surge_end_server = nil,
+    on_surge_end_remote = nil,
+
     description_lines = {},
 
-    auto_local = nil,
-    auto_server = nil,
+    auto_condition_local = nil,
+    auto_condition_server = nil,
     auto_descriptions = {},
+
+    -- Always local context
+    auto_triggers = {
+        -- Example:
+        -- { event = "player_damaged", condition = ""}
+    },
 
     channel = nil,
 
@@ -170,8 +183,8 @@ ctm.register_passive_card = function(self, pack_id, card_id, card_def)
 end
 
 ctm.register_surge_card = function(self, pack_id, card_id, card_def)
-    if type(card_def.duration_seconds) ~= "number" or card_def.duration_seconds <= 0 then
-        enigma:echo_bad_function_call("register_surge_card", "duration_seconds", {pack_id = pack_id, id = card_def.id, name = card_def.name, rarity = card_def.rarity, cost = card_def.cost, duration_seconds = card_def.duration_seconds})
+    if type(card_def.duration) ~= "number" or card_def.duration <= 0 then
+        enigma:echo_bad_function_call("register_surge_card", "duration", {pack_id = pack_id, id = card_def.id, name = card_def.name, rarity = card_def.rarity, cost = card_def.cost, duration = card_def.duration})
         return
     end
     return self:register_card(pack_id, card_id, enigma.CARD_TYPE.surge, card_def)
@@ -291,10 +304,10 @@ ctm.add_auto = function(self, card_id, condition_func, context)
     end
     context = context or "local"
     if context:find("local") then
-        template.auto_local = condition_func
+        template.auto_condition_local = condition_func
     end
     if context:find("server") then
-        template.auto_server = condition_func
+        template.auto_condition_server = condition_func
     end
 end
 ctm.add_auto_description = function(self, card_id, description)

@@ -15,17 +15,17 @@ local wm = {
 enigma.managers.warp = wm
 
 local on_warpstone_amount_changed = function()
-    enigma.managers.card_game:on_warpstone_amount_changed()
+    enigma.managers.game:on_warpstone_amount_changed()
 end
 
 wm.start_game = function(self)
-    self.warpstone = 0
+    self.warpstone = enigma.mega_resource_start and 500 or 0
     self.warp_dust = 0.0
-    enigma:register_event_callback("update", self, self.update)
+    enigma:register_mod_event_callback("update", self, "update")
 end
 
 wm.end_game = function(self)
-    enigma:unregister_event_callback("update", self, self.update)
+    enigma:unregister_mod_event_callback("update", self, "update")
 end
 
 local condense_warpstone = function(warpstone, warp_dust)
@@ -67,3 +67,10 @@ end
 wm.update = function(self, dt)
     self:add_warp_dust(dt * self.warp_dust_per_second)
 end
+
+-- Dev
+enigma:command("gain_warpstone", "", function(num)
+    num = num or 1
+    wm.warpstone = wm.warpstone + num
+    on_warpstone_amount_changed()
+end)

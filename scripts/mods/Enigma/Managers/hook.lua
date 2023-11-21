@@ -14,7 +14,7 @@ local init_hook_safe = function(hook_manager, object, func_name)
     hook_manager.safe_hooks[hook_target_key] = {}
     enigma:hook_safe(object, func_name, function(...)
         for _,hook in ipairs(hook_manager.safe_hooks[hook_target_key]) do
-            enigma:info("Invoking safe_hook "..hook.mod_id.."/"..hook_target(hook.object, hook.func_name).."/"..tostring(hook.hook_id))
+            --enigma:info("Invoking safe_hook "..hook.mod_id.."/"..hook_target(hook.object, hook.func_name).."/"..tostring(hook.hook_id))
             enigma:pcall(hook.func, ...) -- Pcall even within the hook_safe, this was if one func fails, the rest still execute
         end
     end)

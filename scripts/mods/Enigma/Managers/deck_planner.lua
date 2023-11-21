@@ -87,6 +87,10 @@ dpm.is_num_cards_over_max = function(self, deck)
 end
 
 dpm.deck_is_valid = function(self, deck)
+    if enigma.skip_deck_validity_check then
+       return true
+    end
+
     for i,v in ipairs(deck.cards) do
         if type(v) == "string" then
             return false -- Deck contains cards that do not exist within installed card packs
@@ -132,9 +136,6 @@ dpm.notify_players_of_deck_validity = function(self, recipient)
     recipient = recipient or "all"
     enigma:network_send(net.sync_deck_validity, recipient, self:is_equipped_deck_valid())
 end
--- TODO call this
--- and make sure our own player data is initialized at startup
--- and make sure players leaving is handled
 
 ------------------------
 -- Game mode settings --
@@ -438,6 +439,7 @@ dpm.is_equipped_deck_valid = function(self)
     self.game_init_data.valid = valid
     self.game_init_data.cards = equipped_deck and equipped_deck.cards
     self.game_init_data.deck_name = equipped_deck and equipped_deck.name
+    self.game_init_data.is_server = enigma:is_server()
     return valid
 end
 
@@ -534,29 +536,6 @@ dpm.load_save_data = function(self)
     self:load_equipped_decks()
 end
 
-
-
-
----------
--- dev --
----------
-dpm.deck_tostring = function(self, deck)
-    local str = "["..deck.name.."]\n"
-    str = str.."Game Mode: "..deck.game_mode.."\n"
-    for i, card_template in ipairs(deck.cards) do
-        str = str..card_template.id.."\n"
-    end
-    str = str.." --- "..#deck.cards.."/"..self:max_cards(deck.game_mode).." cards"
-    str = str.." --- "..deck.cp.."/"..self:max_cp(deck.game_mode).." cp"
-    return str
-end
-
-dpm.dump = function(self)
-    enigma:dump(self.decks, "DECKS", 2)
-    enigma:dump(self.equipped_decks, "EQUIPPED DECKS", 3)
-    enigma:dump(self.player_data, "DECK PLAYER DATA", 3)
-end
-
 -- Hooks
 enigma:hook(GameModeManager, "evaluate_end_zone_activation_conditions", function(func, self)
     if self:game_mode_key() ~= "inn" or not enigma.managers.deck_planner.all_players_equipped_decks_valid then
@@ -579,13 +558,13 @@ end, "deck_planner_init")
 ------------
 -- Events --
 ------------
-enigma:register_event_callback("on_user_joined", function(player)
+enigma:register_mod_event_callback("on_user_joined", function(player)
     dpm.player_data[player.peer_id] = {}
     dpm:notify_players_of_deck_validity(player.peer_id)
     dpm:update_all_players_equipped_decks_valid()
 end)
 
-enigma:register_event_callback("on_user_left", function(player)
+enigma:register_mod_event_callback("on_user_left", function(player)
     dpm.player_data[player.peer_id] = nil
     dpm:update_all_players_equipped_decks_valid()
 end)
@@ -597,3 +576,24 @@ enigma:network_register(net.sync_deck_validity, function(sender, valid)
     dpm.player_data[sender].valid = valid
     enigma.managers.deck_planner:update_all_players_equipped_decks_valid()
 end)
+
+
+---------
+-- dev --
+---------
+dpm.deck_tostring = function(self, deck)
+    local str = "["..deck.name.."]\n"
+    str = str.."Game Mode: "..deck.game_mode.."\n"
+    for i, card_template in ipairs(deck.cards) do
+        str = str..card_template.id.."\n"
+    end
+    str = str.." --- "..#deck.cards.."/"..self:max_cards(deck.game_mode).." cards"
+    str = str.." --- "..deck.cp.."/"..self:max_cp(deck.game_mode).." cp"
+    return str
+end
+
+dpm.dump = function(self)
+    enigma:dump(self.decks, "DECKS", 2)
+    enigma:dump(self.equipped_decks, "EQUIPPED DECKS", 3)
+    enigma:dump(self.player_data, "DECK PLAYER DATA", 3)
+end

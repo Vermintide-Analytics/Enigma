@@ -5,7 +5,12 @@ enigma.managers = {}
 enigma.random_seed = 12345 -- The same password I have on my luggage
 
 
-local event_callbacks = {
+-- DEBUG SETTINGS
+enigma.skip_deck_validity_check = enigma:get("skip_deck_validity_check")
+enigma.mega_resource_start = enigma:get("mega_resource_start")
+-----------------
+
+local mod_event_callbacks = {
     update = {},
     on_unload = {},
     on_game_state_changed = {},
@@ -13,21 +18,21 @@ local event_callbacks = {
     on_user_joined = {},
     on_user_left = {}
 }
-enigma.register_event_callback = function(self, event, executor, callback)
-    if event_callbacks[event] then
-        table.insert(event_callbacks[event], { executor = executor, callback = callback})
+enigma.register_mod_event_callback = function(self, event, executor, callback)
+    if mod_event_callbacks[event] then
+        table.insert(mod_event_callbacks[event], { executor = executor, callback = callback})
     end
 end
-enigma.unregister_event_callback = function(self, event, executor, callback)
-    if event_callbacks[event] then
+enigma.unregister_mod_event_callback = function(self, event, executor, callback)
+    if mod_event_callbacks[event] then
         local index = 0
-        for k,v in pairs(event_callbacks[event]) do
+        for k,v in pairs(mod_event_callbacks[event]) do
             if v.executor == executor and v.callback == callback then
                 index = k
                 break
             end
         end
-        table.remove(event_callbacks[event], index)
+        table.remove(mod_event_callbacks[event], index)
     end
 end
 
@@ -36,6 +41,8 @@ dofile("scripts/mods/Enigma/Util")
 
 dofile("scripts/mods/Enigma/Managers/hook")
 dofile("scripts/mods/Enigma/Managers/buff")
+dofile("scripts/mods/Enigma/Managers/event")
+dofile("scripts/mods/Enigma/Managers/warp")
 dofile("scripts/mods/Enigma/Managers/card_pack")
 dofile("scripts/mods/Enigma/Managers/card_template")
 dofile("scripts/mods/Enigma/Managers/deck_planner")
@@ -167,6 +174,20 @@ enigma:command("edit_deck", "select a deck to edit", function(deck_name)
     end
 end)
 
+enigma:command("edit_equipped_deck", "", function()
+    local deck = enigma.managers.deck_planner:equipped_deck()
+    if not deck then
+        enigma:echo("No deck equipped")
+        return
+    end
+    deck = enigma.managers.deck_planner:set_editing_deck(deck.name)
+    if not deck then
+        enigma:echo("Could not edit equipped deck")
+        return
+    end
+    enigma:echo("Editing deck: "..deck.name)
+end)
+
 enigma:command("add_card", "add a card to currently editing deck", function(card_id)
     local success = enigma.managers.deck_planner:add_card_to_editing_deck(card_id)
     if success then
@@ -214,7 +235,34 @@ enigma:command("rename_deck", "rename deck", function(deck_name)
     end
 end)
 
-enigma:command("print_deck", "print deck to chat", function()
+enigma:command("list_decks", "", function()
+    local deck_count = 0
+    enigma:echo("Decks ("..deck_count.."):")
+    for name,deck in pairs(enigma.managers.deck_planner.decks) do
+        enigma:echo(" "..name)
+        deck_count = deck_count + 1
+    end
+    enigma:echo("Total decks: "..deck_count)
+end)
+
+enigma:command("equipped_deck", "", function()
+    local deck = enigma.managers.deck_planner:equipped_deck()
+    if not deck then
+        enigma:echo("No deck equipped")
+        return
+    end
+    
+    enigma:echo("Equipped deck: "..deck.name)
+end)
+
+enigma:command("print_deck", "print deck to chat", function(deck_name)
+    local deck = enigma.managers.deck_planner.editing_deck
+    if deck_name then
+        deck = enigma.managers.deck_planner.decks[deck_name]
+    end
+    if not deck then
+        enigma:echo("No deck to print")
+    end
     enigma:echo(enigma.managers.deck_planner:deck_tostring(enigma.managers.deck_planner.editing_deck))
 end)
 
@@ -231,39 +279,65 @@ enigma:command("big_card", "show a big card!", function(card_id)
     enigma.managers.ui.big_card_to_display = card
 end)
 
--- Events
+enigma:command("enigma", "", function(cmd)
+    if cmd == "toggle_deck_validity_check" then
+        if enigma.skip_deck_validity_check then
+            enigma:echo("Turning deck validity check ON")
+        else
+            enigma:echo("Turning deck validity check OFF")
+        end
+        enigma:set("skip_deck_validity_check", not enigma.skip_deck_validity_check, true)
+    elseif cmd == "toggle_mega_resources" then
+        if enigma.mega_resource_start then
+            enigma:echo("Turning mega resource start OFF")
+        else
+            enigma:echo("Turning mega resource start ON")
+        end
+        enigma:set("mega_resource_start", not enigma.mega_resource_start, true)
+    end
+end)
+
+-- Mod Events
 enigma.update = function(dt)
-    for _,v in pairs(event_callbacks.update) do
+    for _,v in pairs(mod_event_callbacks.update) do
         v.executor[v.callback](v.executor, dt)
     end
 end
 
 enigma.on_unload = function(exit_game)
-    for _,v in pairs(event_callbacks.on_unload) do
+    for _,v in pairs(mod_event_callbacks.on_unload) do
         v.executor[v.callback](v.executor, exit_game)
     end
 end
 
 enigma.on_game_state_changed = function(status, state_name)
-    for _,v in pairs(event_callbacks.on_game_state_changed) do
+    for _,v in pairs(mod_event_callbacks.on_game_state_changed) do
         v.executor[v.callback](v.executor, status, state_name)
     end
 end
 
 enigma.on_setting_changed = function(setting_id)
-    for _,v in pairs(event_callbacks.on_setting_changed) do
+    for _,v in pairs(mod_event_callbacks.on_setting_changed) do
         v.executor[v.callback](v.executor, setting_id)
+    end
+
+    -- DEV
+    if setting_id == "skip_deck_validity_check" then
+        enigma.skip_deck_validity_check = enigma:get("skip_deck_validity_check")
+        enigma.managers.deck_planner:update_self_equipped_deck_valid()
+    elseif setting_id == "mega_resource_start" then
+        enigma.mega_resource_start = enigma:get("mega_resource_start")
     end
 end
 
 enigma.on_user_joined = function(player)
-    for _,v in pairs(event_callbacks.on_user_joined) do
+    for _,v in pairs(mod_event_callbacks.on_user_joined) do
         v.executor[v.callback](v.executor, player)
     end
 end
 
 enigma.on_user_left = function(player)
-    for _,v in pairs(event_callbacks.on_user_left) do
+    for _,v in pairs(mod_event_callbacks.on_user_left) do
         v.executor[v.callback](v.executor, player)
     end
 end

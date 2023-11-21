@@ -41,33 +41,35 @@ EnigmaBigCardUI.update = function (self, dt)
 	end
 
     local card = enigma.managers.ui.big_card_to_display
-    if card then
-        if card.texture then
-            self.display_widget.content.card_image = card.texture
-        else
-            self.display_widget.content.card_image = "enigma_card_image_placeholder"
-        end
+	if not card then
+		return
+	end
+	
+	if card.texture then
+		self.display_widget.content.card_image = card.texture
+	else
+		self.display_widget.content.card_image = "enigma_card_image_placeholder"
+	end
 
-        if card.card_type == enigma.CARD_TYPE.passive then
-            self.display_widget.style.card_background.color[2] = 205
-            self.display_widget.style.card_background.color[3] = 198
-            self.display_widget.style.card_background.color[4] = 111
-        elseif card.card_type == enigma.CARD_TYPE.surge then
-            self.display_widget.style.card_background.color[2] = 187
-            self.display_widget.style.card_background.color[3] = 124
-            self.display_widget.style.card_background.color[4] = 118
-        elseif card.card_type == enigma.CARD_TYPE.ability then
-            self.display_widget.style.card_background.color[2] = 118
-            self.display_widget.style.card_background.color[3] = 130
-            self.display_widget.style.card_background.color[4] = 187
-        else
-            self.display_widget.style.card_background.color[2] = 255
-            self.display_widget.style.card_background.color[3] = 255
-            self.display_widget.style.card_background.color[4] = 255
-        end
-        self.display_widget.content.card_name = card.name
-        self:draw(dt)
-    end
+	if card.card_type == enigma.CARD_TYPE.passive then
+		self.display_widget.style.card_background.color[2] = 205
+		self.display_widget.style.card_background.color[3] = 198
+		self.display_widget.style.card_background.color[4] = 111
+	elseif card.card_type == enigma.CARD_TYPE.surge then
+		self.display_widget.style.card_background.color[2] = 187
+		self.display_widget.style.card_background.color[3] = 124
+		self.display_widget.style.card_background.color[4] = 118
+	elseif card.card_type == enigma.CARD_TYPE.ability then
+		self.display_widget.style.card_background.color[2] = 118
+		self.display_widget.style.card_background.color[3] = 130
+		self.display_widget.style.card_background.color[4] = 187
+	else
+		self.display_widget.style.card_background.color[2] = 255
+		self.display_widget.style.card_background.color[3] = 255
+		self.display_widget.style.card_background.color[4] = 255
+	end
+	self.display_widget.content.card_name = card.name
+	self:draw(dt)
 end
 
 EnigmaBigCardUI.draw = function (self, dt)

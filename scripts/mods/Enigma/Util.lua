@@ -118,6 +118,26 @@ enigma.get_ammo_extension = function(self, unit)
     end
 end
 
+enigma.execute_unit = function(self, to_execute, executor)
+    if not HEALTH_ALIVE[to_execute] then
+        return false
+    end
+    AiUtils.kill_unit(to_execute, executor, nil, "execute")
+    return true
+end
+
+enigma.is_enemy_man_sized = function(self, unit)
+    local breed = Unit.get_data(unit, "breed")
+    return not breed or breed.boss
+end
+enigma.execute_man_sized_enemy = function (self, unit, params)
+    local hit_unit = params[1]
+    if not self:is_enemy_man_sized(hit_unit) then
+        return
+    end
+    return enigma:execute_unit(hit_unit, unit)
+end
+
 -- File IO
 enigma.save = function(self, file_name, data, callback)
     return Managers.save:auto_save(file_name, data, callback, true)
@@ -129,10 +149,21 @@ end
 -- Math/Random
 enigma.random = function(self)
     local result
-    enigma.random_seed, result = math.next_random(enigma.random_seed)
+    enigma.random_seed, result = Math.next_random(enigma.random_seed)
+    enigma:info("Enigma random roll: "..tostring(result))
+    return result
 end
 enigma.random_range = function(self, min, max)
     local result
     enigma.random_seed, result = math.next_random_range(enigma.random_seed, min, max)
     return result
+end
+enigma.test_chance = function(self, chance)
+    local rand = self:random()
+    if rand < chance then
+        enigma:info("Succeeded roll (result < "..tostring(chance)..")")
+    else
+        enigma:info("Failed roll (result >= "..tostring(chance)..")")
+    end
+    return rand < chance
 end

@@ -3,6 +3,12 @@ return {
     base_caffeinated = {
         en = "Caffeinated"
     },
+    base_collar_cage = {
+        en = "Collar Cage"
+    },
+    base_eshin_counter_intelligence = {
+        en = "Eshin Counter-Intelligence"
+    },
     base_executioner = {
         en = "Executioner"
     },
@@ -11,6 +17,9 @@ return {
     },
     base_gym_rat = {
         en = "Gym Rat"
+    },
+    base_soul_safe = {
+        en = "Soul Safe"
     },
     base_spartan = {
         en = "Spartan"
