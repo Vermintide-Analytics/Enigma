@@ -150,13 +150,22 @@ bm.surge_stat = function(self, unit, stat, difference, card)
     })
 end
 
-enigma:command("buff_self", "", function(stat, value)
-    local local_player_unit = enigma:local_player_unit()
-    if not local_player_unit then
-        return
-    end
-    bm:update_stat(local_player_unit, stat, value)
-end)
+local buff_params = {}
+
+enigma.add_dot = function(dot_template_name, hit_unit, attacker_unit, damage_source, power_level, source_attacker_unit)
+	if ScriptUnit.has_extension(hit_unit, "buff_system") then
+		table.clear(buff_params)
+
+		buff_params.attacker_unit = attacker_unit
+		buff_params.damage_source = damage_source
+		buff_params.power_level = power_level
+		buff_params.source_attacker_unit = source_attacker_unit
+		local buff_extension = ScriptUnit.extension(hit_unit, "buff_system")
+
+		buff_extension:add_buff(dot_template_name, buff_params)
+	end
+end
+
 
 -- Umbrella Buff
 local ENIGMA_UMBRELLA_BUFF = "enigma_umbrella_buff"
@@ -377,6 +386,14 @@ end
 enigma:register_mod_event_callback("update", bm, "update")
 
 -- Debug
+enigma:command("buff_self", "", function(stat, value)
+    local local_player_unit = enigma:local_player_unit()
+    if not local_player_unit then
+        return
+    end
+    bm:update_stat(local_player_unit, stat, value)
+end)
+
 enigma:command("dump_buffs", "", function()
     local buff_extension = ScriptUnit.extension(enigma:local_player_unit(), "buff_system")
     enigma:dump(buff_extension._stat_buffs, "STAT BUFFS", 3)

@@ -164,6 +164,12 @@ return {
 		}
 	},
 	custom_gui_textures = {
+		atlases = {
+			{
+				"img/Enigma/art/base/base_atlas",
+				"base_atlas"
+			}
+		},
 		textures = {
 			"enigma_test_material"
 		},
@@ -186,8 +192,8 @@ return {
 			},
 			{
 				"ingame_ui",
-				"materials/Enigma/art/base/caffeinated"
-			},
+				"materials/Enigma/art/base/base_atlas"
+			}
 		}
 	}
 }

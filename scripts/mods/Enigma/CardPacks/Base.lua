@@ -25,6 +25,7 @@ pack_handle.register_passive_cards({
         name = "base_collar_cage",
         rarity = LEGENDARY,
         cost = 4,
+        texture = "enigma_base_collar_cage",
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_packmaster", 1.0)
         end
@@ -33,6 +34,7 @@ pack_handle.register_passive_cards({
         name = "base_eshin_counter_intelligence",
         rarity = LEGENDARY,
         cost = 4,
+        texture = "enigma_base_eshin_counter_intelligence",
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_assassin", 1.0)
         end
@@ -41,6 +43,7 @@ pack_handle.register_passive_cards({
         name = "base_executioner",
         rarity = EPIC,
         cost = 2,
+        texture = "enigma_base_executioner",
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_instantly_slay_man_sized_enemy", 0.05)
         end
@@ -49,6 +52,7 @@ pack_handle.register_passive_cards({
         name = "base_expertise",
         rarity = COMMON,
         cost = 1,
+        texture = "enigma_base_expertise",
         on_play_local = function(card)
             buff:update_stat(card.context.unit, "cooldown_regen", 1.0)
         end
@@ -57,6 +61,7 @@ pack_handle.register_passive_cards({
         name = "base_gym_rat",
         rarity = COMMON,
         cost = 1,
+        texture = "enigma_base_gym_rat",
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "power_level", 1.0)
         end
@@ -65,6 +70,7 @@ pack_handle.register_passive_cards({
         name = "base_soul_safe",
         rarity = LEGENDARY,
         cost = 4,
+        texture = "enigma_base_soul_safe",
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_leech", 1.0)
         end
@@ -81,6 +87,7 @@ pack_handle.register_passive_cards({
         name = "base_tough_skin",
         rarity = COMMON,
         cost = 0,
+        texture = "enigma_base_tough_skin",
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "damage_taken", -0.9)
         end
@@ -154,7 +161,14 @@ pack_handle.register_surge_cards({
         name = "base_warpfire_strikes",
         rarity = COMMON,
         cost = 2,
-        duration = 60
+        duration = 60,
+        events = {
+            enemy_damaged = function(card, health_ext, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+                if attacker_unit == card.context.unit then
+                    -- TODO
+                end
+            end
+        }
     },
     warpstone_pie = {
         name = "base_warpstone_pie",

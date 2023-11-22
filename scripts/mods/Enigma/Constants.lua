@@ -40,6 +40,7 @@ enigma.EVENTS = {
     enemy_damaged = "enemy_damaged",
     enemy_killed = "enemy_killed",
     enemy_spawned = "enemy_spawned",
+    enemy_staggered = "enemy_staggered",
 
     player_damaged = "player_damaged",
     player_disabled = "player_disabled",
