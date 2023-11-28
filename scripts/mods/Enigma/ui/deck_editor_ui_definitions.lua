@@ -42,7 +42,7 @@ local scenegraph_definition = {
 		}
 	},
 	window_title = {
-		parent = "screen",
+		parent = "window",
 		vertical_alignment = "top",
 		horizontal_alignment = "center",
 		size = {
