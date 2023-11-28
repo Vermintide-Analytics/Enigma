@@ -1,15 +1,22 @@
 local enigma = get_mod("Enigma")
 
-local WINDOW_WIDTH = 1920*0.8
-local WINDOW_HEIGHT = 1080*0.8
+local window_default_settings = UISettings.game_start_windows
+local large_window_frame = window_default_settings.large_window_frame
+local large_window_frame_width = UIFrameSettings[large_window_frame].texture_sizes.vertical[1] + 25
 
-local TOP_PANEL_HEIGHT = WINDOW_HEIGHT*0.15
-local LEFT_PANEL_WIDTH = WINDOW_WIDTH*0.25
-local LEFT_PANEL_HEIGHT = WINDOW_HEIGHT - TOP_PANEL_HEIGHT
-local RIGHT_PANEL_WIDTH = WINDOW_WIDTH - LEFT_PANEL_WIDTH
-local RIGHT_PANEL_HEIGHT = WINDOW_HEIGHT - TOP_PANEL_HEIGHT
+local WINDOW_WIDTH = UISettings.game_start_windows.large_window_size[1]
+local WINDOW_HEIGHT = UISettings.game_start_windows.large_window_size[2]
 
-local PAGINATION_PANEL_WIDTH = WINDOW_WIDTH*0.25
+local INNER_WINDOW_WIDTH = WINDOW_WIDTH - large_window_frame_width
+local INNER_WINDOW_HEIGHT = WINDOW_HEIGHT - large_window_frame_width
+
+local TOP_PANEL_HEIGHT = INNER_WINDOW_HEIGHT*0.15
+local LEFT_PANEL_WIDTH = INNER_WINDOW_WIDTH*0.25
+local LEFT_PANEL_HEIGHT = INNER_WINDOW_HEIGHT - TOP_PANEL_HEIGHT
+local RIGHT_PANEL_WIDTH = INNER_WINDOW_WIDTH - LEFT_PANEL_WIDTH
+local RIGHT_PANEL_HEIGHT = INNER_WINDOW_HEIGHT - TOP_PANEL_HEIGHT
+
+local PAGINATION_PANEL_WIDTH = INNER_WINDOW_WIDTH*0.25
 local PAGINATION_PANEL_HEIGHT = TOP_PANEL_HEIGHT*0.25
 
 local PRETTY_MARGIN = 10
@@ -41,22 +48,106 @@ local scenegraph_definition = {
 			1
 		}
 	},
-	window_title = {
+	window_background = {
 		parent = "window",
-		vertical_alignment = "top",
+		vertical_alignment = "center",
 		horizontal_alignment = "center",
 		size = {
-			WINDOW_WIDTH/3,
-			WINDOW_HEIGHT*0.1
+			WINDOW_WIDTH - 5,
+			WINDOW_HEIGHT - 5
 		},
 		position = {
 			0,
-			WINDOW_HEIGHT*0.1,
-			1
+			0,
+			0
+		}
+	},
+	window_title = {
+		vertical_alignment = "top",
+		parent = "window",
+		horizontal_alignment = "center",
+		size = {
+			658,
+			60
+		},
+		position = {
+			0,
+			34,
+			10
+		}
+	},
+	window_title_bg = {
+		vertical_alignment = "top",
+		parent = "window_title",
+		horizontal_alignment = "center",
+		size = {
+			410,
+			40
+		},
+		position = {
+			0,
+			-15,
+			-1
+		}
+	},
+	window_title_text = {
+		vertical_alignment = "center",
+		parent = "window_title",
+		horizontal_alignment = "center",
+		size = {
+			350,
+			50
+		},
+		position = {
+			0,
+			-3,
+			2
+		}
+	},
+	inner_window = {
+		parent = "window",
+		vertical_alignment = "center",
+		horizontal_alignment = "center",
+		size = {
+			INNER_WINDOW_WIDTH,
+			INNER_WINDOW_HEIGHT
+		},
+		position = {
+			0,
+			0,
+			0
+		}
+	},
+	deck_list_button = {
+		parent = "window",
+		vertical_alignment = "bottom",
+		horizontal_alignment = "left",
+		size = {
+			380,
+			42
+		},
+		position = {
+			135,
+			-16,
+			10
+		}
+	},
+	close_window_button = {
+		parent = "window",
+		vertical_alignment = "bottom",
+		horizontal_alignment = "right",
+		size = {
+			380,
+			42
+		},
+		position = {
+			-135,
+			-16,
+			10
 		}
 	},
 	top_panel = {
-		parent = "window",
+		parent = "inner_window",
 		vertical_alignment = "top",
 		horizontal_alignment = "center",
 		size = {
@@ -69,36 +160,8 @@ local scenegraph_definition = {
 			1
 		}
 	},
-	deck_list_button = {
-		parent = "top_panel",
-		vertical_alignment = "top",
-		horizontal_alignment = "left",
-		size = {
-			380,
-			42
-		},
-		position = {
-			PRETTY_MARGIN,
-			PRETTY_MARGIN*-1,
-			1
-		}
-	},
-	close_window_button = {
-		parent = "top_panel",
-		vertical_alignment = "top",
-		horizontal_alignment = "right",
-		size = {
-			380,
-			42
-		},
-		position = {
-			PRETTY_MARGIN*-1,
-			PRETTY_MARGIN*-1,
-			1
-		}
-	},
 	left_panel = {
-		parent = "window",
+		parent = "inner_window",
 		vertical_alignment = "bottom",
 		horizontal_alignment = "left",
 		size = {
@@ -112,7 +175,7 @@ local scenegraph_definition = {
 		}
 	},
 	right_panel = {
-		parent = "window",
+		parent = "inner_window",
 		vertical_alignment = "bottom",
 		horizontal_alignment = "right",
 		size = {
@@ -165,78 +228,40 @@ local widgets = {
 			},
 		}
 	},
-	window = {
-		scenegraph_id = "window",
-		element = {
-			passes = {
-				{
-					pass_type = "rect",
-					style_id = "window_background"
-				},
-			}
-		},
-		content = {
-		},
-		style = {
-			window_background = {
-				color = {
-					255,
-					50,
-					50,
-					50
-				}
-			},
+	window = UIWidgets.create_frame("window", scenegraph_definition.window.size, "menu_frame_11"),
+	window_background_mask = UIWidgets.create_tiled_texture("window_background", "menu_frame_bg_01", {
+		960,
+		1080
+	}, nil, true),
+	window_background = UIWidgets.create_tiled_texture("window_background", "menu_frame_bg_01", {
+		960,
+		1080
+	}, nil, nil, {
+		255,
+		100,
+		100,
+		100
+	}),
+	window_title = UIWidgets.create_simple_texture("frame_title_bg", "window_title"),
+	window_title_bg = UIWidgets.create_background("window_title_bg", scenegraph_definition.window_title_bg.size, "menu_frame_bg_02"),
+	window_title_text = UIWidgets.create_simple_text(enigma:localize("deck_editor_window_title"), "window_title_text", nil, nil, {
+		use_shadow = true,
+		upper_case = true,
+		localize = false,
+		font_size = 28,
+		horizontal_alignment = "center",
+		vertical_alignment = "center",
+		dynamic_font_size = true,
+		font_type = "hell_shark_header",
+		text_color = Colors.get_color_table_with_alpha("font_title", 255),
+		offset = {
+			0,
+			0,
+			2
 		}
-	},
-	window_title = {
-		scenegraph_id = "window_title",
-		element = {
-			passes = {
-				{
-					pass_type = "rect",
-					style_id = "background"
-				},
-				{
-					pass_type = "text",
-					style_id = "window_title",
-					text_id = "window_title"
-				}
-			}
-		},
-		content = {
-			window_title = enigma:localize("deck_editor_window_title")
-		},
-		style = {
-			background = {
-				color = {
-					255,
-					100,
-					100,
-					100
-				}
-			},
-			window_title = {
-				vertical_alignment = "center",
-				horizontal_alignment = "center",
-				font_size = 64,
-				localize = false,
-				word_wrap = true,
-				dynamic_font_size_word_wrap = true,
-				font_type = "hell_shark",
-				text_color = {
-					255,
-					255,
-					255,
-					255
-				},
-				offset = {
-					0,
-					0,
-					1
-				}
-			}
-		}
-	},
+	}),
+	deck_list_button = UIWidgets.create_default_button("deck_list_button", scenegraph_definition.deck_list_button.size, nil, nil, enigma:localize("deck_list"), 24, nil, "button_detail_04", 34, true),
+	close_window_button = UIWidgets.create_default_button("close_window_button", scenegraph_definition.close_window_button.size, nil, nil, Localize("interaction_action_close"), 24, nil, "button_detail_04", 34, true),
 	top_panel = {
 		scenegraph_id = "top_panel",
 		element = {
@@ -250,7 +275,7 @@ local widgets = {
 		style = {
 			top_panel_background = {
 				color = {
-					255,
+					35,
 					100,
 					100,
 					100
@@ -258,8 +283,6 @@ local widgets = {
 			},
 		}
 	},
-	deck_list_button = UIWidgets.create_default_button("deck_list_button", scenegraph_definition.deck_list_button.size, nil, nil, enigma:localize("deck_list"), nil, nil, nil, nil, true, true),
-	close_window_button = UIWidgets.create_default_button("close_window_button", scenegraph_definition.close_window_button.size, nil, nil, Localize("interaction_action_close"), nil, nil, nil, nil, true, true),
 	left_panel = {
 		scenegraph_id = "left_panel",
 		element = {
@@ -273,10 +296,10 @@ local widgets = {
 		style = {
 			left_panel_background = {
 				color = {
-					255,
-					85,
-					85,
-					149
+					35,
+					118,
+					118,
+					208
 				}
 			},
 		}
@@ -294,10 +317,10 @@ local widgets = {
 		style = {
 			right_panel_background = {
 				color = {
-					255,
-					44,
-					0,
-					0
+					35,
+					161,
+					40,
+					40
 				}
 			},
 		}
