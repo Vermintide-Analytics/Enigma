@@ -41,19 +41,17 @@ end
 
 EnigmaDeckEditorUI.on_enter = function(self, params, offset)
 	ShowCursorStack.push()
-	self._is_focused = true
 	
-	--self.input_manager:block_device_except_service("deck_editor_view", "keyboard", 1)
+	self.input_manager:block_device_except_service("deck_editor_view", "keyboard", 1)
 	self.input_manager:block_device_except_service("deck_editor_view", "mouse", 1)
 	
 	self.active = true
 end
 
 EnigmaDeckEditorUI.on_exit = function(self, params)
-	self._is_focused = false
 	ShowCursorStack.pop()
 	
-	--self.input_manager:device_unblock_all_services("keyboard", 1)
+	self.input_manager:device_unblock_all_services("keyboard", 1)
 	self.input_manager:device_unblock_all_services("mouse", 1)
 
 	self.active = false
@@ -70,9 +68,7 @@ EnigmaDeckEditorUI.update = function (self, dt, t)
 		return
 	end
 
-	if self._is_focused then
-		self:_handle_input(dt, t)
-	end
+	self:_handle_input(dt, t)
 
 	local editing_deck = enigma.managers.deck_planner.editing_deck
 	if not editing_deck then
@@ -87,10 +83,35 @@ EnigmaDeckEditorUI.update = function (self, dt, t)
 end
 
 EnigmaDeckEditorUI._handle_input = function(self, dt, t)
+	local input_service = self:input_service()
+	local input_close_pressed = input_service:get("toggle_menu")
+
+	local deck_list_button = self._widgets_by_name.deck_list_button
 	local close_window_button = self._widgets_by_name.close_window_button
-	if UIUtils.is_button_pressed(close_window_button) then
+
+	UIWidgetUtils.animate_default_button(deck_list_button, dt)
+	UIWidgetUtils.animate_default_button(close_window_button, dt)
+
+	if deck_list_button.content.button_hotspot.on_hover_enter then
+		self:play_sound("Play_hud_hover")
+	end
+	if close_window_button.content.button_hotspot.on_hover_enter then
+		self:play_sound("Play_hud_hover")
+	end
+
+	if UIUtils.is_button_pressed(deck_list_button) then
+		self:play_sound("Play_hud_select")
+		Managers.ui:handle_transition("deck_list_view", {})
+	end
+
+	if input_close_pressed or UIUtils.is_button_pressed(close_window_button) then
+		self:play_sound("Play_hud_select")
 		Managers.ui:handle_transition("close_active", {})
 	end
+end
+
+EnigmaDeckEditorUI.hotkey_allowed = function(self, input, mapping_data)
+	return true
 end
 
 EnigmaDeckEditorUI.draw = function (self, dt)
@@ -100,4 +121,8 @@ EnigmaDeckEditorUI.draw = function (self, dt)
 	UIRenderer.begin_pass(ui_renderer, self.ui_scenegraph, input_service, dt)
 	UIRenderer.draw_all_widgets(ui_renderer, self._widgets)
 	UIRenderer.end_pass(ui_renderer)
+end
+
+EnigmaDeckEditorUI.play_sound = function (self, event)
+	WwiseWorld.trigger_event(self.wwise_world, event)
 end

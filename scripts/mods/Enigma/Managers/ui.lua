@@ -25,12 +25,16 @@ end
 
 uim.transitions = {
     deck_editor_view = function(self, params)
-        if not enigma.managers.deck_planner.editing_deck then
+        local editing_deck = params.deck or enigma.managers.deck_planner.editing_deck
+        if not editing_deck then
             enigma:echo("Could not open the Deck Editor UI, you are not currently editing a deck.")
             return
         end
-        self.menu_active = true
         self.current_view = "enigma_deck_editor"
+    end,
+    deck_list_view = function(self, params)
+        enigma.managers.deck_planner:set_editing_deck(nil)
+        self.current_view = "enigma_deck_list"
     end
 }
 
@@ -101,10 +105,4 @@ enigma:hook(IngameUI, "setup_views", function(func, self, ingame_ui_context)
     local result = func(self, ingame_ui_context)
     self.views.enigma_deck_editor = EnigmaDeckEditorUI:new(ingame_ui_context)
     return result
-end)
-
-enigma:hook(DLCUtils, "merge", function(func, dlc_fields, table)
-    if dlc_fields == "ui_transitions" then
-        enigma:echo("We can successfully hoiok DLCUtils.merge!")
-    end
 end)
