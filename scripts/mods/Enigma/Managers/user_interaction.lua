@@ -19,7 +19,16 @@ end
 
 -- Keybind callbacks
 enigma.card_mode_key_pressed = function()
-
+    if enigma.managers.game:is_in_game() then
+        
+    else
+        local deck_editor_ui = Managers.ui._ingame_ui.views.enigma_deck_editor
+        if deck_editor_ui and deck_editor_ui.active then
+            Managers.ui:handle_transition("close_active", {})
+        else
+            Managers.ui:handle_transition("deck_editor_view", {})
+        end
+    end
 end
 
 enigma.play_card_1_key_pressed = function()

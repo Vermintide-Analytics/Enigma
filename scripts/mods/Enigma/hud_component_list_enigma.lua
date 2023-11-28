@@ -39,6 +39,15 @@ local enigma_components = {
 			"in_menu"
 		}
 	},
+	-- {
+	-- 	use_hud_scale = true,
+	-- 	class_name = "EnigmaDeckEditorUI",
+	-- 	filename = "scripts/mods/Enigma/ui/deck_editor_ui",
+	-- 	visibility_groups = {
+	-- 		"alive",
+	-- 		"entering_mission",
+	-- 	}
+	-- },
 	{
 		use_hud_scale = true,
 		class_name = "EnigmaDeckDebugUI",

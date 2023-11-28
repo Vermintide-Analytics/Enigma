@@ -1,4 +1,23 @@
 return {
+    -- Common descriptions
+    description_attack_speed = {
+        en = "%+i%% attack speed"
+    },
+    description_movement_speed = {
+        en = "%+i%% movement speed"
+    },
+
+    -- TEST
+    description_test = {
+        en = "Do a thing, but with a longer description that should make some smaller text."
+    },
+    auto_description_test = {
+        en = "When a thing happens"
+    },
+    condition_description_test = {
+        en = "Only when a thing is true"
+    },
+
     -- Passive cards
     base_caffeinated = {
         en = "Caffeinated"

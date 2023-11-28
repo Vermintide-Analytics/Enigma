@@ -168,7 +168,7 @@ end)
 enigma:command("edit_deck", "select a deck to edit", function(deck_name)
     local deck = enigma.managers.deck_planner:set_editing_deck(deck_name)
     if not deck then
-        enigma:echo("Could not select "..deck_name.." for editing")
+        enigma:echo("No longer editing a deck")
     else
         enigma:echo("Now editing "..deck_name)
     end

@@ -45,12 +45,6 @@ local template_template = {
     auto_condition_server = nil,
     auto_descriptions = {},
 
-    -- Always local context
-    auto_triggers = {
-        -- Example:
-        -- { event = "player_damaged", condition = ""}
-    },
-
     channel = nil,
 
     condition_local = nil,
@@ -129,11 +123,18 @@ local create_card_template_handle = function(card_id)
 end
 
 local set_common_card_properties = function(template, type, pack, id)
-    local unloc = template.name
     local mod = get_mod(template.mod_id)
     template.name = mod:localize(template.name)
-    enigma:info("-------------------")
-    enigma:info(tostring(unloc).." --> "..tostring(template.name))
+    for _,description_table in ipairs(template.description_lines) do
+        description_table.localized = mod:localize(description_table.format, description_table.parameters and unpack(description_table.parameters))
+    end
+    for _,auto_description_table in ipairs(template.auto_descriptions) do
+        auto_description_table.localized = mod:localize(auto_description_table.format, auto_description_table.parameters and unpack(auto_description_table.parameters))
+    end
+    for _,condition_description_table in ipairs(template.condition_descriptions) do
+        condition_description_table.localized = mod:localize(condition_description_table.format, condition_description_table.parameters and unpack(condition_description_table.parameters))
+    end
+
     template.card_type = type
     template.card_pack = pack
     template.id = tostring(template.card_pack.id) .. "/" .. id

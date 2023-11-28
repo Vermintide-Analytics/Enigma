@@ -11,14 +11,83 @@ local game = enigma.managers.game
 local buff = enigma.managers.buff
 
 pack_handle.register_passive_cards({
+    exfull = {
+        name = "base_ex_full",
+        rarity = LEGENDARY,
+        cost = 4,
+        texture = "enigma_base_collar_cage",
+        description_lines = {
+            {
+                format = "description_test"
+            }
+        },
+        auto_descriptions = {
+            {
+                format = "auto_description_test"
+            }
+        },
+        condition_descriptions = {
+            {
+                format = "condition_description_test"
+            }
+        },
+        channel = 10,
+        ephemeral = true,
+        infinite = true
+    },
+    ex1 = {
+        name = "base_ex_1",
+        rarity = LEGENDARY,
+        cost = 4,
+        texture = "enigma_base_collar_cage",
+        description_lines = {
+            {
+                format = "description_test"
+            }
+        },
+        auto_descriptions = {
+            {
+                format = "auto_description_test"
+            }
+        },
+        channel = 10,
+        ephemeral = true,
+        infinite = true
+    },
+    ex2 = {
+        name = "base_ex_1",
+        rarity = LEGENDARY,
+        cost = 4,
+        texture = "enigma_base_collar_cage",
+        description_lines = {
+            {
+                format = "description_test"
+            }
+        },
+        auto_descriptions = {
+            {
+                format = "auto_description_test"
+            }
+        },
+    },
     caffeinated = {
         name = "base_caffeinated",
         rarity = COMMON,
         cost = 2,
         texture = "enigma_base_caffeinated",
+        description_lines = {
+            {
+                format = "description_attack_speed",
+                parameters = { 5 }
+            },
+            {
+                format = "description_movement_speed",
+                parameters = { 5 }
+            }
+        },
         on_play_local = function(card)
-            buff.update_stat(card.context.unit, "movement_speed", 0.05)
             buff:update_stat(card.context.unit, "attack_speed", 0.05)
+            buff.update_stat(card.context.unit, "movement_speed", 0.05)
         end
     },
     collar_cage = {
@@ -28,7 +97,24 @@ pack_handle.register_passive_cards({
         texture = "enigma_base_collar_cage",
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_packmaster", 1.0)
-        end
+        end,
+        description_lines = {
+            {
+                format = "description_test"
+            }
+        },
+        auto_descriptions = {
+            {
+                format = "auto_description_test"
+            }
+        },
+        condition_descriptions = {
+            {
+                format = "condition_description_test"
+            }
+        },
+        channel = 10,
+        ephemeral = true
     },
     eshin_counter_intelligence = {
         name = "base_eshin_counter_intelligence",
