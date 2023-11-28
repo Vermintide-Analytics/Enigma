@@ -22,11 +22,12 @@ enigma.card_mode_key_pressed = function()
     if enigma.managers.game:is_in_game() then
         
     else
+        local deck_list_ui = Managers.ui._ingame_ui.views.enigma_deck_list
         local deck_editor_ui = Managers.ui._ingame_ui.views.enigma_deck_editor
-        if deck_editor_ui and deck_editor_ui.active then
+        if deck_editor_ui and deck_editor_ui.active or deck_list_ui and deck_list_ui.active then
             Managers.ui:handle_transition("close_active", {})
         else
-            Managers.ui:handle_transition("deck_editor_view", {})
+            Managers.ui:handle_transition("deck_planner_view", {})
         end
     end
 end

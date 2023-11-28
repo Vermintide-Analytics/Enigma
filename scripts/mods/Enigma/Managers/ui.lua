@@ -1,6 +1,7 @@
 local enigma = get_mod("Enigma")
 
 dofile("scripts/mods/Enigma/ui/deck_editor_ui")
+dofile("scripts/mods/Enigma/ui/deck_list_ui")
 
 local uim = {
     big_card_to_display = nil,
@@ -24,17 +25,20 @@ uim.hide_deck_editor = function(self)
 end
 
 uim.transitions = {
-    deck_editor_view = function(self, params)
-        local editing_deck = params.deck or enigma.managers.deck_planner.editing_deck
-        if not editing_deck then
-            enigma:echo("Could not open the Deck Editor UI, you are not currently editing a deck.")
-            return
+    deck_planner_view = function(self, params)
+        if params.stop_editing then
+            enigma.managers.deck_planner:set_editing_deck_by_name(nil)
+        else
+            local forced_deck = params.deck_name and enigma.managers.deck_planner.decks[params.deck_name]
+            if forced_deck then
+                enigma.managers.deck_planner:set_editing_deck_by_name(forced_deck)
+            end
         end
-        self.current_view = "enigma_deck_editor"
-    end,
-    deck_list_view = function(self, params)
-        enigma.managers.deck_planner:set_editing_deck(nil)
-        self.current_view = "enigma_deck_list"
+        if enigma.managers.deck_planner.editing_deck then
+            self.current_view = "enigma_deck_editor"
+        else
+            self.current_view = "enigma_deck_list"
+        end
     end
 }
 
@@ -47,9 +51,7 @@ local handle_custom_transition = function(ingame_ui_context, new_transition, par
 		return
 	end
 
-	local previous_transition = ingame_ui_context._previous_transition
-
-	if not ingame_ui_context:is_transition_allowed(new_transition) or previous_transition and previous_transition == new_transition then
+	if not ingame_ui_context:is_transition_allowed(new_transition) then
 		return
 	end
 
@@ -104,5 +106,6 @@ end)
 enigma:hook(IngameUI, "setup_views", function(func, self, ingame_ui_context)
     local result = func(self, ingame_ui_context)
     self.views.enigma_deck_editor = EnigmaDeckEditorUI:new(ingame_ui_context)
+    self.views.enigma_deck_list = EnigmaDeckListUI:new(ingame_ui_context)
     return result
 end)

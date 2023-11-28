@@ -160,13 +160,13 @@ enigma:command("new_empty_deck", "make a new empty deck", function(name, game_mo
     end
     local new_deck = enigma.managers.deck_planner:create_empty_deck(name, game_mode)
     if new_deck then
-        enigma.managers.deck_planner:set_editing_deck(new_deck.name)
+        enigma.managers.deck_planner:set_editing_deck_by_name(new_deck.name)
         enigma:echo("New deck created, now editing it")
     end
 end)
 
 enigma:command("edit_deck", "select a deck to edit", function(deck_name)
-    local deck = enigma.managers.deck_planner:set_editing_deck(deck_name)
+    local deck = enigma.managers.deck_planner:set_editing_deck_by_name(deck_name)
     if not deck then
         enigma:echo("No longer editing a deck")
     else
@@ -180,7 +180,7 @@ enigma:command("edit_equipped_deck", "", function()
         enigma:echo("No deck equipped")
         return
     end
-    deck = enigma.managers.deck_planner:set_editing_deck(deck.name)
+    deck = enigma.managers.deck_planner:set_editing_deck_by_name(deck.name)
     if not deck then
         enigma:echo("Could not edit equipped deck")
         return

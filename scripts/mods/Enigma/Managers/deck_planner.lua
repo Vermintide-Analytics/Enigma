@@ -255,7 +255,7 @@ dpm.rename_deck = function(self, name, skip_save)
     return true
 end
 
-dpm.set_editing_deck = function(self, deck_name)
+dpm.set_editing_deck_by_name = function(self, deck_name)
     if not deck_name then
         enigma:echo("No longer editing a deck")
         self.editing_deck = nil
@@ -264,6 +264,16 @@ dpm.set_editing_deck = function(self, deck_name)
     local deck = self.decks[deck_name]
     if not deck then
         enigma:echo("Could not find deck with name: "..tostring(deck_name))
+        return
+    end
+    self.editing_deck = deck
+    return self.editing_deck
+end
+
+dpm.set_editing_deck = function(self, deck)
+    if not deck.name or not self.decks[deck.name] then
+        enigma:echo("Could not set editing deck, invalid deck table")
+        enigma:dump(deck, "Invalid deck", 2)
         return
     end
     self.editing_deck = deck

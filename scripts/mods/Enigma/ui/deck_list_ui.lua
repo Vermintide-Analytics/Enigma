@@ -1,11 +1,10 @@
-local definitions = local_require("scripts/mods/Enigma/ui/deck_editor_ui_definitions")
-local ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
+local definitions = local_require("scripts/mods/Enigma/ui/deck_list_ui_definitions")
 local DO_RELOAD = true
-EnigmaDeckEditorUI = class(EnigmaDeckEditorUI)
+EnigmaDeckListUI = class(EnigmaDeckListUI)
 
 local enigma = get_mod("Enigma")
 
-EnigmaDeckEditorUI.init = function(self, ingame_ui_context)
+EnigmaDeckListUI.init = function(self, ingame_ui_context)
 	self.network_event_delegate = ingame_ui_context.network_event_delegate
 	self.camera_manager = ingame_ui_context.camera_manager
 	self.ui_renderer = ingame_ui_context.ui_top_renderer
@@ -18,16 +17,14 @@ EnigmaDeckEditorUI.init = function(self, ingame_ui_context)
 	local world = self.world_manager:world("level_world")
 	self.wwise_world = Managers.world:wwise_world(world)
 
-	self.input_manager:create_input_service("deck_editor_view", "IngameMenuKeymaps", "IngameMenuFilters")
-	self.input_manager:map_device_to_service("deck_editor_view", "keyboard")
-	self.input_manager:map_device_to_service("deck_editor_view", "mouse")
+	self.input_manager:create_input_service("deck_list_view", "IngameMenuKeymaps", "IngameMenuFilters")
+	self.input_manager:map_device_to_service("deck_list_view", "keyboard")
+	self.input_manager:map_device_to_service("deck_list_view", "mouse")
 
 	self:create_ui_elements()
 end
 
-local cached_editing_deck
-
-EnigmaDeckEditorUI.create_ui_elements = function (self)
+EnigmaDeckListUI.create_ui_elements = function (self)
 	DO_RELOAD = false
 	self.ui_scenegraph = UISceneGraph.init_scenegraph(definitions.scenegraph_definition)
 	self._widgets, self._widgets_by_name = UIUtils.create_widgets(definitions.widgets)
@@ -35,20 +32,20 @@ EnigmaDeckEditorUI.create_ui_elements = function (self)
 	UIRenderer.clear_scenegraph_queue(self.ui_renderer)
 end
 
-EnigmaDeckEditorUI.input_service = function(self)
-	return self.input_manager:get_service("deck_editor_view")
+EnigmaDeckListUI.input_service = function(self)
+	return self.input_manager:get_service("deck_list_view")
 end
 
-EnigmaDeckEditorUI.on_enter = function(self, params, offset)
+EnigmaDeckListUI.on_enter = function(self, params, offset)
 	ShowCursorStack.push()
 	
-	self.input_manager:block_device_except_service("deck_editor_view", "keyboard", 1)
-	self.input_manager:block_device_except_service("deck_editor_view", "mouse", 1)
+	self.input_manager:block_device_except_service("deck_list_view", "keyboard", 1)
+	self.input_manager:block_device_except_service("deck_list_view", "mouse", 1)
 	
 	self.active = true
 end
 
-EnigmaDeckEditorUI.on_exit = function(self, params)
+EnigmaDeckListUI.on_exit = function(self, params)
 	ShowCursorStack.pop()
 	
 	self.input_manager:device_unblock_all_services("keyboard", 1)
@@ -57,7 +54,7 @@ EnigmaDeckEditorUI.on_exit = function(self, params)
 	self.active = false
 end
 
-EnigmaDeckEditorUI.update = function (self, dt, t)
+EnigmaDeckListUI.update = function (self, dt, t)
 	if DO_RELOAD then
 		self:create_ui_elements()
 	end
@@ -71,37 +68,23 @@ EnigmaDeckEditorUI.update = function (self, dt, t)
 	self:_handle_input(dt, t)
 
 	local editing_deck = enigma.managers.deck_planner.editing_deck
-	if not editing_deck then
+	if editing_deck then
 		return
-	end
-	if editing_deck ~= cached_editing_deck then
-		-- Update info here
-		cached_editing_deck = editing_deck
 	end
 
 	self:draw(dt)
 end
 
-EnigmaDeckEditorUI._handle_input = function(self, dt, t)
+EnigmaDeckListUI._handle_input = function(self, dt, t)
 	local input_service = self:input_service()
 	local input_close_pressed = input_service:get("toggle_menu")
 
-	local deck_list_button = self._widgets_by_name.deck_list_button
 	local close_window_button = self._widgets_by_name.close_window_button
 
-	UIWidgetUtils.animate_default_button(deck_list_button, dt)
 	UIWidgetUtils.animate_default_button(close_window_button, dt)
 
-	if deck_list_button.content.button_hotspot.on_hover_enter then
-		self:play_sound("Play_hud_hover")
-	end
 	if close_window_button.content.button_hotspot.on_hover_enter then
 		self:play_sound("Play_hud_hover")
-	end
-
-	if UIUtils.is_button_pressed(deck_list_button) then
-		self:play_sound("Play_hud_select")
-		Managers.ui:handle_transition("deck_planner_view", { stop_editing = true })
 	end
 
 	if input_close_pressed or UIUtils.is_button_pressed(close_window_button) then
@@ -110,12 +93,12 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 	end
 end
 
-EnigmaDeckEditorUI.hotkey_allowed = function(self, input, mapping_data)
+EnigmaDeckListUI.hotkey_allowed = function(self, input, mapping_data)
 	return true
 end
 
-EnigmaDeckEditorUI.draw = function (self, dt)
-	local input_service = self.input_manager:get_service("deck_editor_view")
+EnigmaDeckListUI.draw = function (self, dt)
+	local input_service = self.input_manager:get_service("deck_list_view")
 	local ui_renderer = self.ui_renderer
 
 	UIRenderer.begin_pass(ui_renderer, self.ui_scenegraph, input_service, dt)
@@ -123,6 +106,6 @@ EnigmaDeckEditorUI.draw = function (self, dt)
 	UIRenderer.end_pass(ui_renderer)
 end
 
-EnigmaDeckEditorUI.play_sound = function (self, event)
+EnigmaDeckListUI.play_sound = function (self, event)
 	WwiseWorld.trigger_event(self.wwise_world, event)
 end
