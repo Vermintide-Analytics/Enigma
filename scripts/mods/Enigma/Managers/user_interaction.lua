@@ -5,10 +5,6 @@ enigma.managers.user_interaction = uim
 
 uim.card_mode = false
 
-uim.toggle_card_mode = function()
-
-end
-
 uim.try_draw_card = function(self)
     enigma.managers.game:draw_card()
 end
@@ -18,10 +14,12 @@ uim.try_play_card_from_hand = function(self, card_index)
 end
 
 -- Keybind callbacks
+local forbid_keybinds = function()
+    return enigma.text_input_focused or Managers.chat and Managers.chat:chat_is_focused()
+end
+
 enigma.card_mode_key_pressed = function()
-    if enigma.text_input_focused then
-        return
-    end
+    if forbid_keybinds() then return end
     if enigma.managers.game:is_in_game() then
         
     else
@@ -36,6 +34,7 @@ enigma.card_mode_key_pressed = function()
 end
 
 enigma.play_card_1_key_pressed = function()
+    if forbid_keybinds() then return end
     local interaction = enigma.managers.user_interaction
     if not interaction.card_mode then
         return
@@ -43,6 +42,7 @@ enigma.play_card_1_key_pressed = function()
     interaction:try_play_card_from_hand(1)
 end
 enigma.play_card_2_key_pressed = function()
+    if forbid_keybinds() then return end
     local interaction = enigma.managers.user_interaction
     if not interaction.card_mode then
         return
@@ -50,6 +50,7 @@ enigma.play_card_2_key_pressed = function()
     interaction:try_play_card_from_hand(2)
 end
 enigma.play_card_3_key_pressed = function()
+    if forbid_keybinds() then return end
     local interaction = enigma.managers.user_interaction
     if not interaction.card_mode then
         return
@@ -57,6 +58,7 @@ enigma.play_card_3_key_pressed = function()
     interaction:try_play_card_from_hand(3)
 end
 enigma.play_card_4_key_pressed = function()
+    if forbid_keybinds() then return end
     local interaction = enigma.managers.user_interaction
     if not interaction.card_mode then
         return
@@ -64,6 +66,7 @@ enigma.play_card_4_key_pressed = function()
     interaction:try_play_card_from_hand(4)
 end
 enigma.play_card_5_key_pressed = function()
+    if forbid_keybinds() then return end
     local interaction = enigma.managers.user_interaction
     if not interaction.card_mode then
         return
@@ -72,6 +75,7 @@ enigma.play_card_5_key_pressed = function()
 end
 
 enigma.draw_card_key_pressed = function()
+    if forbid_keybinds() then return end
     local interaction = enigma.managers.user_interaction
     if not interaction.card_mode then
         return
