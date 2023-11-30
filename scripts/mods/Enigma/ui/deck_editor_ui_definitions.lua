@@ -151,12 +151,12 @@ local scenegraph_definition = {
 		vertical_alignment = "top",
 		horizontal_alignment = "center",
 		size = {
-			WINDOW_WIDTH - PRETTY_MARGIN*2,
-			TOP_PANEL_HEIGHT - PRETTY_MARGIN
+			INNER_WINDOW_WIDTH,
+			TOP_PANEL_HEIGHT
 		},
 		position = {
 			0,
-			PRETTY_MARGIN,
+			0,
 			1
 		}
 	},
@@ -166,7 +166,7 @@ local scenegraph_definition = {
 		horizontal_alignment = "left",
 		size = {
 			WINDOW_WIDTH / 4,
-			TOP_PANEL_HEIGHT / 4
+			TOP_PANEL_HEIGHT / 3
 		},
 		position = {
 			PRETTY_MARGIN*2,
@@ -186,6 +186,34 @@ local scenegraph_definition = {
 			0,
 			0,
 			1
+		}
+	},
+	deck_card_count = {
+		parent ="top_panel",
+		vertical_alignment = "top",
+		horizontal_alignment = "left",
+		size = {
+			WINDOW_WIDTH / 8,
+			TOP_PANEL_HEIGHT / 4
+		},
+		position = {
+			PRETTY_MARGIN*2,
+			PRETTY_MARGIN*-3 - 4 - TOP_PANEL_HEIGHT / 3,
+			0
+		}
+	},
+	deck_cp_count = {
+		parent = "top_panel",
+		vertical_alignment = "top",
+		horizontal_alignment = "left",
+		size = {
+			WINDOW_WIDTH / 8,
+			TOP_PANEL_HEIGHT / 4
+		},
+		position = {
+			PRETTY_MARGIN*4 + WINDOW_WIDTH / 8,
+			PRETTY_MARGIN*-3 - 4 - TOP_PANEL_HEIGHT / 3,
+			0
 		}
 	},
 	left_panel = {
@@ -382,7 +410,7 @@ local widgets = {
 				pixel_perfect = true,
 				horizontal_alignment = "left",
 				vertical_alignment = "center",
-				font_size = 28,
+				font_size = 32,
 				dynamic_font = true,
 				font_type = "hell_shark_arial",
 				text_color = Colors.get_table("white"),
@@ -393,7 +421,7 @@ local widgets = {
 				},
 				caret_size = {
 					2,
-					26
+					30
 				},
 				caret_offset = {
 					0,
@@ -401,6 +429,64 @@ local widgets = {
 					4
 				},
 				caret_color = Colors.get_table("white")
+			}
+		}
+	},
+	deck_card_count = {
+		scenegraph_id = "deck_card_count",
+		element = {
+			passes = {
+				{
+					pass_type = "text",
+					style_id = "deck_card_count",
+					text_id = "deck_card_count"
+				}
+			}
+		},
+		content = {
+			deck_card_count = "Cards: 0 / 0"
+		},
+		style = {
+			deck_card_count = {
+				horizontal_alignment = "center",
+				vertical_alignment = "center",
+				font_size = 28,
+				font_type = "hell_shark",
+				text_color = {
+					255,
+					0,
+					255,
+					0
+				}
+			}
+		}
+	},
+	deck_cp_count = {
+		scenegraph_id = "deck_cp_count",
+		element = {
+			passes = {
+				{
+					pass_type = "text",
+					style_id = "deck_cp_count",
+					text_id = "deck_cp_count"
+				}
+			}
+		},
+		content = {
+			deck_cp_count = "CP: 0 / 0"
+		},
+		style = {
+			deck_cp_count = {
+				horizontal_alignment = "center",
+				vertical_alignment = "center",
+				font_size = 28,
+				font_type = "hell_shark",
+				text_color = {
+					255,
+					0,
+					255,
+					0
+				}
 			}
 		}
 	},
@@ -451,15 +537,17 @@ local widgets = {
 local TOTAL_DECK_SLOTS = 25
 local DECK_SLOT_HEIGHT = math.floor(LEFT_PANEL_HEIGHT/TOTAL_DECK_SLOTS)
 
-local define_deck_slot_widget = function(scenegraph_id, slot_index)
-	local vertical_offset = DECK_SLOT_HEIGHT * (slot_index-1)
+local define_deck_card_items = function(item_index)
+	local item_name = "deck_slot_"..item_index
+
+	local item_vertical_offset = DECK_SLOT_HEIGHT * (item_index-1)
 	local background_color = {
 		180,
 		0,
 		0,
 		0
 	}
-	if slot_index % 2 == 0 then
+	if item_index % 2 == 0 then
 		background_color = {
 			90,
 			0,
@@ -467,49 +555,99 @@ local define_deck_slot_widget = function(scenegraph_id, slot_index)
 			0
 		}
 	end
-	background_color[1] = background_color[1] + slot_index * 3
+	local hover_color = {
+		background_color[1],
+		64,
+		64,
+		64
+	}
+	
+	scenegraph_definition[item_name] = {
+		parent = "left_panel",
+		vertical_alignment = "top",
+		horizontal_alignment = "center",
+		size = {
+			LEFT_PANEL_WIDTH,
+			DECK_SLOT_HEIGHT
+		},
+		position = {
+			0,
+			item_vertical_offset*-1,
+			2
+		}
+	}
 
-	local widget_name = "deck_slot_"..slot_index
-	widgets[widget_name] = {
-		scenegraph_id = scenegraph_id,
+	local rarity_box_width = 16
+	local cost_text_width = 20
+
+	widgets[item_name] = {
+		scenegraph_id = item_name,
 		element = {
 			passes = {
 				{
+					style_id = "background",
+					pass_type = "hotspot",
+					content_id = "item_hotspot",
+				},
+				{
 					pass_type = "rect",
-					style_id = "background"
+					style_id = "background",
+				},
+				{
+					pass_type = "rect",
+					style_id = "card_rarity",
 				},
 				{
 					pass_type = "text",
 					style_id = "card_name",
 					text_id = "card_name"
+				},
+				{
+					pass_type = "text",
+					style_id = "card_cost",
+					text_id = "card_cost"
 				}
 			}
 		},
 		content = {
-			card_name = "Card Name "..slot_index
+			item_hotspot = {},
+			card_name = "Card Name "..item_index,
+			card_cost = "0"
 		},
 		style = {
 			background = {
-				vertical_alignment = "top",
-				horizontal_alignment = "center",
+				color = background_color,
+				normal_color = background_color,
+				hover_color = hover_color
+			},
+			card_rarity = {
+				vertical_alignment = "center",
+				horizontal_alignment = "left",
 				size = {
-					LEFT_PANEL_WIDTH,
-					DECK_SLOT_HEIGHT
+					rarity_box_width,
+					DECK_SLOT_HEIGHT*0.65
 				},
 				offset = {
-					0,
-					LEFT_PANEL_HEIGHT - DECK_SLOT_HEIGHT * (slot_index),
+					PRETTY_MARGIN,
+					5,
 					1
 				},
-				color = background_color
+				color = {
+					255,
+					255,
+					255,
+					255
+				}
 			},
 			card_name = {
-				vertical_alignment = "top",
+				vertical_alignment = "center",
 				horizontal_alignment = "left",
 				font_size = DECK_SLOT_HEIGHT - 5,
-				localize = false,
-				word_wrap = true,
-				dynamic_font_size_word_wrap = true,
+				dynamic_font_size = true,
+				area_size = {
+					LEFT_PANEL_WIDTH - PRETTY_MARGIN*4 - cost_text_width - rarity_box_width,
+					DECK_SLOT_HEIGHT
+				},
 				font_type = "hell_shark",
 				text_color = {
 					255,
@@ -518,8 +656,30 @@ local define_deck_slot_widget = function(scenegraph_id, slot_index)
 					255
 				},
 				offset = {
-					PRETTY_MARGIN,
-					vertical_offset*-1,
+					PRETTY_MARGIN*2 + 16,
+					0,
+					2
+				}
+			},
+			card_cost = {
+				vertical_alignment = "center",
+				horizontal_alignment = "right",
+				font_size = DECK_SLOT_HEIGHT - 5,
+				dynamic_font_size = true,
+				area_size = {
+					cost_text_width,
+					DECK_SLOT_HEIGHT
+				},
+				font_type = "hell_shark",
+				text_color = {
+					255,
+					0,
+					255,
+					0
+				},
+				offset = {
+					PRETTY_MARGIN*-1,
+					0,
 					2
 				}
 			}
@@ -528,7 +688,7 @@ local define_deck_slot_widget = function(scenegraph_id, slot_index)
 end
 
 for i=1,TOTAL_DECK_SLOTS do
-	define_deck_slot_widget("left_panel", i)
+	define_deck_card_items(i)
 end
 
 local CARD_TILE_ROWS = 2
@@ -594,5 +754,6 @@ end
 
 return {
 	scenegraph_definition = scenegraph_definition,
-	widgets = widgets
+	widgets = widgets,
+	max_cards_in_deck = TOTAL_DECK_SLOTS
 }

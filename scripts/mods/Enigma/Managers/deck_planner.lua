@@ -236,6 +236,20 @@ dpm.remove_card_from_deck = function(self, card_id, deck, skip_save)
     return true
 end
 
+dpm.remove_card_from_deck_by_index = function(self, index, deck, skip_save)
+    if not index then
+        enigma:echo("Deck did not contain the specified card")
+        return false
+    end
+    table.remove(deck.cards, index)
+    self:recalculate_cp(deck)
+    if not skip_save then
+        self:save_decks()
+        on_deck_edited(deck)
+    end
+    return true
+end
+
 dpm.rename_deck = function(self, name, skip_save)
     if not self.editing_deck then
         enigma:echo("Not currently editing a deck, cannot rename")
@@ -293,6 +307,14 @@ dpm.remove_card_from_editing_deck = function(self, card_id)
         return false
     end
     return self:remove_card_from_deck(card_id, self.editing_deck)
+end
+
+dpm.remove_card_from_editing_deck_by_index = function(self, index)
+    if not self.editing_deck then
+        enigma:echo("Not currently editing a deck, cannot remove a card")
+        return false
+    end
+    return self:remove_card_from_deck_by_index(index, self.editing_deck)
 end
 
 local delete_deck_helper = function(manager, deck_name, force, skip_save)

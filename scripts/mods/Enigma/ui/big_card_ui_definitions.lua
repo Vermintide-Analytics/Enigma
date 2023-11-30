@@ -29,7 +29,7 @@ local scenegraph_definition = {
 		position = {
 			0,
 			0,
-			UILayer.hud+1
+			UILayer.hud+100
 		}
 	},
 	card = {
@@ -156,17 +156,23 @@ local widgets = {
 		element = {
 			passes = {
 				{
+					pass_type = "hotspot",
+					scenegraph_id = "screen",
+					content_id = "screen_hotspot"
+				},
+				{
 					pass_type = "rect",
 					style_id = "fullscreen_shade"
 				},
 			}
 		},
 		content = {
+			screen_hotspot = {}
 		},
 		style = {
 			fullscreen_shade = {
 				color = {
-					100,
+					150,
 					0,
 					0,
 					0

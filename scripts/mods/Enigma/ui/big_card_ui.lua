@@ -18,6 +18,10 @@ EnigmaBigCardUI.init = function(self, parent, ingame_ui_context)
 	self.matchmaking_manager = Managers.matchmaking
 	local world = self.world_manager:world("level_world")
 	self.wwise_world = Managers.world:wwise_world(world)
+	
+	self.input_manager:create_input_service("big_card_ui", "IngameMenuKeymaps", "IngameMenuFilters")
+	self.input_manager:map_device_to_service("big_card_ui", "keyboard")
+	self.input_manager:map_device_to_service("big_card_ui", "mouse")
 
 	self:create_ui_elements()
 end
@@ -50,7 +54,7 @@ end
 
 local cached_card
 local x_scale = 512
-EnigmaBigCardUI.update = function (self, dt)
+EnigmaBigCardUI.update = function (self, dt, t)
 	if DO_RELOAD then
 		self:create_ui_elements()
 	end
@@ -62,14 +66,29 @@ EnigmaBigCardUI.update = function (self, dt)
 	end
 
     local card = enigma.managers.ui.big_card_to_display
+	if not cached_card and card then
+		-- on enter
+		ShowCursorStack.push()
+
+		self.input_manager:capture_input(ALL_INPUT_METHODS, 1, "big_card_ui", "big_card_ui")
+
+	elseif cached_card and not card then
+		-- on exit
+		ShowCursorStack.pop()
+		
+		self.input_manager:release_input(ALL_INPUT_METHODS, 1, "big_card_ui", "big_card_ui")
+	end
+	cached_card = card
 	if not card then
 		return
 	end
 
-	x_scale = x_scale - dt*50
-	if x_scale < 10 then
-		x_scale = 800
-	end
+	self:_handle_input(dt, t)
+
+	--x_scale = x_scale - dt*50
+	--if x_scale < 10 then
+	--	x_scale = 800
+	--end
 
 	ui_common.update_card_display(self.card_scenegraph_nodes, self.card_widgets, card, x_scale)
 	self:draw(dt)
@@ -209,8 +228,15 @@ EnigmaBigCardUI.update = function (self, dt)
 	]]
 end
 
+EnigmaBigCardUI._handle_input = function(self, dt, t)
+	local keystrokes = Keyboard.keystrokes()
+	if #keystrokes > 0 or self._widgets_by_name.background.content.screen_hotspot.on_pressed then
+		enigma.managers.ui.big_card_to_display = nil
+	end
+end
+
 EnigmaBigCardUI.draw = function (self, dt)
-	local input_service = self.input_manager:get_service("ingame_menu")
+	local input_service = self.input_manager:get_service("big_card_ui")
 	local ui_renderer = self.ui_renderer
 
 	UIRenderer.begin_pass(ui_renderer, self.ui_scenegraph, input_service, dt)

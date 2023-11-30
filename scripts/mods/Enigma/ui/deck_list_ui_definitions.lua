@@ -243,7 +243,7 @@ local widgets = {
 local TOTAL_DECK_LIST_ITEMS = 8
 local DECK_LIST_ITEM_HEIGHT = math.floor(DECK_LIST_HEIGHT/TOTAL_DECK_LIST_ITEMS)
 
-local define_deck_list_items = function(scenegraph_id, slot_index)
+local define_deck_list_items = function(slot_index)
 	local item_vertical_offset = DECK_LIST_ITEM_HEIGHT * (slot_index-1)
 	local background_color = {
 		180,
@@ -259,8 +259,12 @@ local define_deck_list_items = function(scenegraph_id, slot_index)
 			0
 		}
 	end
-	background_color[1] = background_color[1] + slot_index * 8
-
+	local hover_color = {
+		background_color[1],
+		64,
+		64,
+		64
+	}
 	local item_name = "deck_slot_"..slot_index
 	local equip_button_name = item_name.."_equip_button"
 	scenegraph_definition[item_name] = {
@@ -326,7 +330,9 @@ local define_deck_list_items = function(scenegraph_id, slot_index)
 					0,
 					0
 				},
-				color = background_color
+				color = background_color,
+				normal_color = background_color,
+				hover_color = hover_color
 			},
 			deck_name = {
 				vertical_alignment = "center",
@@ -359,7 +365,7 @@ local define_deck_list_items = function(scenegraph_id, slot_index)
 end
 
 for i=1,TOTAL_DECK_LIST_ITEMS do
-	define_deck_list_items("deck_list", i)
+	define_deck_list_items(i)
 end
 
 return {

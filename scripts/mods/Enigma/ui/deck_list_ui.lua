@@ -100,7 +100,7 @@ EnigmaDeckListUI._handle_input = function(self, dt, t)
 		local item_equip_button_name = item_name.."_equip_button"
 		local equip_button = self._widgets_by_name[item_equip_button_name]
 
-		-- Lighten item background if hotspot.is_hover
+		item.style.background.color = item.content.item_hotspot.is_hover and item.style.background.hover_color or item.style.background.normal_color
 		if item.content.item_hotspot.on_hover_enter then
 			self:play_sound("Play_hud_hover")
 		end
