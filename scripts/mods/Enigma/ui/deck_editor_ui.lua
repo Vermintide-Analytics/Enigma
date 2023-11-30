@@ -25,8 +25,6 @@ EnigmaDeckEditorUI.init = function(self, ingame_ui_context)
 	self:create_ui_elements()
 end
 
-local cached_editing_deck
-
 EnigmaDeckEditorUI.create_ui_elements = function (self)
 	DO_RELOAD = false
 	self.ui_scenegraph = UISceneGraph.init_scenegraph(definitions.scenegraph_definition)
@@ -41,6 +39,12 @@ end
 
 EnigmaDeckEditorUI.on_enter = function(self, params, offset)
 	ShowCursorStack.push()
+
+	local deck = enigma.managers.deck_planner.editing_deck
+
+	local deck_name_content = self._widgets_by_name.deck_name.content
+	deck_name_content.deck_name = deck and deck.name or ""
+	deck_name_content.caret_index = deck.name:len() + 1
 	
 	self.input_manager:block_device_except_service("deck_editor_view", "keyboard", 1)
 	self.input_manager:block_device_except_service("deck_editor_view", "mouse", 1)
@@ -70,13 +74,8 @@ EnigmaDeckEditorUI.update = function (self, dt, t)
 
 	self:_handle_input(dt, t)
 
-	local editing_deck = enigma.managers.deck_planner.editing_deck
-	if not editing_deck then
+	if not enigma.managers.deck_planner.editing_deck then
 		return
-	end
-	if editing_deck ~= cached_editing_deck then
-		-- Update info here
-		cached_editing_deck = editing_deck
 	end
 
 	self:draw(dt)
@@ -107,6 +106,25 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 	if input_close_pressed or UIUtils.is_button_pressed(close_window_button) then
 		self:play_sound("Play_hud_select")
 		Managers.ui:handle_transition("close_active", {})
+	end
+
+	-- Deck Name Text Box
+	local deck_name_content = self._widgets_by_name.deck_name.content
+	if deck_name_content.deck_name_input_hotspot.on_pressed then
+		deck_name_content.deck_name_input_active = true
+		enigma.text_input_focused = true
+	elseif deck_name_content.screen_hotspot.on_pressed then
+		deck_name_content.deck_name_input_active = false
+		enigma.text_input_focused = false
+	end
+
+	if deck_name_content.deck_name_input_active then
+		local keystrokes = Keyboard.keystrokes()
+		local previous_deck_name = deck_name_content.deck_name
+		deck_name_content.deck_name, deck_name_content.caret_index = KeystrokeHelper.parse_strokes(deck_name_content.deck_name, deck_name_content.caret_index, "insert", keystrokes)
+		if deck_name_content.deck_name ~= previous_deck_name then
+			enigma.managers.deck_planner:rename_deck(deck_name_content.deck_name)
+		end
 	end
 end
 

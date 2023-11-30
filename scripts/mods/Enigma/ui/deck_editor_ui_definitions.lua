@@ -151,8 +151,36 @@ local scenegraph_definition = {
 		vertical_alignment = "top",
 		horizontal_alignment = "center",
 		size = {
-			WINDOW_WIDTH,
-			TOP_PANEL_HEIGHT
+			WINDOW_WIDTH - PRETTY_MARGIN*2,
+			TOP_PANEL_HEIGHT - PRETTY_MARGIN
+		},
+		position = {
+			0,
+			PRETTY_MARGIN,
+			1
+		}
+	},
+	deck_name = {
+		parent = "top_panel",
+		vertical_alignment = "top",
+		horizontal_alignment = "left",
+		size = {
+			WINDOW_WIDTH / 4,
+			TOP_PANEL_HEIGHT / 4
+		},
+		position = {
+			PRETTY_MARGIN*2,
+			PRETTY_MARGIN*-2 - 4,
+			1
+		}
+	},
+	deck_name_inner = {
+		parent = "deck_name",
+		vertical_alignment = "center",
+		horizontal_alignment = "center",
+		size = {
+			-4,
+			-4
 		},
 		position = {
 			0,
@@ -281,6 +309,99 @@ local widgets = {
 					100
 				}
 			},
+		}
+	},
+	deck_name = {
+		scenegraph_id = "deck_name",
+		element = {
+			passes = {
+				{
+					pass_type = "rect",
+					style_id = "name_input_background"
+				},
+				{
+					pass_type = "rect",
+					style_id = "name_input_inner_background"
+				},
+				{
+					pass_type = "hotspot",
+					content_id = "deck_name_input_hotspot"
+				},
+				{
+					pass_type = "hotspot",
+					scenegraph_id = "screen",
+					content_id = "screen_hotspot"
+				},
+				{
+					pass_type = "text",
+					style_id = "deck_name",
+					text_id = "deck_name",
+					content_check_function = function(content, style)
+						if not content.deck_name_input_active then
+							style.caret_color[1] = 0
+						else
+							style.caret_color[1] = 128 + math.sin(Managers.time:time("ui") * 5) * 128
+						end
+						return true
+					end
+				}
+			}
+		},
+		content = {
+			deck_name_input_hotspot = {},
+			screen_hotspot = {},
+			text_start_offset = 0,
+			text_index = 1,
+			deck_name_input_active = false,
+			deck_name = "-- DECK NAME --",
+			caret_index = 1
+		},
+		style = {
+			name_input_background = {
+				scenegraph_id = "deck_name",
+				color = {
+					255,
+					128,
+					128,
+					128
+				},
+			},
+			name_input_inner_background = {
+				scenegraph_id = "deck_name",
+				color = {
+					255,
+					0,
+					0,
+					0
+				},
+			},
+			deck_name = {
+				scenegraph_id = "deck_name_inner",
+				horizontal_scroll = true,
+				word_wrap = false,
+				pixel_perfect = true,
+				horizontal_alignment = "left",
+				vertical_alignment = "center",
+				font_size = 28,
+				dynamic_font = true,
+				font_type = "hell_shark_arial",
+				text_color = Colors.get_table("white"),
+				offset = {
+					2,
+					2,
+					1
+				},
+				caret_size = {
+					2,
+					26
+				},
+				caret_offset = {
+					0,
+					-4,
+					4
+				},
+				caret_color = Colors.get_table("white")
+			}
 		}
 	},
 	left_panel = {

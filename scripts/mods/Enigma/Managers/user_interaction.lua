@@ -19,6 +19,9 @@ end
 
 -- Keybind callbacks
 enigma.card_mode_key_pressed = function()
+    if enigma.text_input_focused then
+        return
+    end
     if enigma.managers.game:is_in_game() then
         
     else

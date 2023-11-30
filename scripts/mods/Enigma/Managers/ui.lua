@@ -31,7 +31,7 @@ uim.transitions = {
         else
             local forced_deck = params.deck_name and enigma.managers.deck_planner.decks[params.deck_name]
             if forced_deck then
-                enigma.managers.deck_planner:set_editing_deck_by_name(forced_deck)
+                enigma.managers.deck_planner:set_editing_deck_by_name(forced_deck.name)
             end
         end
         if enigma.managers.deck_planner.editing_deck then

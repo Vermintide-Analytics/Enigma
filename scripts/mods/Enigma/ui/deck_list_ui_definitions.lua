@@ -243,8 +243,8 @@ local widgets = {
 local TOTAL_DECK_LIST_ITEMS = 8
 local DECK_LIST_ITEM_HEIGHT = math.floor(DECK_LIST_HEIGHT/TOTAL_DECK_LIST_ITEMS)
 
-local define_deck_list_item_widget = function(scenegraph_id, slot_index)
-	local vertical_offset = DECK_LIST_ITEM_HEIGHT * (slot_index-1)
+local define_deck_list_items = function(scenegraph_id, slot_index)
+	local item_vertical_offset = DECK_LIST_ITEM_HEIGHT * (slot_index-1)
 	local background_color = {
 		180,
 		0,
@@ -261,47 +261,84 @@ local define_deck_list_item_widget = function(scenegraph_id, slot_index)
 	end
 	background_color[1] = background_color[1] + slot_index * 8
 
-	local widget_name = "deck_slot_"..slot_index
-	widgets[widget_name] = {
-		scenegraph_id = scenegraph_id,
+	local item_name = "deck_slot_"..slot_index
+	local equip_button_name = item_name.."_equip_button"
+	scenegraph_definition[item_name] = {
+		parent = "deck_list",
+		vertical_alignment = "top",
+		horizontal_alignment = "center",
+		size = {
+			DECK_LIST_WIDTH,
+			DECK_LIST_ITEM_HEIGHT
+		},
+		position = {
+			0,
+			item_vertical_offset*-1,
+			2
+		}
+	}
+	scenegraph_definition[equip_button_name] = {
+		parent = item_name,
+		vertical_alignment = "center",
+		horizontal_alignment = "right",
+		size = {
+			DECK_LIST_WIDTH / 5,
+			DECK_LIST_ITEM_HEIGHT - 2
+		},
+		position = {
+			PRETTY_MARGIN*-1,
+			0,
+			1
+		}
+	}
+	local deck_name_area_width = scenegraph_definition[item_name].size[1] - scenegraph_definition[equip_button_name].size[1] - PRETTY_MARGIN*2
+	widgets[item_name] = {
+		scenegraph_id = item_name,
+		index = slot_index,
 		element = {
 			passes = {
+				{
+					style_id = "background",
+					pass_type = "hotspot",
+					content_id = "item_hotspot"
+				},
 				{
 					pass_type = "rect",
 					style_id = "background"
 				},
 				{
 					pass_type = "text",
-					style_id = "card_name",
-					text_id = "card_name"
+					style_id = "deck_name",
+					text_id = "deck_name"
 				}
 			}
 		},
 		content = {
-			card_name = "Deck Name "..slot_index
+			deck_name = "Deck Name "..slot_index,
+			item_hotspot = {}
 		},
 		style = {
 			background = {
-				vertical_alignment = "top",
+				vertical_alignment = "center",
 				horizontal_alignment = "center",
-				size = {
-					DECK_LIST_WIDTH,
-					DECK_LIST_ITEM_HEIGHT
-				},
 				offset = {
 					0,
-					DECK_LIST_HEIGHT - DECK_LIST_ITEM_HEIGHT * (slot_index),
-					1
+					0,
+					0
 				},
 				color = background_color
 			},
-			card_name = {
-				vertical_alignment = "top",
+			deck_name = {
+				vertical_alignment = "center",
 				horizontal_alignment = "left",
 				font_size = DECK_LIST_ITEM_HEIGHT - 5,
 				localize = false,
 				word_wrap = true,
 				dynamic_font_size_word_wrap = true,
+				area_size = {
+					deck_name_area_width,
+					DECK_LIST_ITEM_HEIGHT
+				},
 				font_type = "hell_shark",
 				text_color = {
 					255,
@@ -311,19 +348,22 @@ local define_deck_list_item_widget = function(scenegraph_id, slot_index)
 				},
 				offset = {
 					PRETTY_MARGIN,
-					vertical_offset*-1,
+					0,
 					2
 				}
 			}
 		}
 	}
+	widgets[equip_button_name] = UIWidgets.create_default_button(equip_button_name, scenegraph_definition[equip_button_name].size, nil, nil, enigma:localize("equip"), 24, nil, nil, nil, true, true)
+	widgets[equip_button_name].index = slot_index
 end
 
 for i=1,TOTAL_DECK_LIST_ITEMS do
-	define_deck_list_item_widget("deck_list", i)
+	define_deck_list_items("deck_list", i)
 end
 
 return {
 	scenegraph_definition = scenegraph_definition,
-	widgets = widgets
+	widgets = widgets,
+	decks_per_page = TOTAL_DECK_LIST_ITEMS
 }

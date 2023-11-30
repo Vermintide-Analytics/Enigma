@@ -28,6 +28,15 @@ local loc = {
 	},
 
 	-- UI
+	edit = {
+		en = "Edit"
+	},
+	equip = {
+		en = "Equip"
+	},
+
+	-- Deck List
+	
 
 	-- Deck Editor
 	deck_editor_window_title = {

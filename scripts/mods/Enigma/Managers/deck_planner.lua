@@ -238,11 +238,11 @@ end
 
 dpm.rename_deck = function(self, name, skip_save)
     if not self.editing_deck then
-        enigma:echo("Not currently editing a deck, cannot add a card")
+        enigma:echo("Not currently editing a deck, cannot rename")
         return
     end
     if self.decks[name] then
-        enigma:echo("A deck by that name already exists")
+        enigma:warning("A deck by that name already exists")
         return
     end
     self.decks[name] = self.editing_deck
@@ -257,7 +257,6 @@ end
 
 dpm.set_editing_deck_by_name = function(self, deck_name)
     if not deck_name then
-        enigma:echo("No longer editing a deck")
         self.editing_deck = nil
         return
     end
@@ -502,12 +501,13 @@ dpm.save_decks = function(self)
             table.insert(decks_save_data, deck_save_data)
         end
     end
-    enigma:dump(decks_save_data, "SAVING DATA", 5)
+    enigma:info("Saving deck data")
     enigma:save(DECKS_SAVE_NAME, decks_save_data)
 end
 
 local EQUIPPED_DECKS_SAVE_NAME = "enigma_equipped_decks"
 dpm.save_equipped_decks = function(self)
+    enigma:info("Saving equipped deck data")
     enigma:save(EQUIPPED_DECKS_SAVE_NAME, self.equipped_decks, nil)
 end
 

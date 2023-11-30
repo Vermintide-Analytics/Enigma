@@ -58,6 +58,10 @@ local ui_common = {
     }
 }
 
+ui_common.add_card_widgets = function(widget_defs, card_scenegraph_id, card_widget_name, card_width)
+	
+end
+
 ui_common.update_card_display = function(scenegraph_nodes, widgets, card, card_width)
 	local scaling_from_default = card_width / DEFAULT_CARD_WIDTH
 
