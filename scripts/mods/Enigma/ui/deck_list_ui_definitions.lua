@@ -145,11 +145,39 @@ local scenegraph_definition = {
 		}
 	},
 	pagination_panel = {
-		parent = "inner_window",
-		vertical_alignment = "bottom",
-		horizontal_alignment = "right",
+		parent = "deck_list",
+		vertical_alignment = "top",
+		horizontal_alignment = "center",
 		size = {
 			PAGINATION_PANEL_WIDTH,
+			PAGINATION_PANEL_HEIGHT
+		},
+		position = {
+			0,
+			PAGINATION_PANEL_HEIGHT,
+			1
+		}
+	},
+	page_left_button = {
+		parent = "pagination_panel",
+		vertical_alignment = "center",
+		horizontal_alignment = "left",
+		size = {
+			PAGINATION_PANEL_HEIGHT,
+			PAGINATION_PANEL_HEIGHT
+		},
+		position = {
+			0,
+			0,
+			1
+		}
+	},
+	page_right_button = {
+		parent = "pagination_panel",
+		vertical_alignment = "center",
+		horizontal_alignment = "right",
+		size = {
+			PAGINATION_PANEL_HEIGHT,
 			PAGINATION_PANEL_HEIGHT
 		},
 		position = {
@@ -238,6 +266,59 @@ local widgets = {
 			}
 		}
 	},
+	pagination_panel = {
+		scenegraph_id = "pagination_panel",
+		element = {
+			passes = {
+				{
+					pass_type = "rect",
+					style_id = "background"
+				},
+				{
+					pass_type = "text",
+					style_id = "page_text",
+					text_id = "page_text"
+				}
+			}
+		},
+		content = {
+			page_text = "0 of 0"
+		},
+		style = {
+			background = {
+				color = {
+					128,
+					0,
+					0,
+					0
+				}
+			},
+			page_text = {
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				font_size = 36,
+				dynamic_font_size = true,
+				area_size = {
+					PAGINATION_PANEL_WIDTH/2,
+					PAGINATION_PANEL_HEIGHT
+				},
+				font_type = "hell_shark",
+				text_color = {
+					255,
+					255,
+					255,
+					255
+				},
+				offset = {
+					0,
+					0,
+					2
+				}
+			}
+		}
+	},
+	page_left_button = UIWidgets.create_default_button("page_left_button", scenegraph_definition.page_left_button.size, nil, nil, "<-", 24, nil, nil, nil, true, true),
+	page_right_button = UIWidgets.create_default_button("page_right_button", scenegraph_definition.page_right_button.size, nil, nil, "->", 24, nil, nil, nil, true, true),
 }
 
 local TOTAL_DECK_LIST_ITEMS = 8

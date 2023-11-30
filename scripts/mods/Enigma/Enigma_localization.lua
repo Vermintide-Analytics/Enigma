@@ -34,6 +34,9 @@ local loc = {
 	equip = {
 		en = "Equip"
 	},
+	page_count = {
+		en = "%i of %i"
+	},
 
 	-- Deck List
 	

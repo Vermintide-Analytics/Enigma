@@ -86,12 +86,36 @@ EnigmaDeckListUI.update = function (self, dt, t)
 end
 
 EnigmaDeckListUI._handle_input = function(self, dt, t)
+	local need_update_pagination = false
+
 	local input_service = self:input_service()
 	local input_close_pressed = input_service:get("toggle_menu")
 
-	local close_window_button = self._widgets_by_name.close_window_button
+	-- Pagination
+	local page_left_button = self._widgets_by_name.page_left_button
+	local page_right_button = self._widgets_by_name.page_right_button
 
+	if not page_left_button.content.disable_button and page_left_button.content.button_hotspot.on_hover_enter then
+		self:play_sound("Play_hud_hover")
+	end
+	if not page_right_button.content.disable_button and page_right_button.content.button_hotspot.on_hover_enter then
+		self:play_sound("Play_hud_hover")
+	end
+	UIWidgetUtils.animate_default_button(page_left_button, dt)
+	UIWidgetUtils.animate_default_button(page_right_button, dt)
 
+	if not page_left_button.content.disable_button and UIUtils.is_button_pressed(page_left_button) then
+		self:play_sound("Play_hud_select")
+		self.current_page = self.current_page - 1
+		need_update_pagination = true
+	end
+	if not page_right_button.content.disable_button and UIUtils.is_button_pressed(page_right_button) then
+		self:play_sound("Play_hud_select")
+		self.current_page = self.current_page + 1
+		need_update_pagination = true
+	end
+
+	-- Deck list items
 	local equip_button_pressed = false
 	for i=1,DECKS_PER_PAGE do
 		local item_name = "deck_slot_"..i
@@ -135,12 +159,19 @@ EnigmaDeckListUI._handle_input = function(self, dt, t)
 		end
 	end
 
+
+	-- Window buttons
+	local close_window_button = self._widgets_by_name.close_window_button
 	UIWidgetUtils.animate_default_button(close_window_button, dt)
 	if close_window_button.content.button_hotspot.on_hover_enter then
 		self:play_sound("Play_hud_hover")
 	end
 	if input_close_pressed or UIUtils.is_button_pressed(close_window_button) then
 		Managers.ui:handle_transition("close_active", {})
+	end
+
+	if need_update_pagination then
+		self:update_deck_list_ui()
 	end
 end
 
@@ -202,4 +233,14 @@ EnigmaDeckListUI.update_deck_list_ui = function(self)
 			item_widget.content.deck_name = deck.name
 		end
 	end
+
+	local pagination_text = enigma:localize("page_count", self.current_page, self.num_pages)
+	local pagination_widget = self._widgets_by_name.pagination_panel
+	pagination_widget.content.page_text = pagination_text
+	
+	local page_left_button = self._widgets_by_name.page_left_button
+	local page_right_button = self._widgets_by_name.page_right_button
+
+	page_left_button.content.disable_button = self.current_page <= 1
+	page_right_button.content.disable_button = self.current_page >= self.num_pages
 end
