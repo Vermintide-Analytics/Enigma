@@ -59,7 +59,7 @@ local ui_common = {
 }
 
 ui_common.add_card_widgets = function(widget_defs, card_scenegraph_id, card_widget_name, card_width)
-	
+
 end
 
 ui_common.update_card_display = function(scenegraph_nodes, widgets, card, card_width)
@@ -108,7 +108,10 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card, card_w
 
 	card_widget.style.card_background.texture_size[1] = card_width
 	card_widget.style.card_background.texture_size[2] = card_height
+	card_widget.style.card_frame.texture_size[1] = card_width
+	card_widget.style.card_frame.texture_size[2] = card_height
 
+	card_name_widget.style.card_name._dynamic_wraped_text = ""
 	card_name_widget.style.card_name.font_size = card_name_font_size
 
 	card_image_widget.style.card_image.texture_size[1] = card_image_width
@@ -124,13 +127,16 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card, card_w
 		local text_style = card_details_widget.style[text_pass_name]
 
 		title_style.area_size[1] = inner_card_width - pretty_margin*2
+		title_style._dynamic_wraped_text = ""
 		title_style.font_size = card_details_font_size
 		
 		text_style.area_size[1] = inner_card_width - pretty_margin*2
+		text_style._dynamic_wraped_text = ""
 		text_style.font_size = card_details_font_size
 	end
 
 	card_details_widget.style.simple_keywords_text.area_size[1] = inner_card_width - pretty_margin*2
+	card_details_widget.style.simple_keywords_text._dynamic_wraped_text = ""
 	card_details_widget.style.simple_keywords_text.font_size = card_details_font_size
 
 
@@ -247,6 +253,8 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card, card_w
 		card_details_widget.content.card_text = table.concat(lines, "\n")
 		card_details_widget.style.card_text.offset[2] = current_vertical_offset
 		card_details_widget.style.card_text.area_size[2] = row_height
+		card_details_widget.style.card_text._dynamic_wraped_text = ""
+		card_details_widget.style.card_text.font_size = card_details_font_size
 	else
 		card_details_widget.content.card_text = ""
 	end

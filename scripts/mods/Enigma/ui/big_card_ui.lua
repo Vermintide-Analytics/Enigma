@@ -85,10 +85,10 @@ EnigmaBigCardUI.update = function (self, dt, t)
 
 	self:_handle_input(dt, t)
 
-	--x_scale = x_scale - dt*50
-	--if x_scale < 10 then
-	--	x_scale = 800
-	--end
+	x_scale = x_scale - dt*50
+	if x_scale < 10 then
+		x_scale = 800
+	end
 
 	ui_common.update_card_display(self.card_scenegraph_nodes, self.card_widgets, card, x_scale)
 	self:draw(dt)

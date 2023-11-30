@@ -90,66 +90,6 @@ local scenegraph_definition = {
 	}
 }
 
-local add_described_keyword_passes = function(widget_def, index)
-	local title_name = "described_keyword_title_"..index
-	table.insert(widget_def.element.passes, {
-		pass_type = "text",
-		text_id = title_name,
-		style_id = title_name
-	})
-	widget_def.content[title_name] = ""
-	widget_def.style[title_name] = {
-		vertical_alignment = "center",
-		horizontal_alignment = "center",
-		font_size = 32,
-		localize = false,
-		word_wrap = true,
-		area_size = {
-			CARD_INNER_WIDTH,
-			0
-		},
-		dynamic_font_size_word_wrap = true,
-		font_type = "hell_shark",
-		text_color = KEYWORD_COLOR,
-		offset = {
-			0,
-			0,
-			0
-		}
-	}
-	local text_name = "described_keyword_text_"..index
-	table.insert(widget_def.element.passes, {
-		pass_type = "text",
-		text_id = text_name,
-		style_id = text_name
-	})
-	widget_def.content[text_name] = ""
-	widget_def.style[text_name] = {
-		vertical_alignment = "center",
-		horizontal_alignment = "center",
-		font_size = 32,
-		localize = false,
-		word_wrap = true,
-		dynamic_font_size_word_wrap = true,
-		area_size = {
-			CARD_INNER_WIDTH,
-			0
-		},
-		font_type = "hell_shark",
-		text_color = {
-			255,
-			0,
-			0,
-			0
-		},
-		offset = {
-			0,
-			0,
-			0
-		}
-	}
-end
-
 local widgets = {
 	background = {
 		scenegraph_id = "screen",
@@ -254,6 +194,7 @@ local widgets = {
 				vertical_alignment = "center",
 				horizontal_alignment = "center",
 				font_size = 64,
+				allow_fractions = true,
 				localize = false,
 				word_wrap = true,
 				dynamic_font_size_word_wrap = true,
@@ -327,6 +268,7 @@ local widgets = {
 				vertical_alignment = "center",
 				horizontal_alignment = "center",
 				font_size = 32,
+				allow_fractions = true,
 				localize = false,
 				word_wrap = true,
 				dynamic_font_size_word_wrap = true,
@@ -351,6 +293,7 @@ local widgets = {
 				vertical_alignment = "center",
 				horizontal_alignment = "center",
 				font_size = 32,
+				allow_fractions = true,
 				localize = false,
 				word_wrap = true,
 				dynamic_font_size_word_wrap = true,
@@ -369,6 +312,68 @@ local widgets = {
 		}
 	},
 }
+
+local add_described_keyword_passes = function(widget_def, index)
+	local title_name = "described_keyword_title_"..index
+	table.insert(widget_def.element.passes, {
+		pass_type = "text",
+		text_id = title_name,
+		style_id = title_name
+	})
+	widget_def.content[title_name] = ""
+	widget_def.style[title_name] = {
+		vertical_alignment = "center",
+		horizontal_alignment = "center",
+		font_size = 32,
+		allow_fractions = true,
+		localize = false,
+		word_wrap = true,
+		area_size = {
+			CARD_INNER_WIDTH,
+			0
+		},
+		dynamic_font_size_word_wrap = true,
+		font_type = "hell_shark",
+		text_color = KEYWORD_COLOR,
+		offset = {
+			0,
+			0,
+			0
+		}
+	}
+	local text_name = "described_keyword_text_"..index
+	table.insert(widget_def.element.passes, {
+		pass_type = "text",
+		text_id = text_name,
+		style_id = text_name
+	})
+	widget_def.content[text_name] = ""
+	widget_def.style[text_name] = {
+		vertical_alignment = "center",
+		horizontal_alignment = "center",
+		font_size = 32,
+		allow_fractions = true,
+		localize = false,
+		word_wrap = true,
+		dynamic_font_size_word_wrap = true,
+		area_size = {
+			CARD_INNER_WIDTH,
+			0
+		},
+		font_type = "hell_shark",
+		text_color = {
+			255,
+			0,
+			0,
+			0
+		},
+		offset = {
+			0,
+			0,
+			0
+		}
+	}
+end
 
 for i=1,5 do
 	add_described_keyword_passes(widgets.card_details, i)
