@@ -91,6 +91,30 @@ EnigmaDeckListUI._handle_input = function(self, dt, t)
 	local input_service = self:input_service()
 	local input_close_pressed = input_service:get("toggle_menu")
 
+	-- Create Deck Button
+	local create_deck_button = self._widgets_by_name.create_deck_button
+	UIWidgetUtils.animate_default_button(create_deck_button, dt)
+	if not create_deck_button.content.disable_button and create_deck_button.content.button_hotspot.on_hover_enter then
+		self:play_sound("Play_hud_hover")
+	end
+	if UIUtils.is_button_pressed(create_deck_button) then
+		self:play_sound("Play_hud_select")
+
+		local name = "New Deck"
+		local i = 1
+		while enigma.managers.deck_planner.decks[name] do
+			name = "New Deck "..i
+		end
+		local game_mode = enigma:detect_game_mode()
+		local new_deck = enigma.managers.deck_planner:create_empty_deck(name, game_mode)
+		if new_deck then
+			Managers.ui:handle_transition("deck_planner_view", { deck_name = new_deck.name })
+		else
+			enigma:echo("Failed to create a new deck")
+		end
+	end
+
+
 	-- Pagination
 	local page_left_button = self._widgets_by_name.page_left_button
 	local page_right_button = self._widgets_by_name.page_right_button
@@ -230,7 +254,11 @@ EnigmaDeckListUI.update_deck_list_ui = function(self)
 		equip_button.content.visible = has_deck and deck ~= equipped_deck
 		
 		if deck then
-			item_widget.content.deck_name = deck.name
+			local name = deck.name
+			if deck.prebuilt then
+				name = name.." (Pre-Built)"
+			end
+			item_widget.content.deck_name = name
 		end
 	end
 

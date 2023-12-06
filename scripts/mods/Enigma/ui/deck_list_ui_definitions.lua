@@ -130,6 +130,20 @@ local scenegraph_definition = {
 			10
 		}
 	},
+	create_deck_button = {
+		parent = "inner_window",
+		vertical_alignment = "top",
+		horizontal_alignment = "center",
+		size = {
+			DECK_LIST_WIDTH/2,
+			70
+		},
+		position = {
+			0,
+			PRETTY_MARGIN*-1,
+			1
+		}
+	},
 	deck_list = {
 		parent = "inner_window",
 		vertical_alignment = "bottom",
@@ -245,6 +259,7 @@ local widgets = {
 		}
 	}),
 	close_window_button = UIWidgets.create_default_button("close_window_button", scenegraph_definition.close_window_button.size, nil, nil, Localize("interaction_action_close"), 24, nil, "button_detail_04", 34, true),
+	create_deck_button = UIWidgets.create_default_button("create_deck_button", scenegraph_definition.create_deck_button.size, nil, nil, enigma:localize("create_deck"), 24, nil, nil, nil, true, true),
 	deck_list = {
 		scenegraph_id = "deck_list",
 		element = {

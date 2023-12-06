@@ -27,22 +27,27 @@ local loc = {
 		en = "Unplayable",
 	},
 	warp_hungry = {
-		en = "Warp-Hungry (%is)"
+		en = "Warp-Hungry (%is)",
 	},
 
 	-- UI
+	delete = {
+		en = "Delete",
+	},
 	edit = {
-		en = "Edit"
+		en = "Edit",
 	},
 	equip = {
-		en = "Equip"
+		en = "Equip",
 	},
 	page_count = {
-		en = "%i of %i"
+		en = "%i of %i",
 	},
 
 	-- Deck List
-	
+	create_deck = {
+		en = "Create Deck",
+	},
 
 	-- Deck Editor
 	deck_editor_window_title = {

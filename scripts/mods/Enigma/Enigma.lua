@@ -101,7 +101,7 @@ dofile("scripts/mods/Enigma/CardPacks/Base")
 
 
 local add_test_deck = function()
-    enigma.managers.deck_planner:create_prebuilt_deck("Enigma", "Enigma Test Deck", "adventure", {
+    enigma.managers.deck_planner:create_prebuilt_deck("Enigma", "The Enigma", "adventure", {
         "base/long_rest",
         "base/warpstone_pie",
         "base/wrath_of_khorne",

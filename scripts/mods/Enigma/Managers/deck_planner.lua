@@ -186,15 +186,19 @@ dpm.create_prebuilt_deck = function(self, mod_id, name, game_mode, card_ids)
     new_deck.prebuilt_by = mod_id
 
     for i, v in ipairs(card_ids) do
-        self:add_card_to_deck(v, new_deck, true)
+        self:add_card_to_deck(v, new_deck, true, true)
     end
 
     self.prebuilt_deck_names[name] = true
 end
 
-dpm.add_card_to_deck = function(self, card_id, deck, skip_save)
+dpm.add_card_to_deck = function(self, card_id, deck, skip_save, force_for_prebuilt)
     if not card_id then
         enigma:echo("Must provide a card_id to add to deck")
+        return false
+    end
+    if deck.prebuilt and not force_for_prebuilt then
+        enigma:echo("Cannot add cards to pre-built decks")
         return false
     end
     local card_template = enigma.managers.card_template:get_card_from_id(card_id)
@@ -214,6 +218,10 @@ end
 dpm.remove_card_from_deck = function(self, card_id, deck, skip_save)
     if not card_id then
         enigma:echo("Must provide a card_id to remove from a deck")
+        return false
+    end
+    if deck.prebuilt then
+        enigma:echo("Cannot remove cards from pre-built decks")
         return false
     end
     local index
@@ -237,6 +245,10 @@ dpm.remove_card_from_deck = function(self, card_id, deck, skip_save)
 end
 
 dpm.remove_card_from_deck_by_index = function(self, index, deck, skip_save)
+    if deck.prebuilt then
+        enigma:echo("Cannot remove cards from pre-built decks")
+        return false
+    end
     if not index then
         enigma:echo("Deck did not contain the specified card")
         return false
@@ -253,6 +265,10 @@ end
 dpm.rename_deck = function(self, name, skip_save)
     if not self.editing_deck then
         enigma:echo("Not currently editing a deck, cannot rename")
+        return
+    end
+    if self.editing_deck.prebuilt then
+        enigma:echo("Cannot rename pre-built decks")
         return
     end
     if self.decks[name] then
@@ -327,6 +343,10 @@ local delete_deck_helper = function(manager, deck_name, force, skip_save)
         enigma:echo("Cannot delete deck, does not exist")
         return false
     end
+    if deck.prebuilt then
+        enigma:echo("Cannot delete pre-built decks")
+        return false
+    end
     local equipped = {}
     for career_name,equipped_deck_name in pairs(manager.equipped_decks[deck.game_mode]) do
         if equipped_deck_name == deck_name then
@@ -334,7 +354,9 @@ local delete_deck_helper = function(manager, deck_name, force, skip_save)
         end
     end
     if force then
-        enigma:echo("Unequipping "..deck_name.." from "..#equipped.." careers")
+        if #equipped > 0 then
+            enigma:echo("Unequipping "..deck_name.." from "..#equipped.." careers")
+        end
         for _,v in ipairs(equipped) do
             manager.equipped_decks[v.game_mode][v.career_name] = nil
         end
@@ -350,6 +372,9 @@ local delete_deck_helper = function(manager, deck_name, force, skip_save)
     end
 
     manager.decks[deck_name] = nil
+    if manager.editing_deck and manager.editing_deck.name == deck_name then
+        manager.editing_deck = nil
+    end
     
     if not skip_save then
         manager:save_decks()

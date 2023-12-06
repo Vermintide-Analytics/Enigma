@@ -154,6 +154,18 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 		end
 	end
 
+	-- Delete button
+	local delete_deck_button = self._widgets_by_name.delete_deck_button
+	UIWidgetUtils.animate_default_button(delete_deck_button, dt)
+	if not delete_deck_button.content.disable_button and delete_deck_button.content.button_hotspot.on_hover_enter then
+		self:play_sound("Play_hud_hover")
+	end
+	if UIUtils.is_button_pressed(delete_deck_button) then
+		self:play_sound("Play_hud_select")
+		enigma.managers.deck_planner:force_delete_deck(deck.name)
+		Managers.ui:handle_transition("deck_planner_view", { stop_editing = true })
+		return
+	end
 
 	-- Deck cards
 	local deck_ui_update_needed = false
@@ -273,6 +285,10 @@ EnigmaDeckEditorUI.update_deck_info_ui = function(self)
 	
 	local deck_cp_count_content = self._widgets_by_name.deck_cp_count.content
 	deck_cp_count_content.deck_cp_count = "CP: "..deck.cp.." / "..enigma.managers.deck_planner:max_cp(deck.game_mode)
+
+	local delete_deck_button = self._widgets_by_name.delete_deck_button
+	delete_deck_button.content.disable_button = deck.prebuilt
+	delete_deck_button.content.visible = not deck.prebuilt
 end
 
 EnigmaDeckEditorUI.update_deck_cards_ui = function(self)
