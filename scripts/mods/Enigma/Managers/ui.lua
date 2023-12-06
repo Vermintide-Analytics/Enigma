@@ -109,3 +109,53 @@ enigma:hook(IngameUI, "setup_views", function(func, self, ingame_ui_context)
     self.views.enigma_deck_list = EnigmaDeckListUI:new(ingame_ui_context)
     return result
 end)
+
+
+
+-- DEBUG
+local function draw_border(gui, pos, size, color, border)
+	border = border or 5
+	pos = pos + Vector3(0, 0, 1)
+	local w = size[1]
+	local h = size[2] - 2 * border
+
+	Gui.rect(gui, Vector3(pos[1], pos[2], pos[3]), Vector2(w, border), color)
+	Gui.rect(gui, Vector3(pos[1], pos[2] + size[2] - border, pos[3]), Vector2(w, border), color)
+	Gui.rect(gui, Vector3(pos[1], pos[2] + border, pos[3]), Vector2(border, h), color)
+	Gui.rect(gui, Vector3(pos[1] + size[1] - border, pos[2] + border, pos[3]), Vector2(border, h), color)
+end
+local function debug_render_scenegraph(ui_renderer, scenegraph, n_scenegraph, force_draw_depth)
+	local cursor = Mouse.axis(Mouse.axis_id("cursor"))
+	local inside_box = math.point_is_inside_2d_box
+	local gui = Debug.gui
+	force_draw_depth = force_draw_depth - 1
+	local border = 4
+
+	for i = 1, n_scenegraph do
+		local node = scenegraph[i]
+		local pos = node.world_position
+		local size = node.size
+
+		if size[2] > 0 and (force_draw_depth >= 0 or inside_box(cursor, pos, size)) then
+			local name = node.name
+			local label = string.format("%s (%d,%d,%d)[%d,%d]", name, pos[1], pos[2], pos[3], size[1], size[2])
+			local posV3 = Vector3(pos[1], pos[2], pos[3])
+			local hue = tonumber(string.sub(Application.make_hash(name), 8), 16) / 4294967296.0
+			local r, g, b = Colors.hsl2rgb(hue, 0.75, 0.5)
+
+			Gui.rect(gui, posV3, Vector2(size[1], size[2]), Color(20, r, g, b))
+
+			Gui.text(gui, label, "materials/fonts/arial", 16, nil, posV3 + Vector2(border, border), Color(200, r, g, b), "shadow", Color(200, 0, 0, 0))
+			draw_border(gui, posV3, size, Color(50, r, g, b), border)
+
+			local children = node.children
+
+			if children then
+				debug_render_scenegraph(ui_renderer, children, #children, force_draw_depth)
+			end
+		end
+	end
+end
+enigma:hook_origin(UISceneGraph, "debug_render_scenegraph", function(ui_renderer, scenegraph, force_draw_depth)
+	return debug_render_scenegraph(ui_renderer, scenegraph, #scenegraph, force_draw_depth or 1)
+end)

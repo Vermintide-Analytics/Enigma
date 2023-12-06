@@ -1,3 +1,5 @@
+local ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
+
 local enigma = get_mod("Enigma")
 
 local window_default_settings = UISettings.game_start_windows
@@ -11,13 +13,13 @@ local INNER_WINDOW_WIDTH = WINDOW_WIDTH - large_window_frame_width
 local INNER_WINDOW_HEIGHT = WINDOW_HEIGHT - large_window_frame_width
 
 local TOP_PANEL_HEIGHT = INNER_WINDOW_HEIGHT*0.15
-local LEFT_PANEL_WIDTH = INNER_WINDOW_WIDTH*0.25
+local LEFT_PANEL_WIDTH = INNER_WINDOW_WIDTH*0.3
 local LEFT_PANEL_HEIGHT = INNER_WINDOW_HEIGHT - TOP_PANEL_HEIGHT
 local RIGHT_PANEL_WIDTH = INNER_WINDOW_WIDTH - LEFT_PANEL_WIDTH
 local RIGHT_PANEL_HEIGHT = INNER_WINDOW_HEIGHT - TOP_PANEL_HEIGHT
 
-local PAGINATION_PANEL_WIDTH = INNER_WINDOW_WIDTH*0.25
-local PAGINATION_PANEL_HEIGHT = TOP_PANEL_HEIGHT*0.25
+local PAGINATION_PANEL_WIDTH = RIGHT_PANEL_WIDTH*0.2
+local PAGINATION_PANEL_HEIGHT = TOP_PANEL_HEIGHT*0.5
 
 local PRETTY_MARGIN = 10
 
@@ -245,11 +247,39 @@ local scenegraph_definition = {
 		}
 	},
 	pagination_panel = {
-		parent = "top_panel",
-		vertical_alignment = "bottom",
-		horizontal_alignment = "right",
+		parent = "right_panel",
+		vertical_alignment = "top",
+		horizontal_alignment = "center",
 		size = {
 			PAGINATION_PANEL_WIDTH,
+			PAGINATION_PANEL_HEIGHT
+		},
+		position = {
+			0,
+			PAGINATION_PANEL_HEIGHT,
+			1
+		}
+	},
+	page_left_button = {
+		parent = "pagination_panel",
+		vertical_alignment = "center",
+		horizontal_alignment = "left",
+		size = {
+			PAGINATION_PANEL_HEIGHT,
+			PAGINATION_PANEL_HEIGHT
+		},
+		position = {
+			0,
+			0,
+			1
+		}
+	},
+	page_right_button = {
+		parent = "pagination_panel",
+		vertical_alignment = "center",
+		horizontal_alignment = "right",
+		size = {
+			PAGINATION_PANEL_HEIGHT,
 			PAGINATION_PANEL_HEIGHT
 		},
 		position = {
@@ -528,10 +558,68 @@ local widgets = {
 					161,
 					40,
 					40
+				},
+				offset = {
+					0,
+					0,
+					-1
 				}
 			},
 		}
 	},
+	pagination_panel = {
+		scenegraph_id = "pagination_panel",
+		element = {
+			passes = {
+				{
+					pass_type = "rect",
+					style_id = "background"
+				},
+				{
+					pass_type = "text",
+					style_id = "page_text",
+					text_id = "page_text"
+				}
+			}
+		},
+		content = {
+			page_text = "0 of 0"
+		},
+		style = {
+			background = {
+				color = {
+					128,
+					0,
+					0,
+					0
+				}
+			},
+			page_text = {
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				font_size = 36,
+				dynamic_font_size = true,
+				area_size = {
+					PAGINATION_PANEL_WIDTH/2,
+					PAGINATION_PANEL_HEIGHT
+				},
+				font_type = "hell_shark",
+				text_color = {
+					255,
+					255,
+					255,
+					255
+				},
+				offset = {
+					0,
+					0,
+					2
+				}
+			}
+		}
+	},
+	page_left_button = UIWidgets.create_default_button("page_left_button", scenegraph_definition.page_left_button.size, nil, nil, "<-", 24, nil, nil, nil, true, true),
+	page_right_button = UIWidgets.create_default_button("page_right_button", scenegraph_definition.page_right_button.size, nil, nil, "->", 24, nil, nil, nil, true, true),
 }
 
 local TOTAL_DECK_SLOTS = 25
@@ -708,40 +796,63 @@ local define_card_tile_widget = function(scenegraph_id, tile_index)
 	local row = math.ceil(tile_index/CARD_TILES_PER_ROW)
 	local column = ((tile_index-1) % CARD_TILES_PER_ROW) + 1
 
-	local vertical_offset = PRETTY_MARGIN*row + CARD_TILE_HEIGHT*(row - 1)
 	local horizontal_offset = PRETTY_MARGIN*column + CARD_TILE_WIDTH*(column - 1)
+	local vertical_offset = PRETTY_MARGIN*row + CARD_TILE_HEIGHT*(row - 1)
 
-	local widget_name = "card_tile_"..tile_index
-	widgets[widget_name] = {
-		scenegraph_id = scenegraph_id,
+	local card_scenegraph_id = "card_"..tile_index
+	ui_common.add_card_display(scenegraph_definition, widgets, scenegraph_id, card_scenegraph_id, CARD_TILE_WIDTH)
+	scenegraph_definition[card_scenegraph_id].vertical_alignment = "top"
+	scenegraph_definition[card_scenegraph_id].horizontal_alignment = "left"
+	scenegraph_definition[card_scenegraph_id].position[1] = horizontal_offset
+	scenegraph_definition[card_scenegraph_id].position[2] = vertical_offset * -1
+
+	local background_color = {
+		180,
+		0,
+		0,
+		0
+	}
+	if tile_index % 2 == 0 then
+		background_color = {
+			90,
+			0,
+			0,
+			0
+		}
+	end
+	local hover_color = {
+		background_color[1],
+		64,
+		64,
+		64
+	}
+
+	widgets[card_scenegraph_id.."_deck_editor_interaction"] = {
+		scenegraph_id = card_scenegraph_id,
 		element = {
 			passes = {
 				{
-					pass_type = "rect",
-					style_id = "background"
-				}
+					pass_type = "hotspot",
+					content_id = "hotspot"
+				},
+				-- {
+				-- 	pass_type = "rect",
+				-- 	style = "background"
+				-- }
 			}
 		},
 		content = {
+			hotspot = {}
 		},
 		style = {
 			background = {
-				vertical_alignment = "top",
-				horizontal_alignment = "left",
-				size = {
-					CARD_TILE_WIDTH,
-					CARD_TILE_HEIGHT
-				},
+				color = background_color,
+				normal_color = background_color,
+				hover_color = hover_color,
 				offset = {
-					horizontal_offset,
-					vertical_offset,
-					1
-				},
-				color = {
-					128,
 					0,
 					0,
-					0
+					10
 				}
 			}
 		}
@@ -755,5 +866,7 @@ end
 return {
 	scenegraph_definition = scenegraph_definition,
 	widgets = widgets,
-	max_cards_in_deck = TOTAL_DECK_SLOTS
+	max_cards_in_deck = TOTAL_DECK_SLOTS,
+	num_card_tiles = TOTAL_CARD_TILES,
+	card_tile_width = CARD_TILE_WIDTH
 }

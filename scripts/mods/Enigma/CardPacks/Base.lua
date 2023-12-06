@@ -11,35 +11,10 @@ local game = enigma.managers.game
 local buff = enigma.managers.buff
 
 pack_handle.register_passive_cards({
-    exfull = {
-        name = "base_ex_full",
-        rarity = LEGENDARY,
-        cost = 4,
-        texture = "enigma_base_collar_cage",
-        description_lines = {
-            {
-                format = "description_test"
-            }
-        },
-        auto_descriptions = {
-            {
-                format = "auto_description_test"
-            }
-        },
-        condition_descriptions = {
-            {
-                format = "condition_description_test"
-            }
-        },
-        channel = 10,
-        ephemeral = true,
-        infinite = true
-    },
     ex1 = {
         name = "base_ex_1",
         rarity = LEGENDARY,
         cost = 4,
-        texture = "enigma_base_collar_cage",
         description_lines = {
             {
                 format = "description_test"
@@ -55,10 +30,9 @@ pack_handle.register_passive_cards({
         infinite = true
     },
     ex2 = {
-        name = "base_ex_1",
+        name = "base_ex_2",
         rarity = LEGENDARY,
         cost = 4,
-        texture = "enigma_base_collar_cage",
         description_lines = {
             {
                 format = "description_test"
@@ -281,6 +255,29 @@ pack_handle.register_surge_cards({
 })
 
 pack_handle.register_ability_cards({
+    exfull = {
+        name = "base_ex_full",
+        rarity = EPIC,
+        cost = 4,
+        description_lines = {
+            {
+                format = "description_test"
+            }
+        },
+        auto_descriptions = {
+            {
+                format = "auto_description_test"
+            }
+        },
+        condition_descriptions = {
+            {
+                format = "condition_description_test"
+            }
+        },
+        channel = 10,
+        ephemeral = true,
+        infinite = true
+    },
     cyclone_strike = {
         name = "base_cyclone_strike",
         rarity = RARE,

@@ -20,6 +20,9 @@ local loc = {
 	infinite = {
 		en = "Infinite",
 	},
+	retain = {
+		en = "Retain",
+	},
 	unplayable = {
 		en = "Unplayable",
 	},

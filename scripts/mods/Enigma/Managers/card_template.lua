@@ -54,6 +54,9 @@ local template_template = {
     double_agent = false,
     ephemeral = false,
     infinite = false,
+
+    retain_descriptions = {},
+
     unplayable = false,
     warp_hungry = nil,
 

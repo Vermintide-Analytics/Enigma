@@ -1,5 +1,7 @@
 local definitions = local_require("scripts/mods/Enigma/ui/deck_editor_ui_definitions")
 local MAX_CARDS_IN_DECK = definitions.max_cards_in_deck
+local TOTAL_CARD_TILES = definitions.num_card_tiles
+local CARD_TILE_WIDTH = definitions.card_tile_width
 local ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
 local DO_RELOAD = true
 EnigmaDeckEditorUI = class(EnigmaDeckEditorUI)
@@ -23,6 +25,11 @@ EnigmaDeckEditorUI.init = function(self, ingame_ui_context)
 	self.input_manager:map_device_to_service("deck_editor_view", "keyboard")
 	self.input_manager:map_device_to_service("deck_editor_view", "mouse")
 
+	self.name_filter = ""
+	self.filtered_cards = {}
+	self.num_pages = 1
+	self.current_page = 1
+
 	self:create_ui_elements()
 end
 
@@ -43,6 +50,8 @@ EnigmaDeckEditorUI.on_enter = function(self, params, offset)
 
 	self:update_deck_info_ui()
 	self:update_deck_cards_ui()
+
+	self:update_filtered_cards()
 
 	self.input_manager:block_device_except_service("deck_editor_view", "keyboard", 1)
 	self.input_manager:block_device_except_service("deck_editor_view", "mouse", 1)
@@ -71,11 +80,18 @@ EnigmaDeckEditorUI.update = function (self, dt, t)
 		return
 	end
 
-	self:_handle_input(dt, t)
-
 	if not enigma.managers.deck_planner.editing_deck then
 		return
 	end
+
+	local start_offset = (self.current_page - 1) * TOTAL_CARD_TILES
+	for i=1, TOTAL_CARD_TILES do
+		local card_scenegraph_id = "card_"..i
+		local card = self.filtered_cards[start_offset + i]
+		ui_common.update_card_display_if_needed(self.ui_scenegraph, self._widgets_by_name, card_scenegraph_id, card, CARD_TILE_WIDTH)
+	end
+
+	self:_handle_input(dt, t)
 
 	self:draw(dt)
 end
@@ -139,9 +155,8 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 	end
 
 
-
 	-- Deck cards
-	local ui_update_needed = false
+	local deck_ui_update_needed = false
 	for i=1, MAX_CARDS_IN_DECK do
 		local item_name = "deck_slot_"..i
 		local item = self._widgets_by_name[item_name]
@@ -153,15 +168,77 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 			end
 	
 			if item.content.item_hotspot.on_pressed then
+				self:play_sound("Play_hud_select")
 				enigma.managers.ui.big_card_to_display = card
 	
 			elseif item.content.item_hotspot.on_right_click then
+				self:play_sound("Play_hud_select")
 				enigma.managers.deck_planner:remove_card_from_editing_deck_by_index(i)
-				ui_update_needed = true
+				deck_ui_update_needed = true
 			end
 		end
 	end
-	if ui_update_needed then
+
+
+	-- Pagination
+	local need_update_pagination = false
+	local page_left_button = self._widgets_by_name.page_left_button
+	local page_right_button = self._widgets_by_name.page_right_button
+
+	if not page_left_button.content.disable_button and page_left_button.content.button_hotspot.on_hover_enter then
+		self:play_sound("Play_hud_hover")
+	end
+	if not page_right_button.content.disable_button and page_right_button.content.button_hotspot.on_hover_enter then
+		self:play_sound("Play_hud_hover")
+	end
+	UIWidgetUtils.animate_default_button(page_left_button, dt)
+	UIWidgetUtils.animate_default_button(page_right_button, dt)
+	if not page_left_button.content.disable_button and UIUtils.is_button_pressed(page_left_button) then
+		self:play_sound("Play_hud_select")
+		self.current_page = self.current_page - 1
+		need_update_pagination = true
+	end
+	if not page_right_button.content.disable_button and UIUtils.is_button_pressed(page_right_button) then
+		self:play_sound("Play_hud_select")
+		self.current_page = self.current_page + 1
+		need_update_pagination = true
+	end
+
+	if need_update_pagination then
+		self:update_card_tiles_ui()
+	end
+
+
+	-- Cards
+	for i=1, TOTAL_CARD_TILES do
+		local card_widget = self._widgets_by_name["card_"..i]
+		local card_interaction_widget = self._widgets_by_name["card_"..i.."_deck_editor_interaction"]
+		local card = self.filtered_cards[(self.current_page - 1) * TOTAL_CARD_TILES + i]
+		
+		local background_color_key = card and card.card_type or "default"
+		if card_interaction_widget.content.hotspot.is_hover then
+			background_color_key = background_color_key.."_highlight"
+		end
+		card_widget.style.card_background.color = ui_common.card_colors[background_color_key] or ui_common.card_colors.default
+		if card and card_interaction_widget.content.hotspot.on_hover_enter then
+			self:play_sound("Play_hud_hover")
+		end
+		
+		if card_interaction_widget.content.hotspot.on_pressed then
+			self:play_sound("Play_hud_select")
+			enigma.managers.ui.big_card_to_display = card
+		end
+		if card_interaction_widget.content.hotspot.on_right_click then
+			-- Add card to deck, if allowed
+			self:play_sound("Play_hud_select")
+			enigma.managers.deck_planner:add_card_to_editing_deck(card.id)
+			deck_ui_update_needed = true
+		end
+	end
+
+
+	
+	if deck_ui_update_needed then
 		self:update_deck_info_ui()
 		self:update_deck_cards_ui()
 	end
@@ -198,33 +275,6 @@ EnigmaDeckEditorUI.update_deck_info_ui = function(self)
 	deck_cp_count_content.deck_cp_count = "CP: "..deck.cp.." / "..enigma.managers.deck_planner:max_cp(deck.game_mode)
 end
 
-local color_by_rarity = {
-	[enigma.CARD_RARITY.common] = {
-		255,
-		255,
-		255,
-		255
-	},
-	[enigma.CARD_RARITY.rare] = {
-		255,
-		0,
-		0,
-		255
-	},
-	[enigma.CARD_RARITY.epic] = {
-		255,
-		147,
-		112,
-		219
-	},
-	[enigma.CARD_RARITY.legendary] = {
-		255,
-		255,
-		165,
-		0
-	},
-}
-
 EnigmaDeckEditorUI.update_deck_cards_ui = function(self)
 	local deck = enigma.managers.deck_planner.editing_deck
 	local cards = deck.cards
@@ -237,9 +287,54 @@ EnigmaDeckEditorUI.update_deck_cards_ui = function(self)
 			widget.content.visible = true
 			widget.content.card_name = card.name
 			widget.content.card_cost = card.cost
-			widget.style.card_rarity.color = color_by_rarity[card.rarity]
+			widget.style.card_rarity.color = ui_common.rarity_colors[card.rarity]
 		else
 			widget.content.visible = false
 		end
 	end
+end
+
+EnigmaDeckEditorUI.card_matches_filter = function(self, card)
+	-- TODO
+	return true
+end
+
+local alphabet_comparator = function(card_1, card_2)
+	return card_1.name:lower() < card_2.name:lower()
+end
+
+EnigmaDeckEditorUI.update_filtered_cards = function(self)
+	table.clear(self.filtered_cards)
+
+	for _,card_template in pairs(enigma.managers.card_template.card_templates) do
+		if self:card_matches_filter(card_template) then
+			table.insert(self.filtered_cards, card_template)
+		end
+	end
+
+	table.sort(self.filtered_cards, alphabet_comparator)
+
+	self.num_pages = math.ceil(#self.filtered_cards / TOTAL_CARD_TILES)
+	self.current_page = math.min(self.current_page, self.num_pages)
+
+	self:update_card_tiles_ui()
+end
+
+EnigmaDeckEditorUI.update_card_tiles_ui = function(self)
+	local start_offset = (self.current_page - 1) * TOTAL_CARD_TILES
+	for i=1, TOTAL_CARD_TILES do
+		local card_scenegraph_id = "card_"..i
+		local card = self.filtered_cards[start_offset + i]
+		ui_common.update_card_display_if_needed(self.ui_scenegraph, self._widgets_by_name, card_scenegraph_id, card, CARD_TILE_WIDTH)
+	end
+
+	local pagination_text = enigma:localize("page_count", self.current_page, self.num_pages)
+	local pagination_widget = self._widgets_by_name.pagination_panel
+	pagination_widget.content.page_text = pagination_text
+	
+	local page_left_button = self._widgets_by_name.page_left_button
+	local page_right_button = self._widgets_by_name.page_right_button
+
+	page_left_button.content.disable_button = self.current_page <= 1
+	page_right_button.content.disable_button = self.current_page >= self.num_pages
 end
