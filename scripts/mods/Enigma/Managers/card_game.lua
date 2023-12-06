@@ -41,6 +41,56 @@ local remove_card_from_pile = function(pile, card)
     table.remove(pile, ind)
 end
 
+local handle_local_card_played = function(card, index, location, play_type)
+    if not enigma.managers.warp:can_pay_cost(card.cost) then
+        enigma:echo("Not enough warpstone to play ["..card.name.."]")
+        return
+    end
+    enigma.managers.warp:pay_cost(card.cost)
+    
+    enigma:info("Playing card ["..card.id.."]")
+
+    local can_expend_charge = card.charges and card.charges > 1
+    if not can_expend_charge then
+        remove_card_from_pile(cgm.self_data[card.location], card)
+        card.location = nil
+    end
+
+    if cgm.is_server and card.on_play_server then
+        card:on_play_server(play_type)
+    end
+    if card.on_play_local then
+        card:on_play_local(play_type)
+    end
+    if card.card_type == enigma.CARD_TYPE.surge then
+        card.surging = true
+        if cgm.is_server and card.on_surge_begin_server then
+            card:on_surge_begin_server()
+        end
+        if card.on_surge_begin_local then
+            card:on_surge_begin_local()
+        end
+        cgm.self_data.active_surge_cards[card] = card.duration
+    end
+
+    if can_expend_charge then
+        card.charges = card.charges - 1
+    else
+        local destination_pile = enigma.CARD_LOCATION.discard_pile
+        if card.ephemeral then
+            destination_pile = enigma.CARD_LOCATION.out_of_play_pile
+        elseif card.infinite then
+            destination_pile = enigma.CARD_LOCATION.draw_pile
+        end
+    
+        table.insert(cgm.self_data[destination_pile], card)
+        card.location = destination_pile
+    end
+
+    enigma:network_send(net.event_card_played, "others", index, location, play_type)
+    return true
+end
+
 cgm.game_state = nil
 
 enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_name, card_ids_in_deck)
@@ -237,6 +287,23 @@ enigma:network_register(net.broadcast_pacing_intensity, function(peer_id, pacing
     cgm.pacing_intensity = pacing_intensity
     cgm:_update_card_draw_gain_rate()
 end)
+
+cgm._update_active_channel = function(self, dt)
+    if not self.self_data.active_channel then
+        return
+    end
+    if self.self_data.active_channel.cancelled then
+        self.self_data.active_channel = nil
+        return
+    end
+    self.self_data.active_channel.remaining_duration = self.self_data.active_channel.remaining_duration - dt
+    if self.self_data.active_channel.remaining_duration <= 0 then
+        local card = self.self_data.active_channel.card
+        local pile = self.self_data[card.location]
+        local index = get_card_index_in_pile(pile, card)
+        handle_local_card_played(card, index, card.location, self.self_data.active_channel.play_type)
+    end
+end
 
 cgm._run_local_card_updates = function(self, dt)
     if self.is_server then
@@ -519,13 +586,19 @@ cgm.try_draw_card = function(self)
     return success, fail_reason
 end
 
+
 enigma:network_register(net.event_card_played, function(peer_id, index, location, play_type)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
         return
     end
 
-    local card = table.remove(peer_data[location], index)
+    local card = peer_data[location][index]
+    if not card then
+        enigma:warning("Received card played event from another player but we can't find the card to play")
+        return
+    end
+    
     if cgm.is_server and card.on_play_server then
         card:on_play_server(play_type)
     end
@@ -542,17 +615,31 @@ enigma:network_register(net.event_card_played, function(peer_id, index, location
         end
         peer_data.active_surge_cards[card] = card.duration
     end
-    local destination_pile = enigma.CARD_LOCATION.discard_pile
-    if card.ephemeral then
-        destination_pile = enigma.CARD_LOCATION.out_of_play_pile
+    
+    local can_expend_charge = card.charges and card.charges > 1
+
+    if can_expend_charge then
+        card.charges = card.charges - 1
+    else
+        table.remove(peer_data[location], index)
+        local destination_pile = enigma.CARD_LOCATION.discard_pile
+        if card.ephemeral then
+            destination_pile = enigma.CARD_LOCATION.out_of_play_pile
+        elseif card.infinite then
+            destination_pile = enigma.CARD_LOCATION.draw_pile
+        end
+        table.insert(peer_data[destination_pile], card)
+        card.location = destination_pile
     end
-    table.insert(peer_data[destination_pile], card)
-    card.location = destination_pile
 end)
 cgm._try_play_card_at_index_from_location = function(self, index, location, play_type)
-    play_type = play_type or "manual"
+    play_type = play_type or "auto"
     if not enigma.can_play_from_location(location) then
         enigma:warning("Cannot play cards from "..tostring(location))
+        return
+    end
+    if self.self_data.active_channel then
+        enigma:info("Cannot play card, currently channeling")
         return
     end
     local card = self.self_data[location][index]
@@ -562,48 +649,24 @@ cgm._try_play_card_at_index_from_location = function(self, index, location, play
     end
 
     if not enigma.managers.warp:can_pay_cost(card.cost) then
-        enigma:echo("Not enough warpstone to play ["..card.id.."]")
+        enigma:echo("Not enough warpstone to play ["..card.name.."]")
         return
     end
-    enigma.managers.warp:pay_cost(card.cost)
 
-    remove_card_from_pile(self.self_data[card.location], card)
-    card.location = nil
-
-    if cgm.is_server and card.on_play_server then
-        card:on_play_server(play_type)
+    if play_type ~= "auto" and card.channel and card.channel > 0 then
+        self.self_data.active_channel = {
+            card = card,
+            total_duration = card.channel,
+            remaining_duration = card.channel,
+            play_type = play_type
+        }
+        return
     end
-    if card.on_play_local then
-        card:on_play_local(play_type)
-    end
-    if card.card_type == enigma.CARD_TYPE.surge then
-        card.surging = true
-        if cgm.is_server and card.on_surge_begin_server then
-            card:on_surge_begin_server()
-        end
-        if card.on_surge_begin_local then
-            card:on_surge_begin_local()
-        end
-        self.self_data.active_surge_cards[card] = card.duration
-    end
-
-    local destination_pile = enigma.CARD_LOCATION.discard_pile
-    if card.ephemeral then
-        destination_pile = enigma.CARD_LOCATION.out_of_play_pile
-    elseif card.infinite then
-        destination_pile = enigma.CARD_LOCATION.draw_pile
-    end
-
-    table.insert(self.self_data[destination_pile], card)
-    card.location = destination_pile
-
-    enigma:network_send(net.event_card_played, "others", index, location, play_type)
-    enigma:info("Played card ["..card.id.."]")
-    return true
+    return handle_local_card_played(card)
 end
 
 cgm.try_play_card_from_hand = function(self, card_index, play_type)
-    play_type = play_type or "manual"
+    play_type = play_type or "auto"
     if not self:is_in_game() then
         if play_type == "manual" then
             enigma:echo("Cannot play a card, not in a game right now.")
@@ -640,7 +703,7 @@ cgm.try_play_card_from_draw_pile = function(self, card_index)
 end
 
 cgm.try_play_card = function(self, card, play_type)
-    play_type = play_type or "manual"
+    play_type = play_type or "auto"
     if not card then
         return
     end
@@ -880,10 +943,10 @@ for i=1,5 do
         if not enigma.card_mode then
             return
         end
-        cgm:try_play_card_from_hand(i)
+        cgm:try_play_card_from_hand(i, "manual")
     end
     enigma[quick_hotkey_func_name] = function()
-        cgm:try_play_card_from_hand(i)
+        cgm:try_play_card_from_hand(i, "manual")
     end
 end
 

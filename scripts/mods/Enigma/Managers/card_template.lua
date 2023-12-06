@@ -46,6 +46,7 @@ local template_template = {
     auto_descriptions = {},
 
     channel = nil,
+    charges = nil,
 
     condition_local = nil,
     condition_server = nil,

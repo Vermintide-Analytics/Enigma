@@ -37,12 +37,13 @@ end
 
 enigma.EVENTS = {
 
-    enemy_damaged = "enemy_damaged",
+    enemy_damaged = "enemy_damaged", -- Hooked
     enemy_killed = "enemy_killed",
     enemy_spawned = "enemy_spawned",
     enemy_staggered = "enemy_staggered",
 
-    player_damaged = "player_damaged",
+    player_block_broken = "player_block_broken",
+    player_damaged = "player_damaged", -- Hooked
     player_disabled = "player_disabled",
     player_dodged = "player_dodged",
     player_healed = "player_healed",
