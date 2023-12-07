@@ -101,16 +101,22 @@ local invoke_stat_updated_callbacks = function(unit, stat, new_value, old_value)
     end
 end
 
+local stat_difference_multipliers = {
+    movement_speed = 2
+}
+
 bm.update_stat = function(self, unit, stat, difference)
     local old_value
     local new_value
+
+    local difference_multiplier = stat_difference_multipliers[stat] or 1
+    difference = difference * difference_multiplier
 
     local custom_buffs = self.unit_custom_buffs[unit]
     if custom_buffs and custom_buffs[stat] then
         old_value = custom_buffs[stat]
         custom_buffs[stat] = old_value + difference
         new_value = custom_buffs[stat]
-        enigma:info("Changed custom stat by: "..tostring(difference))
     else
         local index = self.unit_stat_buff_indexes[unit] and self.unit_stat_buff_indexes[unit][stat]
         local buff_extension = self.unit_buff_extensions[unit]
@@ -138,15 +144,16 @@ bm.update_stat = function(self, unit, stat, difference)
             old_value = new_value - difference
         end
     end
+    enigma:info("Stat "..stat.." updated from "..old_value.." to "..new_value)
     invoke_stat_updated_callbacks(unit, stat, new_value, old_value)
 end
 
-bm.surge_stat = function(self, unit, stat, difference, card)
+bm.surge_stat = function(self, unit, stat, difference, duration)
     self:update_stat(unit, stat, difference)
     table.insert(self.unit_stat_surges[unit], {
         stat = stat,
         difference = difference,
-        remaining_duration = card.duration
+        remaining_duration = duration
     })
 end
 
@@ -380,6 +387,7 @@ bm.update = function(self, dt)
         for i=#finished_surges,1,-1 do
             local surge = unit_stat_surges[i]
             self:update_stat(unit, surge.stat, -1*surge.difference)
+            table.remove(unit_stat_surges, finished_surges[i])
         end
     end
 end
