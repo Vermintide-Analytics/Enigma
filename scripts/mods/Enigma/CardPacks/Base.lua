@@ -240,7 +240,7 @@ pack_handle.register_surge_cards({
             buff:surge_stat(card.context.unit, "damage_taken", -.314, card.duration)
         end,
         on_surge_begin_local = function(card)
-            buff:surge_stat(card.context.unit, "movement_speed", .314, card.duration)
+            buff:surge_stat(card.context.unit, "movement_speed", -.314, card.duration)
         end
     },
     wrath_of_khorne = {
