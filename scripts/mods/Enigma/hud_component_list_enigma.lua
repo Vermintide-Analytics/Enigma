@@ -49,27 +49,6 @@ local enigma_components = {
 			"mission_vote"
 		}
 	},
-	{
-		use_hud_scale = true,
-		class_name = "EnigmaDeckDebugUI",
-		filename = "scripts/mods/Enigma/ui/deck_planner_debug_ui",
-		visibility_groups = {
-			"alive",
-			"entering_mission",
-			"mission_vote",
-			"in_menu"
-		}
-	},
-	{
-		use_hud_scale = true,
-		class_name = "EnigmaGameDebugUI",
-		filename = "scripts/mods/Enigma/ui/card_game_debug_ui",
-		visibility_groups = {
-			"alive",
-			"entering_mission",
-			"in_menu"
-		}
-	},
 }
 
 local components = {}
