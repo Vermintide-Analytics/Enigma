@@ -125,7 +125,7 @@ local add_card_scenegraph_nodes = function(scenegraph_defs, parent_id, card_scen
 		position = {
 			0,
 			0,
-			0
+			1
 		}
 	}
 
@@ -141,7 +141,7 @@ local add_card_scenegraph_nodes = function(scenegraph_defs, parent_id, card_scen
 		position = {
 			0,
 			0,
-			0
+			1
 		}
 	}
 

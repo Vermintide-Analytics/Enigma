@@ -1,6 +1,6 @@
 common = {
     input = {
-        filename = "img/Enigma/card/image_placeholder"
+        filename = "img/Enigma/card/card_atlas"
     }
     output = {
         format = "BC7"

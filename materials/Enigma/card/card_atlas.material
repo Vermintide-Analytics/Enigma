@@ -1,4 +1,4 @@
-enigma_card_image_placeholder = {
+card_atlas = {
 	material_contexts = {
 		surface_material = ""
 	}
@@ -6,7 +6,7 @@ enigma_card_image_placeholder = {
 	shader = "gui:DIFFUSE_MAP"
 
 	textures = {
-		diffuse_map = "textures/Enigma/card/image_placeholder"
+		diffuse_map = "textures/Enigma/card/card_atlas"
 	}
 
 	variables = {

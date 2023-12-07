@@ -61,7 +61,7 @@ pack_handle.register_passive_cards({
         },
         on_play_local = function(card)
             buff:update_stat(card.context.unit, "attack_speed", 0.05)
-            buff.update_stat(card.context.unit, "movement_speed", 0.05)
+            buff:update_stat(card.context.unit, "movement_speed", 0.05)
         end
     },
     collar_cage = {

@@ -168,7 +168,11 @@ return {
 			{
 				"img/Enigma/art/base/base_atlas",
 				"base_atlas"
-			}
+			},
+			{
+				"img/Enigma/card/card_atlas",
+				"card_atlas"
+			},
 		},
 		textures = {
 			"enigma_test_material"
@@ -180,20 +184,12 @@ return {
 			},
 			{
 				"ingame_ui",
-				"materials/Enigma/card/background"
-			},
-			{
-				"ingame_ui",
-				"materials/Enigma/card/frame"
-			},
-			{
-				"ingame_ui",
-				"materials/Enigma/card/image_placeholder"
-			},
-			{
-				"ingame_ui",
 				"materials/Enigma/art/base/base_atlas"
-			}
+			},
+			{
+				"ingame_ui",
+				"materials/Enigma/card/card_atlas"
+			},
 		}
 	}
 }
