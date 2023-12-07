@@ -16,7 +16,7 @@ local dpm = {
         deus = {}
     },
 
-    editing_deck = nil,
+    editing_deck = {},
 
     prebuilt_deck_names = {},
 
@@ -27,6 +27,7 @@ local dpm = {
 
     initialized = false
 }
+dpm.editing_deck = nil -- Initialize as table then set to null to shut up the Lua diagnostics complaining about accessing fields from nil
 enigma.managers.deck_planner = dpm
 
 dpm.cp = {
