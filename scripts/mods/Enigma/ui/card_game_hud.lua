@@ -29,6 +29,19 @@ EnigmaCardGameHud.create_ui_elements = function (self)
 	self.ui_scenegraph = UISceneGraph.init_scenegraph(definitions.scenegraph_definition)
 	self._widgets, self._widgets_by_name = UIUtils.create_widgets(definitions.widgets)
 
+	self.draw_pile_widget = self._widgets_by_name.draw_pile_column
+	self.discard_pile_widget = self._widgets_by_name.discard_pile_column
+	self.out_of_play_widget = self._widgets_by_name.out_of_play_column
+	self.warpstone_widget = self._widgets_by_name.warpstone_column
+	self.card_draw_widget = self._widgets_by_name.card_draw_column
+
+	self.warp_dust_bar_node = self.ui_scenegraph.warp_dust_bar
+	self.warp_dust_bar_node_inner = self.ui_scenegraph.warp_dust_bar_inner
+	self.card_draw_bar_node = self.ui_scenegraph.card_draw_bar
+	self.card_draw_bar_node_inner = self.ui_scenegraph.card_draw_bar_inner
+
+	self.WARP_DUST_PER_WARPSTONE = enigma.managers.warp:get_warp_dust_per_warpstone()
+
 	UIRenderer.clear_scenegraph_queue(self.ui_renderer)
 end
 
@@ -47,6 +60,29 @@ EnigmaCardGameHud.update = function (self, dt, t)
 		return
 	end
 
+	-- Info display
+	local game_data = enigma.managers.game.self_data
+	local num_draw_pile = #game_data.draw_pile
+	local num_discard_pile = #game_data.discard_pile
+	local num_out_of_game = #game_data.out_of_play_pile
+	local card_draws = game_data.available_card_draws
+	local card_draws_ipart = math.floor(card_draws)
+	local card_draws_fpart = card_draws - card_draws_ipart
+
+	local warpstone = enigma.managers.warp.warpstone
+	local warp_dust = enigma.managers.warp.warp_dust
+
+	self.draw_pile_widget.content.text = num_draw_pile
+	self.discard_pile_widget.content.text = num_discard_pile
+	self.out_of_play_widget.content.text = num_out_of_game
+	
+	self.warpstone_widget.content.text = warpstone
+	self.warp_dust_bar_node_inner.size[2] = self.warp_dust_bar_node.size[2] * (warp_dust / self.WARP_DUST_PER_WARPSTONE)
+
+	self.card_draw_widget.content.text = card_draws_ipart
+	self.card_draw_bar_node_inner.size[2] = self.card_draw_bar_node.size[2] * card_draws_fpart
+
+	-- Hand display
 	local hand = enigma.managers.game.self_data.hand
 	local hand_size = #hand
 	local horizontal_offset = (PRETTY_MARGIN + CARD_WIDTH)/2 * (hand_size-1) * -1

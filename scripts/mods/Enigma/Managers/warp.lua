@@ -68,6 +68,10 @@ wm.update = function(self, dt)
     self:add_warp_dust(dt * self.warp_dust_per_second)
 end
 
+wm.get_warp_dust_per_warpstone = function(self)
+    return WARP_DUST_PER_WARPSTONE
+end
+
 -- Dev
 enigma:command("gain_warpstone", "", function(num)
     num = num or 1
