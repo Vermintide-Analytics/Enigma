@@ -65,6 +65,7 @@ local template_template = {
         local inst = table.deep_copy(self, 100)
         trim_template_properties(inst)
         inst.mod = get_mod(inst.mod_id)
+        inst.times_played = 0
         return inst
     end,
 
