@@ -59,6 +59,42 @@ em.add_card_event_callbacks = function(self, card)
         end
     end
 end
+em._add_card_local_event_callbacks = function(self, card)
+    if not card.events_local then
+        return
+    end
+    for evt,cb in pairs(card.events_local) do
+        if self.events[evt] then
+            self.events[evt][card] = cb
+        else
+            enigma:warning("Unrecognized game event: "..tostring(evt))
+        end
+    end
+end
+em._add_card_server_event_callbacks = function(self, card)
+    if not card.events_server then
+        return
+    end
+    for evt,cb in pairs(card.events_server) do
+        if self.events[evt] then
+            self.events[evt][card] = cb
+        else
+            enigma:warning("Unrecognized game event: "..tostring(evt))
+        end
+    end
+end
+em._add_card_remote_event_callbacks = function(self, card)
+    if not card.events_remote then
+        return
+    end
+    for evt,cb in pairs(card.events_remote) do
+        if self.events[evt] then
+            self.events[evt][card] = cb
+        else
+            enigma:warning("Unrecognized game event: "..tostring(evt))
+        end
+    end
+end
 
 em.remove_card_event_callbacks = function(self, card)
     for _,event_callbacks in pairs(self.events) do

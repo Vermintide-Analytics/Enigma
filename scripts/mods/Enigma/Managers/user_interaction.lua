@@ -9,13 +9,19 @@ uim.try_draw_card = function(self)
     enigma.managers.game:draw_card()
 end
 
-uim.try_play_card_from_hand = function(self, card_index)
-    enigma.managers.game:try_play_card_from_hand(card_index)
-end
-
 -- Keybind callbacks
 local forbid_keybinds = function()
     return enigma.text_input_focused or Managers.chat and Managers.chat:chat_is_focused()
+end
+
+enigma.draw_card_hotkey_pressed = function()
+    if forbid_keybinds() then return end
+    local success, fail_reason = enigma.managers.game:try_draw_card()
+    if not success then
+        enigma:echo("Could not draw card because: "..tostring(fail_reason))
+    else
+        enigma:echo("Successfully drew a card")
+    end
 end
 
 enigma.card_mode_key_pressed = function()
@@ -33,52 +39,18 @@ enigma.card_mode_key_pressed = function()
     end
 end
 
-enigma.play_card_1_key_pressed = function()
-    if forbid_keybinds() then return end
-    local interaction = enigma.managers.user_interaction
-    if not interaction.card_mode then
-        return
+for i=1,5 do
+    local hotkey_func_name = "play_"..i.."_hotkey_pressed"
+    local quick_hotkey_func_name = "quick_"..hotkey_func_name
+    enigma[hotkey_func_name] = function()
+        if forbid_keybinds() then return end
+        if not uim.card_mode then
+            return
+        end
+        enigma.managers.game:try_play_card_from_hand(i, false, "manual")
     end
-    interaction:try_play_card_from_hand(1)
-end
-enigma.play_card_2_key_pressed = function()
-    if forbid_keybinds() then return end
-    local interaction = enigma.managers.user_interaction
-    if not interaction.card_mode then
-        return
+    enigma[quick_hotkey_func_name] = function()
+        if forbid_keybinds() then return end
+        enigma.managers.game:try_play_card_from_hand(i, false, "manual")
     end
-    interaction:try_play_card_from_hand(2)
-end
-enigma.play_card_3_key_pressed = function()
-    if forbid_keybinds() then return end
-    local interaction = enigma.managers.user_interaction
-    if not interaction.card_mode then
-        return
-    end
-    interaction:try_play_card_from_hand(3)
-end
-enigma.play_card_4_key_pressed = function()
-    if forbid_keybinds() then return end
-    local interaction = enigma.managers.user_interaction
-    if not interaction.card_mode then
-        return
-    end
-    interaction:try_play_card_from_hand(4)
-end
-enigma.play_card_5_key_pressed = function()
-    if forbid_keybinds() then return end
-    local interaction = enigma.managers.user_interaction
-    if not interaction.card_mode then
-        return
-    end
-    interaction:try_play_card_from_hand(5)
-end
-
-enigma.draw_card_key_pressed = function()
-    if forbid_keybinds() then return end
-    local interaction = enigma.managers.user_interaction
-    if not interaction.card_mode then
-        return
-    end
-    interaction:try_draw_card()
 end
