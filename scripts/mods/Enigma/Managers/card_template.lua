@@ -126,17 +126,27 @@ local create_card_template_handle = function(card_id)
     }
 end
 
+local card_loc_helper = function(mod, format, parameters)
+    if parameters then
+        return mod:localize(format, unpack(parameters))
+    end
+    return mod:localize(format)
+end
+
 local set_common_card_properties = function(template, type, pack, id)
     local mod = get_mod(template.mod_id)
     template.name = mod:localize(template.name)
     for _,description_table in ipairs(template.description_lines) do
-        description_table.localized = mod:localize(description_table.format, description_table.parameters and unpack(description_table.parameters))
+        description_table.localized = card_loc_helper(mod, description_table.format, description_table.parameters)
+    end
+    for _,retain_description_table in ipairs(template.retain_descriptions) do
+        retain_description_table.localized = card_loc_helper(mod, retain_description_table.format, retain_description_table.parameters)
     end
     for _,auto_description_table in ipairs(template.auto_descriptions) do
-        auto_description_table.localized = mod:localize(auto_description_table.format, auto_description_table.parameters and unpack(auto_description_table.parameters))
+        auto_description_table.localized = card_loc_helper(mod, auto_description_table.format, auto_description_table.parameters)
     end
     for _,condition_description_table in ipairs(template.condition_descriptions) do
-        condition_description_table.localized = mod:localize(condition_description_table.format, condition_description_table.parameters and unpack(condition_description_table.parameters))
+        condition_description_table.localized = card_loc_helper(mod, condition_description_table.format, condition_description_table.parameters)
     end
 
     template.card_type = type
