@@ -150,7 +150,6 @@ end
 enigma.random = function(self)
     local result
     enigma.random_seed, result = Math.next_random(enigma.random_seed)
-    enigma:info("Enigma random roll: "..tostring(result))
     return result
 end
 enigma.random_range = function(self, min, max)
@@ -158,12 +157,24 @@ enigma.random_range = function(self, min, max)
     enigma.random_seed, result = math.next_random_range(enigma.random_seed, min, max)
     return result
 end
+enigma.random_range_int = function(self, min, max)
+    return math.floor(self:random_range(min, max+1))
+end
 enigma.test_chance = function(self, chance)
     local rand = self:random()
-    if rand < chance then
-        enigma:info("Succeeded roll (result < "..tostring(chance)..")")
-    else
-        enigma:info("Failed roll (result >= "..tostring(chance)..")")
-    end
     return rand < chance
+end
+enigma.n_random_indexes = function(self, array_size, n)
+    local selected = {}
+    for i=1,array_size do
+        local chance_to_select = n / (array_size - i)
+        if self:test_chance(chance_to_select) then
+            table.insert(selected, i)
+            n = n - 1
+            if n <= 0 then
+                return selected
+            end
+        end
+    end
+    return selected
 end
