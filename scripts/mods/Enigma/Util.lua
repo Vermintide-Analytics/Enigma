@@ -127,8 +127,11 @@ enigma.execute_unit = function(self, to_execute, executor)
 end
 
 enigma.is_enemy_man_sized = function(self, unit)
+    if not HEALTH_ALIVE[unit] then
+        return false
+    end
     local breed = Unit.get_data(unit, "breed")
-    return not breed or breed.boss
+    return breed and not breed.boss
 end
 enigma.execute_man_sized_enemy = function (self, unit, params)
     local hit_unit = params[1]
