@@ -58,10 +58,11 @@ cpm.register_card_pack = function(self, mod_id, pack_id, name, disabled)
         return nil
     end
     local enabled = not disabled
+    local mod = get_mod(mod_id)
     self.card_packs[pack_id] = {
         id = pack_id,
         mod_id = mod_id,
-        name = name,
+        name = mod:localize(name),
         enabled = enabled
     }
     return get_pack_handle(pack_id)

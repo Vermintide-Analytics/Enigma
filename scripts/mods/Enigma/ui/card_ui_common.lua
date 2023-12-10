@@ -4,29 +4,36 @@ local enigma = get_mod("Enigma")
 local DEFAULT_CARD_WIDTH = 512
 local DEFAULT_CARD_HEIGHT = 828
 local DEFAULT_CARD_FRAME_THICKNESS = 4
-local DEFAULT_PRETTY_MARGIN = 10
+local DEFAULT_PRETTY_MARGIN = 6
 
-local DEFAULT_CARD_NAME_BOX_WIDTH = DEFAULT_CARD_WIDTH - 180
-local DEFAULT_CARD_NAME_BOX_HEIGHT = 110
+local DEFAULT_CARD_NAME_BOX_WIDTH = 226
+local DEFAULT_CARD_NAME_BOX_HEIGHT = 86
 
 local DEFAULT_CARD_IMAGE_WIDTH = DEFAULT_CARD_WIDTH - DEFAULT_CARD_FRAME_THICKNESS*2
 local DEFAULT_CARD_IMAGE_HEIGHT = 310
 
 local DEFAULT_CARD_DETAILS_WIDTH = DEFAULT_CARD_WIDTH - DEFAULT_CARD_FRAME_THICKNESS*2 - DEFAULT_PRETTY_MARGIN*2
-local DEFAULT_CARD_DETAILS_HEIGHT = 360
+local DEFAULT_CARD_DETAILS_HEIGHT = 366
+
+local DEFAULT_CARD_PACK_WIDTH = 328
+local DEFAULT_CARD_PACK_HEIGHT = 40
+
+local DEFAULT_COST_CIRCLE_DIAMETER = 128
 
 local DEFAULT_CARD_NAME_FONT_SIZE = 64
+local DEFAULT_COST_FONT_SIZE = 128
 local DEFAULT_CARD_DETAILS_FONT_SIZE = 32
+local DEFAULT_CARD_PACK_FONT_SIZE = 28
 
--- Card vertical breakdown (default size)
+-- Card vertical breakdown
 -- Frame 4
--- Margin 10
--- Name Box 110
--- Margin 10
+-- Name Box 86
+-- Margin 6
 -- Image 310
--- Margin 10
--- Details 360
--- Margin 10
+-- Margin 6
+-- Details 366
+-- Margin 6
+-- Pack Box 40
 -- Frame 4
 
 local ui_common = {
@@ -156,7 +163,23 @@ local add_card_scenegraph_nodes = function(scenegraph_defs, parent_id, card_scen
 		},
 		position = {
 			0,
-			pretty_margin*-1,
+			0,
+			2
+		}
+	}
+
+	local cost_scenegraph_id = card_scenegraph_id.."_cost"
+	scenegraph_defs[cost_scenegraph_id] = {
+		parent = card_inner_scenegraph_id,
+		vertical_alignment = "top",
+		horizontal_alignment = "center",
+		size = {
+			sizes.card_cost_circle_diameter,
+			sizes.card_cost_circle_diameter
+		},
+		position = {
+			sizes.card_name_box_width/2 + sizes.card_cost_circle_diameter/1.6,
+			sizes.card_name_box_width * 0.195,
 			2
 		}
 	}
@@ -172,7 +195,23 @@ local add_card_scenegraph_nodes = function(scenegraph_defs, parent_id, card_scen
 		},
 		position = {
 			0,
-			pretty_margin*-2 - sizes.card_name_box_height,
+			pretty_margin*-1 - sizes.card_name_box_height,
+			1
+		}
+	}
+
+	local pack_scenegraph_id = card_scenegraph_id.."_pack"
+	scenegraph_defs[pack_scenegraph_id] = {
+		parent = card_inner_scenegraph_id,
+		vertical_alignment = "bottom",
+		horizontal_alignment = "center",
+		size = {
+			sizes.card_pack_width,
+			sizes.card_pack_height
+		},
+		position = {
+			0,
+			0,
 			1
 		}
 	}
@@ -183,12 +222,12 @@ local add_card_scenegraph_nodes = function(scenegraph_defs, parent_id, card_scen
 		vertical_alignment = "bottom",
 		horizontal_alignment = "center",
 		size = {
-			sizes.card_inner_width - pretty_margin*2,
-			sizes.card_inner_height - sizes.card_name_box_height - sizes.card_image_height - pretty_margin*4
+			sizes.card_details_width,
+			sizes.card_details_height
 		},
 		position = {
 			0,
-			pretty_margin,
+			pretty_margin + sizes.card_pack_height,
 			1
 		}
 	}
@@ -394,7 +433,8 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 		element = {
 			passes = {
 				{
-					pass_type = "rect",
+					pass_type = "texture",
+					texture_id = "rarity_box",
 					style_id = "rarity"
 				},
 				{
@@ -405,10 +445,22 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 			}
 		},
 		content = {
+			rarity_box = "enigma_card_name_box",
 			card_name = ""
 		},
 		style = {
 			rarity = {
+				texture_size = {
+					sizes.card_name_box_width,
+					sizes.card_name_box_height
+				},
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				offset = {
+					0,
+					0,
+					0
+				},
 				color = {
 					255,
 					255,
@@ -421,14 +473,78 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				horizontal_alignment = "center",
 				font_size = sizes.card_name_font_size,
 				allow_fractions = true,
-				localize = false,
 				word_wrap = true,
 				dynamic_font_size_word_wrap = true,
 				font_type = "hell_shark_header",
 				text_color = TEXT_COLOR,
+				area_size = {
+					sizes.card_name_box_width,
+					sizes.card_name_box_height
+				},
 				offset = {
 					0,
 					0,
+					1
+				}
+			},
+		}
+	}
+
+	local card_cost_widget_name = card_scenegraph_id.."_cost"
+	widget_defs[card_cost_widget_name] = {
+		scenegraph_id = card_cost_widget_name,
+		element = {
+			passes = {
+				{
+					pass_type = "texture",
+					texture_id = "background",
+					style_id = "background"
+				},
+				{
+					pass_type = "text",
+					text_id = "cost",
+					style_id = "cost"
+				},
+			}
+		},
+		content = {
+			background = "enigma_card_warpstone",
+			cost = ""
+		},
+		style = {
+			background = {
+				texture_size = {
+					sizes.card_cost_circle_diameter,
+					sizes.card_cost_circle_diameter
+				},
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				color = {
+					255,
+					190,
+					190,
+					190
+				},
+				offset = {
+					0,
+					0,
+					0
+				}
+			},
+			cost = {
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				font_size = sizes.card_cost_font_size,
+				font_type = "hell_shark_header",
+				text_color = {
+					255,
+					255,
+					255,
+					255
+				},
+				offset = {
+					0,
+					sizes.card_cost_font_size / -8,
 					1
 				}
 			},
@@ -463,6 +579,65 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 					0,
 					0
 				},
+			},
+		}
+	}
+
+	local card_pack_widget_name = card_scenegraph_id.."_pack"
+	widget_defs[card_pack_widget_name] = {
+		scenegraph_id = card_pack_widget_name,
+		element = {
+			passes = {
+				{
+					pass_type = "texture",
+					texture_id = "background",
+					style_id = "background"
+				},
+				{
+					pass_type = "text",
+					text_id = "pack_name",
+					style_id = "pack_name"
+				}
+			}
+		},
+		content = {
+			background = "enigma_card_pack_box",
+			pack_name = ""
+		},
+		style = {
+			background = {
+				texture_size = {
+					sizes.card_pack_width,
+					sizes.card_pack_height
+				},
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				offset = {
+					0,
+					0,
+					0
+				},
+				color = {
+					255,
+					190,
+					190,
+					190
+				},
+			},
+			pack_name = {
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				font_size = sizes.card_pack_font_size,
+				allow_fractions = true,
+				word_wrap = true,
+				dynamic_font_size_word_wrap = true,
+				font_type = "hell_shark_header",
+				text_color = TEXT_COLOR,
+				offset = {
+					0,
+					0,
+					1
+				}
 			},
 		}
 	}
@@ -555,11 +730,16 @@ local calculate_card_sizes = function(card_width)
 		card_name_box_width = DEFAULT_CARD_NAME_BOX_WIDTH * scaling_from_default,
 		card_name_box_height = DEFAULT_CARD_NAME_BOX_HEIGHT * scaling_from_default,
 		card_name_font_size = DEFAULT_CARD_NAME_FONT_SIZE * scaling_from_default,
+		card_cost_circle_diameter = DEFAULT_COST_CIRCLE_DIAMETER * scaling_from_default,
+		card_cost_font_size = DEFAULT_COST_FONT_SIZE * scaling_from_default,
 		card_image_width = DEFAULT_CARD_IMAGE_WIDTH * scaling_from_default,
 		card_image_height = DEFAULT_CARD_IMAGE_HEIGHT * scaling_from_default,
 		card_details_width = DEFAULT_CARD_DETAILS_WIDTH * scaling_from_default,
 		card_details_height = DEFAULT_CARD_DETAILS_HEIGHT * scaling_from_default,
-		card_details_font_size = DEFAULT_CARD_DETAILS_FONT_SIZE * scaling_from_default
+		card_details_font_size = DEFAULT_CARD_DETAILS_FONT_SIZE * scaling_from_default,
+		card_pack_width = DEFAULT_CARD_PACK_WIDTH * scaling_from_default,
+		card_pack_height = DEFAULT_CARD_PACK_HEIGHT * scaling_from_default,
+		card_pack_font_size = DEFAULT_CARD_PACK_FONT_SIZE * scaling_from_default
 	}
 	return sizes
 end
@@ -577,13 +757,19 @@ local set_widgets_visibility = function(widgets, card_node_id, visible)
 	
 	local card_name_node_id = card_node_id.."_name"
 	local card_image_node_id = card_node_id.."_image"
+	local card_pack_node_id = card_node_id.."_pack"
+	local card_cost_node_id = card_node_id.."_cost"
 	
 	local card_widget = widgets[card_node_id]
 	card_widget.content.visible = visible
 	local card_name_widget = widgets[card_name_node_id]
 	card_name_widget.content.visible = visible
+	local card_cost_widget = widgets[card_cost_node_id]
+	card_cost_widget.content.visible = visible
 	local card_image_widget = widgets[card_image_node_id]
 	card_image_widget.content.visible = visible
+	local card_pack_widget = widgets[card_pack_node_id]
+	card_pack_widget.content.visible = visible
 	local basic_details_widget = widgets[card_node_id.."_basic_details"]
 	basic_details_widget.content.visible = visible
 	for i=1,5 do
@@ -614,17 +800,24 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 	local card_name_node_id = card_node_id.."_name"
 	scenegraph_nodes[card_name_node_id].size[1] = sizes.card_name_box_width
 	scenegraph_nodes[card_name_node_id].size[2] = sizes.card_name_box_height
-	scenegraph_nodes[card_name_node_id].position[2] = pretty_margin*-1
+
+	local card_cost_node_id = card_node_id.."_cost"
+	scenegraph_nodes[card_cost_node_id].size[1] = sizes.card_cost_circle_diameter
+	scenegraph_nodes[card_cost_node_id].size[2] = sizes.card_cost_circle_diameter
 
 	local card_image_node_id = card_node_id.."_image"
 	scenegraph_nodes[card_image_node_id].size[1] = sizes.card_image_width
 	scenegraph_nodes[card_image_node_id].size[2] = sizes.card_image_height
-	scenegraph_nodes[card_image_node_id].position[2] = pretty_margin*-2 - sizes.card_name_box_height
+	scenegraph_nodes[card_image_node_id].position[2] = pretty_margin*-1 - sizes.card_name_box_height
+
+	local card_details_node_id = card_node_id.."_pack"
+	scenegraph_nodes[card_details_node_id].size[1] = sizes.card_pack_width
+	scenegraph_nodes[card_details_node_id].size[2] = sizes.card_pack_height
 
 	local card_details_node_id = card_node_id.."_details"
 	scenegraph_nodes[card_details_node_id].size[1] = sizes.card_details_width
-	scenegraph_nodes[card_details_node_id].size[2] = sizes.card_inner_height - sizes.card_name_box_height - sizes.card_image_height - pretty_margin*4
-	scenegraph_nodes[card_details_node_id].position[2] = pretty_margin
+	scenegraph_nodes[card_details_node_id].size[2] = sizes.card_details_height
+	scenegraph_nodes[card_details_node_id].position[2] = pretty_margin + sizes.card_pack_height
 
 
 	local num_description_lines = #card.description_lines
@@ -683,9 +876,11 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 	-- Set widget contents/styles
 	local card_widget = widgets[card_node_id]
 	local card_name_widget = widgets[card_name_node_id]
+	local card_cost_widget = widgets[card_cost_node_id]
 	local card_image_widget = widgets[card_image_node_id]
 	local basic_details_widget = widgets[card_node_id.."_basic_details"]
 	local additional_keywords_widget = widgets[card_node_id.."_additional_keywords"]
+	local card_pack_widget = widgets[card_node_id.."_pack"]
 
 	card_widget.style.card_background.texture_size[1] = sizes.card_width
 	card_widget.style.card_background.texture_size[2] = sizes.card_height
@@ -696,10 +891,19 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 
 	card_name_widget.style.card_name._dynamic_wraped_text = ""
 	card_name_widget.style.card_name.font_size = sizes.card_name_font_size
+	card_name_widget.style.rarity.texture_size[1] = sizes.card_name_box_width*1.15
+	card_name_widget.style.rarity.texture_size[2] = sizes.card_name_box_height
+	card_name_widget.style.card_name.area_size[1] = sizes.card_name_box_width
+	card_name_widget.style.card_name.area_size[2] = sizes.card_name_box_height
 	card_name_widget.content.card_name = card.name
 
 	card_name_widget.style.rarity.color = ui_common.rarity_colors[card.rarity]
 	
+	card_cost_widget.style.background.texture_size[1] = sizes.card_cost_circle_diameter
+	card_cost_widget.style.background.texture_size[2] = sizes.card_cost_circle_diameter
+	card_cost_widget.style.cost.font_size = sizes.card_cost_font_size
+	card_cost_widget.content.cost = card.cost
+
 	card_image_widget.style.card_image.texture_size[1] = sizes.card_image_width
 	card_image_widget.style.card_image.texture_size[2] = sizes.card_image_height
 	if card.texture then
@@ -707,6 +911,8 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 	else
 		card_image_widget.content.card_image = "enigma_card_image_placeholder"
 	end
+
+	card_pack_widget.content.pack_name = card.card_pack.name
 
 	if num_description_lines > 0 then
 		local lines = {}

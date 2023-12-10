@@ -5,7 +5,7 @@ local RARE = enigma.CARD_RARITY.rare
 local EPIC = enigma.CARD_RARITY.epic
 local LEGENDARY = enigma.CARD_RARITY.legendary
 
-local pack_handle = enigma.managers.card_pack:register_card_pack("Enigma", "base", "Base")
+local pack_handle = enigma.managers.card_pack:register_card_pack("Enigma", "base", "base")
 
 local game = enigma.managers.game
 local buff = enigma.managers.buff

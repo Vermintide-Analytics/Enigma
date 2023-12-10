@@ -7,8 +7,18 @@ return {
 	},
 	enigma_card_warpstone = { 
 		size = { 250, 250, },
+		uv00 = { 0.545898, 0.170898, },
+		uv11 = { 0.667969, 0.292969, },
+	},
+	enigma_card_pack_box = { 
+		size = { 328, 40, },
 		uv00 = { 0.545898, 0.151367, },
-		uv11 = { 0.667969, 0.273438, },
+		uv11 = { 0.706055, 0.170898, },
+	},
+	enigma_card_name_box = { 
+		size = { 276, 86, },
+		uv00 = { 0.000000, 0.904297, },
+		uv11 = { 0.134766, 0.946289, },
 	},
 	enigma_card_image_placeholder = { 
 		size = { 504, 310, },

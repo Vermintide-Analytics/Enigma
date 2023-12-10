@@ -1,4 +1,9 @@
 return {
+    -- Card Pack
+    base = {
+        en = "Base"
+    },
+
     -- Common descriptions
     description_attack_speed = {
         en = "%+.1f%% attack speed"
