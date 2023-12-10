@@ -22,6 +22,7 @@ local DEFAULT_COST_CIRCLE_DIAMETER = 128
 
 local DEFAULT_CARD_NAME_FONT_SIZE = 64
 local DEFAULT_COST_FONT_SIZE = 128
+local DEFAULT_DURATION_FONT_SIZE = 72
 local DEFAULT_CARD_DETAILS_FONT_SIZE = 32
 local DEFAULT_CARD_PACK_FONT_SIZE = 28
 
@@ -179,7 +180,23 @@ local add_card_scenegraph_nodes = function(scenegraph_defs, parent_id, card_scen
 		},
 		position = {
 			sizes.card_name_box_width/2 + sizes.card_cost_circle_diameter/1.6,
-			sizes.card_name_box_width * 0.195,
+			sizes.card_cost_circle_diameter * 0.34,
+			2
+		}
+	}
+
+	local duration_scenegraph_id = card_scenegraph_id.."_duration"
+	scenegraph_defs[duration_scenegraph_id] = {
+		parent = card_inner_scenegraph_id,
+		vertical_alignment = "top",
+		horizontal_alignment = "center",
+		size = {
+			sizes.card_cost_circle_diameter,
+			sizes.card_cost_circle_diameter
+		},
+		position = {
+			sizes.card_name_box_width/-2 - sizes.card_cost_circle_diameter/1.6,
+			sizes.card_cost_circle_diameter * 0.34,
 			2
 		}
 	}
@@ -551,6 +568,62 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 		}
 	}
 
+	local card_duration_widget_name = card_scenegraph_id.."_duration"
+	widget_defs[card_duration_widget_name] = {
+		scenegraph_id = card_duration_widget_name,
+		element = {
+			passes = {
+				{
+					pass_type = "texture",
+					texture_id = "background",
+					style_id = "background"
+				},
+				{
+					pass_type = "text",
+					text_id = "duration",
+					style_id = "duration"
+				},
+			}
+		},
+		content = {
+			background = "enigma_card_duration_icon",
+			duration = ""
+		},
+		style = {
+			background = {
+				texture_size = {
+					sizes.card_cost_circle_diameter,
+					sizes.card_cost_circle_diameter
+				},
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				color = {
+					255,
+					217,
+					123,
+					84
+				},
+				offset = {
+					0,
+					0,
+					0
+				}
+			},
+			duration = {
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				font_size = sizes.card_duration_font_size,
+				font_type = "hell_shark_header",
+				text_color = TEXT_COLOR,
+				offset = {
+					0,
+					sizes.card_duration_font_size / -8,
+					1
+				}
+			},
+		}
+	}
+
 	local card_image_widget_name = card_scenegraph_id.."_image"
 	widget_defs[card_image_widget_name] = {
 		scenegraph_id = card_image_widget_name,
@@ -732,6 +805,7 @@ local calculate_card_sizes = function(card_width)
 		card_name_font_size = DEFAULT_CARD_NAME_FONT_SIZE * scaling_from_default,
 		card_cost_circle_diameter = DEFAULT_COST_CIRCLE_DIAMETER * scaling_from_default,
 		card_cost_font_size = DEFAULT_COST_FONT_SIZE * scaling_from_default,
+		card_duration_font_size = DEFAULT_DURATION_FONT_SIZE * scaling_from_default,
 		card_image_width = DEFAULT_CARD_IMAGE_WIDTH * scaling_from_default,
 		card_image_height = DEFAULT_CARD_IMAGE_HEIGHT * scaling_from_default,
 		card_details_width = DEFAULT_CARD_DETAILS_WIDTH * scaling_from_default,
@@ -750,7 +824,7 @@ ui_common.add_card_display = function(scenegraph_defs, widget_defs, scenegraph_p
 	add_card_widgets(widget_defs, card_scenegraph_id, sizes)
 end
 
-local set_widgets_visibility = function(widgets, card_node_id, visible)
+local set_widgets_visibility = function(widgets, card_node_id, visible, is_surge_card)
 	visible = not not visible
 	
 	widgets[card_node_id].content.visible = visible
@@ -759,6 +833,7 @@ local set_widgets_visibility = function(widgets, card_node_id, visible)
 	local card_image_node_id = card_node_id.."_image"
 	local card_pack_node_id = card_node_id.."_pack"
 	local card_cost_node_id = card_node_id.."_cost"
+	local card_duration_node_id = card_node_id.."_duration"
 	
 	local card_widget = widgets[card_node_id]
 	card_widget.content.visible = visible
@@ -766,6 +841,8 @@ local set_widgets_visibility = function(widgets, card_node_id, visible)
 	card_name_widget.content.visible = visible
 	local card_cost_widget = widgets[card_cost_node_id]
 	card_cost_widget.content.visible = visible
+	local card_duration_widget = widgets[card_duration_node_id]
+	card_duration_widget.content.visible = visible and is_surge_card
 	local card_image_widget = widgets[card_image_node_id]
 	card_image_widget.content.visible = visible
 	local card_pack_widget = widgets[card_pack_node_id]
@@ -784,7 +861,7 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 	local sizes = calculate_card_sizes(card_width)
 	local pretty_margin = sizes.pretty_margin
 
-	set_widgets_visibility(widgets, card_node_id, card)
+	set_widgets_visibility(widgets, card_node_id, card, card and card.card_type == enigma.CARD_TYPE.surge)
 	if not card then
 		return
 	end
@@ -804,6 +881,10 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 	local card_cost_node_id = card_node_id.."_cost"
 	scenegraph_nodes[card_cost_node_id].size[1] = sizes.card_cost_circle_diameter
 	scenegraph_nodes[card_cost_node_id].size[2] = sizes.card_cost_circle_diameter
+
+	local card_duration_node_id = card_node_id.."_duration"
+	scenegraph_nodes[card_duration_node_id].size[1] = sizes.card_cost_circle_diameter
+	scenegraph_nodes[card_duration_node_id].size[2] = sizes.card_cost_circle_diameter
 
 	local card_image_node_id = card_node_id.."_image"
 	scenegraph_nodes[card_image_node_id].size[1] = sizes.card_image_width
@@ -877,6 +958,7 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 	local card_widget = widgets[card_node_id]
 	local card_name_widget = widgets[card_name_node_id]
 	local card_cost_widget = widgets[card_cost_node_id]
+	local card_duration_widget = widgets[card_duration_node_id]
 	local card_image_widget = widgets[card_image_node_id]
 	local basic_details_widget = widgets[card_node_id.."_basic_details"]
 	local additional_keywords_widget = widgets[card_node_id.."_additional_keywords"]
@@ -903,6 +985,21 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 	card_cost_widget.style.background.texture_size[2] = sizes.card_cost_circle_diameter
 	card_cost_widget.style.cost.font_size = sizes.card_cost_font_size
 	card_cost_widget.content.cost = card.cost
+	
+	card_duration_widget.style.background.texture_size[1] = sizes.card_cost_circle_diameter
+	card_duration_widget.style.background.texture_size[2] = sizes.card_cost_circle_diameter
+	card_duration_widget.style.duration.font_size = sizes.card_duration_font_size
+	if card.duration_localized then
+		card_duration_widget.content.duration = card.duration_localized
+	elseif card.duration then
+		if math.floor(card.duration) ~= card.duration then
+			card_duration_widget.content.duration = string.format("%.1fs", card.duration)
+		else
+			card_duration_widget.content.duration = string.format("%is", card.duration)
+		end
+	else
+		card_duration_widget.content.duration = ""
+	end
 
 	card_image_widget.style.card_image.texture_size[1] = sizes.card_image_width
 	card_image_widget.style.card_image.texture_size[2] = sizes.card_image_height
