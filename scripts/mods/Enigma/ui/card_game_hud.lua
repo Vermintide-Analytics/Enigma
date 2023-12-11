@@ -88,7 +88,7 @@ EnigmaCardGameHud.update = function (self, dt, t)
 	local horizontal_offset = (PRETTY_MARGIN + CARD_WIDTH)/2 * (hand_size-1) * -1
 	for i=1,5 do
 		local card = hand[i]
-		ui_common.update_card_display_if_needed(self.ui_scenegraph, self._widgets_by_name, "card_"..i, card, CARD_WIDTH)
+		ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, "card_"..i, card, CARD_WIDTH)
 		local card_scenegraph_node = self.ui_scenegraph["card_"..i]
 		card_scenegraph_node.position[1] = horizontal_offset
 		horizontal_offset = horizontal_offset + PRETTY_MARGIN + CARD_WIDTH

@@ -26,6 +26,9 @@ local DEFAULT_DURATION_FONT_SIZE = 72
 local DEFAULT_CARD_DETAILS_FONT_SIZE = 32
 local DEFAULT_CARD_PACK_FONT_SIZE = 28
 
+local CARD_NAME_FONT = "hell_shark_header"
+local CARD_DETAILS_FONT = "hell_shark"
+
 -- Card vertical breakdown
 -- Frame 4
 -- Name Box 86
@@ -65,15 +68,15 @@ local ui_common = {
 		},
         ability = {
             255,
-            162,
-            180,
-            242
+            130,
+            174,
+            216
         },
 		ability_highlight = {
 			255,
+			176,
 			207,
-			217,
-			251
+			237
 		},
         chaos = {
             255,
@@ -369,7 +372,7 @@ local add_described_keyword_widget = function(widget_defs, card_scenegraph_id, i
 					0
 				},
 				dynamic_font_size_word_wrap = true,
-				font_type = "hell_shark",
+				font_type = CARD_DETAILS_FONT,
 				text_color = KEYWORD_COLOR,
 				offset = {
 					0,
@@ -389,7 +392,7 @@ local add_described_keyword_widget = function(widget_defs, card_scenegraph_id, i
 					sizes.card_inner_width,
 					0
 				},
-				font_type = "hell_shark",
+				font_type = CARD_DETAILS_FONT,
 				text_color = TEXT_COLOR,
 				offset = {
 					0,
@@ -510,7 +513,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				allow_fractions = true,
 				word_wrap = true,
 				dynamic_font_size_word_wrap = true,
-				font_type = "hell_shark_header",
+				font_type = CARD_NAME_FONT,
 				text_color = TEXT_COLOR,
 				area_size = {
 					sizes.card_name_box_width,
@@ -570,7 +573,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				vertical_alignment = "center",
 				horizontal_alignment = "center",
 				font_size = sizes.card_cost_font_size,
-				font_type = "hell_shark_header",
+				font_type = CARD_NAME_FONT,
 				text_color = {
 					255,
 					255,
@@ -631,7 +634,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				vertical_alignment = "center",
 				horizontal_alignment = "center",
 				font_size = sizes.card_duration_font_size,
-				font_type = "hell_shark_header",
+				font_type = CARD_NAME_FONT,
 				text_color = TEXT_COLOR,
 				offset = {
 					0,
@@ -722,7 +725,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				allow_fractions = true,
 				word_wrap = true,
 				dynamic_font_size_word_wrap = true,
-				font_type = "hell_shark_header",
+				font_type = CARD_NAME_FONT,
 				text_color = TEXT_COLOR,
 				offset = {
 					0,
@@ -756,7 +759,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				allow_fractions = true,
 				word_wrap = true,
 				dynamic_font_size_word_wrap = true,
-				font_type = "hell_shark",
+				font_type = CARD_DETAILS_FONT,
 				text_color = TEXT_COLOR,
 				offset = {
 					0,
@@ -794,7 +797,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				allow_fractions = true,
 				word_wrap = true,
 				dynamic_font_size_word_wrap = true,
-				font_type = "hell_shark",
+				font_type = CARD_DETAILS_FONT,
 				text_color = KEYWORD_COLOR,
 				offset = {
 					0,
@@ -876,7 +879,7 @@ local set_widgets_visibility = function(widgets, card_node_id, visible, has_dura
 	additional_keywords_widget.content.visible = visible
 end
 
-ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id, card, card_width)
+ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width)
 	local sizes = calculate_card_sizes(card_width)
 	local pretty_margin = sizes.pretty_margin
 
@@ -912,68 +915,98 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 	scenegraph_nodes[card_image_node_id].size[2] = sizes.card_image_height
 	scenegraph_nodes[card_image_node_id].position[2] = pretty_margin*-1 - sizes.card_name_box_height
 
-	local card_details_node_id = card_node_id.."_pack"
-	scenegraph_nodes[card_details_node_id].size[1] = sizes.card_pack_width
-	scenegraph_nodes[card_details_node_id].size[2] = sizes.card_pack_height
+	local card_pack_node_id = card_node_id.."_pack"
+	scenegraph_nodes[card_pack_node_id].size[1] = sizes.card_pack_width
+	scenegraph_nodes[card_pack_node_id].size[2] = sizes.card_pack_height
 
 	local card_details_node_id = card_node_id.."_details"
 	scenegraph_nodes[card_details_node_id].size[1] = sizes.card_details_width
 	scenegraph_nodes[card_details_node_id].size[2] = sizes.card_details_height
 	scenegraph_nodes[card_details_node_id].position[2] = pretty_margin + sizes.card_pack_height
 
+	local details_font_material = Fonts[CARD_DETAILS_FONT][1]
 
 	local num_description_lines = #card.description_lines
+	local description_vertical_spacing = 0
+	for _,description_line_table in ipairs(card.description_lines) do
+		local line_lines = UIRenderer.word_wrap(ui_renderer, description_line_table.localized, details_font_material, sizes.card_details_font_size, sizes.card_details_width, nil, CARD_DETAILS_FONT)
+		description_vertical_spacing = description_vertical_spacing + #line_lines
+	end
+
+	local described_keyword_line_counts = {}
 	local num_retain_descriptions = #card.retain_descriptions
+	local retain_vertical_spacing = 0
+	for _,retain_line_table in ipairs(card.retain_descriptions) do
+		if #described_keyword_line_counts < 5 then
+			local retain_lines = UIRenderer.word_wrap(ui_renderer, retain_line_table.localized, details_font_material, sizes.card_details_font_size, sizes.card_details_width)
+			retain_vertical_spacing = retain_vertical_spacing + #retain_lines + 1
+			table.insert(described_keyword_line_counts, #retain_lines + 1)
+		end
+	end
+
 	local num_auto_descriptions = #card.auto_descriptions
+	local auto_vertical_spacing = 0
+	for _,auto_line_table in ipairs(card.auto_descriptions) do
+		if #described_keyword_line_counts < 5 then
+			local auto_lines = UIRenderer.word_wrap(ui_renderer, auto_line_table.localized, details_font_material, sizes.card_details_font_size, sizes.card_details_width)
+			auto_vertical_spacing = auto_vertical_spacing + #auto_lines + 1
+			table.insert(described_keyword_line_counts, #auto_lines + 1)
+		end
+	end
+
 	local num_condition_descriptions = #card.condition_descriptions
+	local condition_vertical_spacing = 0
+	for _,condition_line_table in ipairs(card.condition_descriptions) do
+		if #described_keyword_line_counts < 5 then
+			local condition_lines = UIRenderer.word_wrap(ui_renderer, condition_line_table.localized, details_font_material, sizes.card_details_font_size, sizes.card_details_width)
+			condition_vertical_spacing = condition_vertical_spacing + #condition_lines + 1
+			table.insert(described_keyword_line_counts, #condition_lines + 1)
+		end
+	end
+
 	local any_simple_keywords = card.channel or card.double_agent or card.ephemeral or card.infinite or card.unplayable or card.warp_hungry
+	local simple_keywords_vertical_spacing = any_simple_keywords and 1 or 0
+
+	local total_vertical_spacing = description_vertical_spacing + retain_vertical_spacing + auto_vertical_spacing + condition_vertical_spacing + simple_keywords_vertical_spacing
 
 	local num_detailed_keywords = math.min(num_retain_descriptions + num_auto_descriptions + num_condition_descriptions, 5)
-	local num_rows = num_description_lines + num_detailed_keywords*2 + (any_simple_keywords and 1 or 0)
-	local num_row_padding = math.max((num_description_lines > 0 and 1 or 0) + num_detailed_keywords + (any_simple_keywords and 1 or 0) - 1, 0)
+	local num_section_padding = math.max((num_description_lines > 0 and 1 or 0) + num_detailed_keywords + (any_simple_keywords and 1 or 0) - 1, 0)
 
-	local total_row_vertical_space = scenegraph_nodes[card_details_node_id].size[2] - num_row_padding*pretty_margin
-	local row_height = total_row_vertical_space / math.max(num_rows, 1)
+	local total_section_vertical_space = scenegraph_nodes[card_details_node_id].size[2] - num_section_padding*pretty_margin
 
 	local basic_details_node_id = card_node_id.."_basic_details"
+	local desired_descriptions_height = description_vertical_spacing / total_vertical_spacing * total_section_vertical_space
 	scenegraph_nodes[basic_details_node_id].size[1] = sizes.card_details_width
-	scenegraph_nodes[basic_details_node_id].size[2] = row_height * num_description_lines
+	scenegraph_nodes[basic_details_node_id].size[2] = desired_descriptions_height
 
 	if num_description_lines <= 0 then
 		scenegraph_nodes[basic_details_node_id].size[2] = 0
 	end
 
 	local current_vertical_offset = 0
-	if num_row_padding > 0 and num_description_lines > 0 then
-		current_vertical_offset = current_vertical_offset - pretty_margin - row_height * num_description_lines
-		num_row_padding = num_row_padding - 1
+	if num_description_lines > 0 and num_section_padding > 0 then
+		current_vertical_offset = current_vertical_offset - pretty_margin - desired_descriptions_height
+		num_section_padding = num_section_padding - 1
 	end
 
 	for i=1,5 do
 		local keyword_details_node_id = card_node_id.."_keyword_details_"..i
+		local desired_height = (described_keyword_line_counts[i] or 0) / total_vertical_spacing * total_section_vertical_space
 		scenegraph_nodes[keyword_details_node_id].size[1] = sizes.card_details_width
-		scenegraph_nodes[keyword_details_node_id].size[2] = row_height * 2
+		scenegraph_nodes[keyword_details_node_id].size[2] = desired_height
 		scenegraph_nodes[keyword_details_node_id].position[2] = current_vertical_offset
-		
-		if num_detailed_keywords <= 0 then
-			scenegraph_nodes[keyword_details_node_id].size[2] = 0
-			num_detailed_keywords = num_detailed_keywords - 1
-		end
 
-		if num_row_padding > 0 then
-			current_vertical_offset = current_vertical_offset - pretty_margin - row_height * 2
-			num_row_padding = num_row_padding - 1
+		if num_section_padding > 0 then
+			current_vertical_offset = current_vertical_offset - pretty_margin - desired_height
+			num_section_padding = num_section_padding - 1
 		end
 	end
 
 	local additional_keywords_node_id = card_node_id.."_additional_keywords"
+	local additional_keywords_desired_height = simple_keywords_vertical_spacing / total_vertical_spacing * total_section_vertical_space
 	scenegraph_nodes[additional_keywords_node_id].size[1] = sizes.card_details_width
-	scenegraph_nodes[additional_keywords_node_id].size[2] = row_height
+	scenegraph_nodes[additional_keywords_node_id].size[2] = additional_keywords_desired_height
 	scenegraph_nodes[additional_keywords_node_id].position[2] = current_vertical_offset
-
-	if not any_simple_keywords then
-		scenegraph_nodes[additional_keywords_node_id].size[2] = 0
-	end
 
 	-- Set widget contents/styles
 	local card_widget = widgets[card_node_id]
@@ -983,7 +1016,7 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 	local card_image_widget = widgets[card_image_node_id]
 	local basic_details_widget = widgets[card_node_id.."_basic_details"]
 	local additional_keywords_widget = widgets[card_node_id.."_additional_keywords"]
-	local card_pack_widget = widgets[card_node_id.."_pack"]
+	local card_pack_widget = widgets[card_pack_node_id]
 
 	card_widget.style.card_background.texture_size[1] = sizes.card_width
 	card_widget.style.card_background.texture_size[2] = sizes.card_height
@@ -1053,15 +1086,22 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 		local title_style = keyword_details_widget.style.title
 		local text_style = keyword_details_widget.style.details
 
+		local total_lines = (described_keyword_line_counts[i] or 1)
+		local max_full_size_lines = math.max(total_vertical_size / (sizes.card_details_font_size*1.6), 1)
+		local required_height_usage = math.clamp(total_lines / max_full_size_lines, 0, 1)
+		local required_height = required_height_usage * total_vertical_size
+		local title_height = math.clamp((1 / total_lines), 1/5, 1/2) * required_height
+		local description_height = required_height - title_height
+
 		title_style.area_size[1] = sizes.card_inner_width - pretty_margin*2
-		title_style.area_size[2] = total_vertical_size
-		title_style.offset[2] = sizes.card_details_font_size*0.5
+		title_style.area_size[2] = title_height
+		title_style.offset[2] = (required_height - title_height - pretty_margin)/2
 		title_style._dynamic_wraped_text = ""
 		title_style.font_size = sizes.card_details_font_size
 		
 		text_style.area_size[1] = sizes.card_inner_width - pretty_margin*2
-		text_style.area_size[2] = total_vertical_size
-		text_style.offset[2] = sizes.card_details_font_size*-0.5
+		text_style.area_size[2] = description_height
+		text_style.offset[2] = (description_height - required_height + pretty_margin)/2
 		text_style._dynamic_wraped_text = ""
 		text_style.font_size = sizes.card_details_font_size
 		text_style.text_color = basic_text_color
@@ -1146,17 +1186,17 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 	end
 end
 
-ui_common.update_card_display_if_needed = function(scenegraph_nodes, widgets, card_node_id, card, card_width)
+ui_common.update_card_display_if_needed = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width)
 	if not card then
 		widgets[card_node_id].cached_card = nil
 		widgets[card_node_id].cached_card_width = -1
-		return ui_common.update_card_display(scenegraph_nodes, widgets, card_node_id, nil, card_width)
+		return ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, nil, card_width)
 	end
 	if card.dirty or card ~= widgets[card_node_id].cached_card or card_width ~= widgets[card_node_id].cached_card_width then
 		card.dirty = false
 		widgets[card_node_id].cached_card = card
 		widgets[card_node_id].cached_card_width = card_width
-		return ui_common.update_card_display(scenegraph_nodes, widgets, card_node_id, card, card_width)
+		return ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width)
 	end
 end
 

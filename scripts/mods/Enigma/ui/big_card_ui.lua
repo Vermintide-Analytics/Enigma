@@ -72,7 +72,7 @@ EnigmaBigCardUI.update = function (self, dt, t)
 	--	x_scale = 800
 	--end
 
-	ui_common.update_card_display_if_needed(self.ui_scenegraph, self._widgets_by_name, "card", card, x_scale)
+	ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, "card", card, x_scale)
 	self:draw(dt)
 end
 
