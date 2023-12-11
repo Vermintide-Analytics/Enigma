@@ -155,6 +155,7 @@ pack_handle.register_passive_cards({
         name = "base_spartan",
         rarity = RARE,
         cost = 1,
+        texture = "enigma_base_spartan",
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "power_level_impact", 0.05)
         end,
@@ -184,6 +185,7 @@ pack_handle.register_passive_cards({
         name = "base_veteran",
         rarity = EPIC,
         cost = 4,
+        texture = "enigma_base_veteran",
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "power_level", 0.1)
         end,
@@ -221,6 +223,7 @@ pack_handle.register_passive_cards({
         name = "base_warp_flesh",
         rarity = RARE,
         cost = 2,
+        texture = "enigma_base_warp_flesh",
         update_server = function(card, dt)
             if card.times_played > 0 then
                 card.next_heal_time = card.next_heal_time - dt
@@ -254,6 +257,7 @@ pack_handle.register_surge_cards({
         rarity = RARE,
         cost = 1,
         duration = 15,
+        texture = "enigma_base_retreat",
         on_surge_begin_local = function(card)
             buff:surge_stat(card.context.unit, "movement_speed", 0.5, card.duration)
             buff:surge_stat(card.context.unit, "dodge_range", 0.3, card.duration)
@@ -294,6 +298,7 @@ pack_handle.register_surge_cards({
         rarity = RARE,
         cost = 1,
         duration = 100,
+        texture = "enigma_base_stolen_bell",
         -- TODO implement card
         description_lines = {
             {
@@ -310,6 +315,7 @@ pack_handle.register_surge_cards({
         rarity = COMMON,
         cost = 2,
         duration = 60,
+        texture = "enigma_base_warpfire_strikes",
         events_server = {
             enemy_damaged = function(card, health_ext, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
                 if not card.surging then
@@ -331,6 +337,7 @@ pack_handle.register_surge_cards({
         rarity = EPIC,
         cost = 1,
         duration = 31.4,
+        texture = "enigma_base_warpstone_pie",
         on_surge_begin_server = function(card)
             buff:surge_stat(card.context.unit, "power_level", .314, card.duration)
             buff:surge_stat(card.context.unit, "damage_taken", -.314, card.duration)
@@ -358,6 +365,7 @@ pack_handle.register_surge_cards({
         rarity = EPIC,
         cost = 1,
         duration = 10,
+        texture = "enigma_base_wrath_of_khorne",
         on_surge_begin_server = function(card)
             buff:surge_stat(card.context.unit, "chance_instantly_slay_man_sized_enemy", 1.0, card.duration)
         end,
@@ -403,6 +411,7 @@ pack_handle.register_ability_cards({
         name = "base_cyclone_strike",
         rarity = RARE,
         cost = 0,
+        texture = "enigma_base_cyclone_strike",
         -- TODO implement card
         description_lines = {
             {
@@ -414,6 +423,7 @@ pack_handle.register_ability_cards({
         name = "base_ranalds_play",
         rarity = LEGENDARY,
         cost = 1,
+        texture = "enigma_base_ranalds_play",
         on_play_local = function(card)
             local hand_size = #game.self_data.hand
             if hand_size < 1 then
@@ -437,6 +447,7 @@ pack_handle.register_ability_cards({
         name = "base_long_rest",
         rarity = LEGENDARY,
         cost = 3,
+        texture = "enigma_base_long_rest",
         on_play_local = function(card)
             local discard_pile = game.self_data.discard_pile
             local to_return_to_draw_pile = math.min(5, #discard_pile)
