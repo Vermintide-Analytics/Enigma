@@ -295,6 +295,36 @@ pack_handle.register_ability_cards({
         ephemeral = true,
         infinite = true
     },
+    blood_transfusion = {
+        name = "base_blood_transfusion",
+        rarity = COMMON,
+        cost = 1,
+        texture = "enigma_base_blood_transfusion",
+        on_play_server = function(card)
+            local us = card.context.unit
+            DamageUtils.add_damage_network(us, us, 15, "full", "health_degen", nil, Vector3.up(), "health_degen")
+            local health_ext = ScriptUnit.extension(us, "health_system")
+            health_ext:add_damage(us, 15, "full", "forced", nil, Vector3.up())
+
+            local players_and_bots = game:player_and_bot_units()
+            for _,unit in ipairs(players_and_bots) do
+                if unit ~= card.context.unit then
+                    DamageUtils.heal_network(unit, us, 15, "health_regen")
+                end
+            end
+        end,
+        infinite = true,
+        description_lines = {
+            {
+                format = "description_take_damage",
+                parameters = { 15 }
+            },
+            {
+                format = "base_blood_transfusion_description",
+                parameters = { 15 }
+            }
+        }
+    },
     divine_insurance = {
         name = "base_divine_insurance",
         rarity = EPIC,
@@ -309,11 +339,17 @@ pack_handle.register_ability_cards({
             buff:surge_stat(card.context.unit, "chance_ignore_leech", 1, card.duration)
             buff:surge_stat(card.context.unit, "chance_ignore_packmaster", 1, card.duration)
         end,
-        events_local = {
+        events_server = {
             player_disabled = function(card, disabled_unit, disable_type, disabler)
+                if not card:is_in_hand() then
+                    return
+                end
+                enigma:info("DIVINE INSURANCE PLAYER DISABLED")
                 if disabled_unit == card.context.unit then
                     card.disabler_unit = disabler
-                    game.try_play_card(card)
+                    game:try_play_card(card)
+                else
+                    enigma:info("Disabled unit aint us!")
                 end
             end
         },
@@ -339,11 +375,17 @@ pack_handle.register_ability_cards({
                 enigma:execute_unit(card.disabler_unit, card.context.unit)
             end
         end,
-        events_local = {
+        events_server = {
             player_disabled = function(card, disabled_unit, disable_type, disabler)
+                if not card:is_in_hand() then
+                    return
+                end
+                enigma:info("DUBIOUS INSURANCE PLAYER DISABLED")
                 if disabled_unit == card.context.unit then
                     card.disabler_unit = disabler
-                    game.try_play_card(card)
+                    game:try_play_card(card)
+                else
+                    enigma:info("Disabled unit aint us!")
                 end
             end
         },
@@ -446,6 +488,29 @@ pack_handle.register_ability_cards({
             }
         }
     },
+    spare_engine = {
+        name = "base_spare_engine",
+        rarity = RARE,
+        cost = 1,
+        texture = "enigma_base_spare_engine",
+        warp_dust_increase = 0.1,
+        card_draw_increase = 0.25,
+        location_changed_local = function(card, old, new)
+            if new == "hand" then
+                buff:update_stat(card.context.unit, "warp_dust_multiplier", card.warp_dust_increase)
+                buff:update_stat(card.context.unit, "card_draw_multiplier", card.card_draw_increase)
+            elseif old == "hand" then
+                buff:update_stat(card.context.unit, "warp_dust_multiplier", card.warp_dust_increase * -1)
+                buff:update_stat(card.context.unit, "card_draw_multiplier", card.card_draw_increase * -1)
+            end
+        end,
+        retain_descriptions = {
+            {
+                format = "base_spare_engine_retain",
+                parameters = { 10, 25 }
+            },
+        }
+    },
     stolen_bell = {
         name = "base_stolen_bell",
         rarity = RARE,
@@ -468,27 +533,30 @@ pack_handle.register_ability_cards({
         rarity = RARE,
         cost = 1,
         texture = "enigma_base_ubersreik_hero",
-        disabled_allies = {},
         on_play_server = function(card)
             -- Find closest disabled ally and kill their disabler
             local us = card.context.unit
-            local closest_unit = nil
+            local closest_unit_status = nil
             local closest_distance = nil
-            for unit,disabled in pairs(card.disabled_allies) do
-                if disabled then
-                    local distance = enigma:distance_between_units(unit, us)
-                    if closest_distance == nil or distance < closest_distance then
-                        closest_distance = distance
-                        closest_unit = unit
+            
+            local players_and_bots = game:player_and_bot_units()
+            for _,unit in pairs(players_and_bots) do
+                if unit ~= us then
+                    local status = ScriptUnit.extension(unit, "status_system")
+                    if status:is_disabled() then
+                        local distance = enigma:distance_between_units(unit, us)
+                        if closest_distance == nil or distance < closest_distance then
+                            closest_distance = distance
+                            closest_unit_status = status
+                        end
                     end
                 end
             end
-            if not closest_unit then
+            if not closest_unit_status then
                 enigma:warning("Ubersreik Hero could not find a disabled ally when it was played!")
                 return
             end
-            local status = ScriptUnit.extension(closest_unit, "status_system")
-            local disabler = status:get_disabler_unit()
+            local disabler = closest_unit_status:get_disabler_unit()
             if not disabler then
                 enigma:warning("Ubersreik Hero could not find the disabler unit when it was played!")
                 return
@@ -498,16 +566,15 @@ pack_handle.register_ability_cards({
         condition_local = function(card)
             -- At least one ally is disabled
             local players_and_bots = game:player_and_bot_units()
-            local any_disabled = false
             for _,unit in ipairs(players_and_bots) do
                 if unit ~= card.context.unit then -- Skip ourselves
                     local status = ScriptUnit.extension(unit, "status_system")
-                    local disabled = status:is_disabled()
-                    card.disabled_allies[unit] = disabled
-                    any_disabled = any_disabled or disabled
+                    if status:is_disabled() then
+                        return true
+                    end
                 end
             end
-            return any_disabled
+            return false
         end,
         description_lines = {
             {

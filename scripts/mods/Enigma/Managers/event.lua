@@ -62,6 +62,7 @@ em._add_event_callback = function(self, event, card, callback)
         return
     end
     callbacks[card] = callback
+    enigma:debug("Added callback to "..event.." for "..card.name)
 end
 
 em._remove_event_callback = function(self, event, card)
@@ -145,6 +146,7 @@ em._invoke_event_callbacks = function(self, event, ...)
     end
     enigma:debug("EVENT TRIGGERED: "..event)
     for card,cb in pairs(self.events[event]) do
+        enigma:debug("Triggering callback for card: "..card.name)
         if not cb then
             return
         end
@@ -194,7 +196,7 @@ reg_hook_safe(BuffExtension, "trigger_procs", function(self, event, ...)
     elseif event == "on_invisible" then
         em:_invoke_event_callbacks(enigma.EVENTS.player_invisible, self._unit)
     elseif event == "on_reload" then
-        em:_invoke_event_callbacks(enigma.EVENTS.player_revived, self._unit)
+        em:_invoke_event_callbacks(enigma.EVENTS.player_reload, self._unit)
     elseif event == "on_revived" then
         local arg = table.pack(...)
         em:_invoke_event_callbacks(enigma.EVENTS.player_revived, self._unit, arg[1])
@@ -216,8 +218,8 @@ reg_hook_safe(DeathSystem, "kill_unit", function(self, unit, killing_blow)
 end)
 
 reg_hook_safe(PlayerCharacterStateWaitingForAssistedRespawn, "on_enter", function(self, unit, ...)
-    em:_invoke_event_callbacks(enigma.EVENTS.player_respawned, unit)
-end, "enigma_event_player_respawned")
+    em:_invoke_event_callbacks(enigma.EVENTS.player_respawn, unit)
+end, "enigma_event_player_respawn")
 
 reg_hook_safe(PlayerCharacterStateJumping, "on_enter", function(self, unit, ...)
     em:_invoke_event_callbacks(enigma.EVENTS.player_jump, unit)

@@ -65,7 +65,15 @@ wm.pay_cost = function(self, cost)
 end
 
 wm.update = function(self, dt)
-    self:add_warp_dust(dt * self.warp_dust_per_second)
+    local gain = dt * self.warp_dust_per_second
+    local local_unit = enigma.managers.game.self_data and enigma.managers.game.self_data.unit
+    if local_unit then
+        local custom_buffs = enigma.managers.buff.unit_custom_buffs[local_unit]
+        if custom_buffs and custom_buffs.warp_dust_multiplier then
+            gain = gain * custom_buffs.warp_dust_multiplier
+        end
+    end
+    self:add_warp_dust(gain)
 end
 
 wm.get_warp_dust_per_warpstone = function(self)

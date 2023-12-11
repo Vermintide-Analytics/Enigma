@@ -6,46 +6,61 @@ return {
 
     -- Common descriptions
     description_attack_speed = {
-        en = "%+.1f%% attack speed"
+        en = "%+.1f%% Attack Speed"
     },
     description_cooldown_regen = {
-        en = "%+.1f%% cooldown regen"
+        en = "%+.1f%% Cooldown Regen"
     },
     description_critical_strike_chance = {
-        en = "%+.1f%% crit chance"
+        en = "%+.1f%% Crit Chance"
     },
     description_damage_taken = {
-        en = "%+.1f%% damage taken"
+        en = "%+.1f%% Damage Taken"
     },
     description_dodge_range = {
-        en = "%+.1f%% dodge range"
+        en = "%+.1f%% Dodge Range"
     },
     description_dodge_speed = {
-        en = "%+.1f%% dodge speed"
+        en = "%+.1f%% Dodge Speed"
     },
     description_execute_man_sized_enemy = {
-        en = "%+.1f%% chance to instantly slay man-sized enemies"
+        en = "%+.1f%% Chance to Instantly Slay Man-Sized Enemies"
     },
     description_max_health = {
-        en = "%+.1f%% max health"
+        en = "%+.1f%% Max Health"
     },
     description_movement_speed = {
-        en = "%+.1f%% movement speed"
+        en = "%+.1f%% Movement Speed"
     },
     description_power_level = {
-        en = "%+.1f%% power"
+        en = "%+.1f%% Power"
     },
     description_power_level_impact = {
-        en = "%+.1f%% stagger power"
+        en = "%+.1f%% Stagger Power"
     },
     description_power_level_skaven = {
-        en = "%+.1f%% power vs Skaven"
+        en = "%+.1f%% Power vs Skaven"
+    },
+    description_take_damage = {
+        en = "Take %i Damage"
     },
     description_temporary_healing_received = {
-        en = "%+.1f%% temp health gained"
+        en = "%+.1f%% Temp Health gained"
     },
 
     -- TEST
+    base_ex_passive = {
+        en = "Example Passive Card"
+    },
+    base_ex_attack = {
+        en = "Example Attack Card"
+    },
+    base_ex_ability = {
+        en = "Example Ability Card"
+    },
+    base_ex_chaos = {
+        en = "Example Chaos Card"
+    },
     description_test = {
         en = "Do a thing, but with a longer description that should make some smaller text."
     },
@@ -113,7 +128,7 @@ return {
         en = "Warp Flesh"
     },
     base_warp_flesh_description = {
-        en = "Regenerate %i health every %i seconds"
+        en = "Regenerate %i Health every %i seconds"
     },
 
 
@@ -128,8 +143,16 @@ return {
 
 
     -- Ability cards
+    base_blood_transfusion = {
+        en = "Blood Transfusion"
+    },
+    base_blood_transfusion_description = {
+        en = "Allies gain %i Health"
+    },
+
+
     base_divine_insurance = {
-        en = "Dubious Insurance"
+        en = "Divine Insurance"
     },
     base_divine_insurance_auto = {
         en = "When you are disabled"
@@ -170,6 +193,13 @@ return {
     },
     base_retreat_auto_description = {
         en = "When hit for at least %i damage"
+    },
+
+    base_spare_engine = {
+        en = "Spare Engine"
+    },
+    base_spare_engine_retain = {
+        en = "%+i%% Warp Dust\n %+i%% Card Draw"
     },
 
     base_stolen_bell = {

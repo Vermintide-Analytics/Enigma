@@ -11,6 +11,9 @@ end
 
 local template_template = {
     location = enigma.CARD_LOCATION.draw_pile,
+    location_changed_local = nil,
+    location_changed_server = nil,
+    location_changed_remote = nil,
 
     on_game_start_local = nil,
     on_game_start_server = nil,

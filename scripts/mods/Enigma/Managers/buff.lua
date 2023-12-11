@@ -14,6 +14,7 @@ local bm = {
 enigma.managers.buff = bm
 
 local custom_buff_definitions = {
+    card_draw_multiplier = 1.0,
     chance_ignore_assassin = 0,
     chance_ignore_leech = 0,
     chance_ignore_packmaster = 0,
@@ -21,6 +22,7 @@ local custom_buff_definitions = {
     dodge_range = 0,
     dodge_speed = 0,
     temporary_healing_received = 1.0,
+    warp_dust_multiplier = 1.0,
 }
 
 -- Define global callbacks for when stats are updated

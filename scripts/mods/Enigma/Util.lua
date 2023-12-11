@@ -142,6 +142,10 @@ enigma.execute_man_sized_enemy = function (self, unit, params)
 end
 
 enigma.distance_between_units = function(self, unit1, unit2)
+    if not unit1 or not unit2 then
+        enigma:warning("Cannot get the distance between units: "..tostring(unit1).." and "..tostring(unit2))
+        return
+    end
     return Vector3.distance(Unit.world_position(unit1, 0), Unit.world_position(unit2, 0))
 end
 
