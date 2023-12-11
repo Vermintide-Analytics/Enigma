@@ -419,6 +419,36 @@ pack_handle.register_ability_cards({
             }
         }
     },
+    dubious_insurance = {
+        name = "base_dubious_insurance",
+        rarity = EPIC,
+        cost = 0,
+        texture = "enigma_base_dubious_insurance",
+        on_play_server = function(card)
+            if card.disabler_unit then
+                -- TODO kill the disabler?
+            end
+        end,
+        events_local = {
+            player_disabled = function(card, disabled_unit, disable_type, disabler)
+                if disabled_unit == card.context.unit then
+                    card.disabler_unit = disabler
+                    game.try_play_card(card)
+                end
+            end
+        },
+        unplayable = true,
+        description_lines = {
+            {
+                format = "base_dubious_insurance_description"
+            }
+        },
+        auto_descriptions = {
+            {
+                format = "base_dubious_insurance_auto"
+            }
+        }
+    },
     ranalds_play = {
         name = "base_ranalds_play",
         rarity = LEGENDARY,

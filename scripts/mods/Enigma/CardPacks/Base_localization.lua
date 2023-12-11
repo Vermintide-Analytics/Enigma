@@ -141,6 +141,15 @@ return {
     base_cyclone_strike_description = {
         en = "Strike all nearby enemies with a light attack headshot"
     },
+    base_dubious_insurance = {
+        en = "Dubious Insurance"
+    },
+    base_dubious_insurance_auto = {
+        en = "When you are disabled"
+    },
+    base_dubious_insurance_description = {
+        en = "Free yourself from being disabled"
+    },
     base_ranalds_play = {
         en = "Ranald's Play"
     },
