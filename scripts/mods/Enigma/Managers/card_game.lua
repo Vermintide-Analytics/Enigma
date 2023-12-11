@@ -667,6 +667,11 @@ cgm._try_play_card_at_index_from_location = function(self, index, location, skip
         return
     end
 
+    if card.unplayable and play_type == "manual" then
+        enigma:info("Cannot play unplayable card manually")
+        return
+    end
+
     if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(card.cost) then
         enigma:echo("Not enough warpstone to play ["..card.name.."]")
         return
