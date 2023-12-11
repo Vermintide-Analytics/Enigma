@@ -1,6 +1,36 @@
 local enigma = get_mod("Enigma")
 
+enigma.EVENTS = {
 
+    enemy_damaged = "enemy_damaged", -- health_extension, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier
+    enemy_healed = "enemy_healed", -- health_extension, healer_unit, heal_amount, heal_source_name, heal_type
+    enemy_killed = "enemy_killed", -- killed_unit, killing_blow
+    enemy_spawned = "enemy_spawned", -- spawned_unit, breed, spawn_pos, spawn_category, spawn_type, optional_data
+    enemy_staggered = "enemy_staggered",
+
+    player_block = "player_block", -- blocking_unit, attacker_unit, fatigue_type
+    player_block_broken = "player_block_broken", -- blocking_unit, attacker_unit, fatigue_type
+    player_damaged = "player_damaged", -- health_extension, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier
+    player_disabled = "player_disabled", -- disabled_unit, disable_type, disabler
+    player_dodge = "player_dodge",
+    player_freed = "player_freed",
+    player_healed = "player_healed", -- health_extension, healer_unit, heal_amount, heal_source_name, heal_type
+    player_hooked = "player_hooked", -- disabled_unit, disabler
+    player_invisible = "player_invisible", -- player_unit
+    player_jump = "player_jump", -- jumping_player_unit
+    player_killed = "player_killed", -- killed_unit, killing_blow
+    player_knocked_down = "player_knocked_down", -- unit
+    player_leeched = "player_leeched", -- disabled_unit, disabler
+    player_picked_up_from_respawn = "player_picked_up_from_respawn",
+    player_reload = "player_reload", -- reloading_unit
+    player_pounced = "player_pounced", -- disabled_unit, disabler
+    player_respawn = "player_respawn", -- respawned_player_unit
+    player_timed_block = "player_timed_block", -- blocking_unit, attacker_unit
+    player_revived = "player_revived", -- revived_unit, reviver_unit
+    player_visible = "player_visible", -- player_unit
+    player_waiting_for_rescue = "player_waiting_for_rescue",
+
+}
 
 local em = {
     events = {}
@@ -113,6 +143,7 @@ em._invoke_event_callbacks = function(self, event, ...)
         enigma:warning("Cannot invoke callbacks for nonexistent event ("..tostring(event)..")")
         return
     end
+    enigma:debug("EVENT TRIGGERED: "..event)
     for card,cb in pairs(self.events[event]) do
         if not cb then
             return
@@ -121,6 +152,10 @@ em._invoke_event_callbacks = function(self, event, ...)
     end
 end
 
+reg_hook_safe(ConflictDirector, "_post_spawn_unit", function(self, ai_unit, go_id, breed, spawn_pos, spawn_category, spawn_animation, optional_data, spawn_type)
+    em:_invoke_event_callbacks(enigma.EVENTS.enemy_spawned, ai_unit, breed, spawn_pos, spawn_category, spawn_type, optional_data)
+end, "enigma_event_enemy_spawned")
+
 reg_hook_safe(GenericHealthExtension, "add_damage", function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
     em:_invoke_event_callbacks(enigma.EVENTS.enemy_damaged, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
 end, "enigma_event_enemy_damaged")
@@ -128,3 +163,62 @@ end, "enigma_event_enemy_damaged")
 reg_hook_safe(PlayerUnitHealthExtension, "add_damage", function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
     em:_invoke_event_callbacks(enigma.EVENTS.player_damaged, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
 end, "enigma_event_player_damaged")
+
+reg_hook_safe(GenericHealthExtension, "add_heal", function(self, healer_unit, heal_amount, heal_source_name, heal_type)
+    em:_invoke_event_callbacks(enigma.EVENTS.enemy_healed, self, healer_unit, heal_amount, heal_source_name, heal_type)
+end, "enigma_event_enemy_healed")
+
+reg_hook_safe(PlayerUnitHealthExtension, "add_heal", function(self, healer_unit, heal_amount, heal_source_name, heal_type)
+    em:_invoke_event_callbacks(enigma.EVENTS.player_healed, self, healer_unit, heal_amount, heal_source_name, heal_type)
+end, "enigma_event_player_healed")
+
+reg_hook_safe(BuffExtension, "trigger_procs", function(self, event, ...)
+    if event == "on_player_disabled" then
+        local arg = table.pack(...)
+        if arg[1] == "assassin_pounced" then
+            em:_invoke_event_callbacks(enigma.EVENTS.player_pounced, self._unit, arg[2])
+        elseif arg[1] == "pack_master_grab" then
+            em:_invoke_event_callbacks(enigma.EVENTS.player_hooked, self._unit, arg[2])
+        elseif arg[1] == "corruptor_grab" then
+            em:_invoke_event_callbacks(enigma.EVENTS.player_leeched, self._unit, arg[2])
+        end
+        em:_invoke_event_callbacks(enigma.EVENTS.player_disabled, self._unit, arg[1], arg[2])
+    elseif event == "on_block" then
+        local arg = table.pack(...)
+        em:_invoke_event_callbacks(enigma.EVENTS.player_block, self._unit, arg[1], arg[2])
+    elseif event == "on_block_broken" then
+        local arg = table.pack(...)
+        em:_invoke_event_callbacks(enigma.EVENTS.player_block_broken, self._unit, arg[1], arg[2])
+    elseif event == "on_knocked_down" then
+        em:_invoke_event_callbacks(enigma.EVENTS.player_knocked_down, self._unit)
+    elseif event == "on_invisible" then
+        em:_invoke_event_callbacks(enigma.EVENTS.player_invisible, self._unit)
+    elseif event == "on_reload" then
+        em:_invoke_event_callbacks(enigma.EVENTS.player_revived, self._unit)
+    elseif event == "on_revived" then
+        local arg = table.pack(...)
+        em:_invoke_event_callbacks(enigma.EVENTS.player_revived, self._unit, arg[1])
+    elseif event == "on_timed_block" then
+        local arg = table.pack(...)
+        em:_invoke_event_callbacks(enigma.EVENTS.player_timed_block, self._unit, arg[1])
+    elseif event == "on_visible" then
+        em:_invoke_event_callbacks(enigma.EVENTS.player_visible, self._unit)
+    end
+end, "enigma_event_trigger_procs")
+
+reg_hook_safe(DeathSystem, "kill_unit", function(self, unit, killing_blow)
+	local breed = Unit.get_data(unit, "breed")
+    if breed.is_player then
+        em:_invoke_event_callbacks(enigma.EVENTS.player_killed, unit, killing_blow)
+    else
+        em:_invoke_event_callbacks(enigma.EVENTS.enemy_killed, unit, killing_blow)
+    end
+end)
+
+reg_hook_safe(PlayerCharacterStateWaitingForAssistedRespawn, "on_enter", function(self, unit, ...)
+    em:_invoke_event_callbacks(enigma.EVENTS.player_respawned, unit)
+end, "enigma_event_player_respawned")
+
+reg_hook_safe(PlayerCharacterStateJumping, "on_enter", function(self, unit, ...)
+    em:_invoke_event_callbacks(enigma.EVENTS.player_jump, unit)
+end, "enigma_event_player_jump")

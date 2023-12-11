@@ -34,24 +34,3 @@ enigma.CARD_LOCATION = {
 enigma.can_play_from_location = function(location)
     return location == enigma.CARD_LOCATION.draw_pile or location == enigma.CARD_LOCATION.hand
 end
-
-enigma.EVENTS = {
-
-    enemy_damaged = "enemy_damaged", -- Hooked
-    enemy_killed = "enemy_killed",
-    enemy_spawned = "enemy_spawned",
-    enemy_staggered = "enemy_staggered",
-
-    player_block_broken = "player_block_broken",
-    player_damaged = "player_damaged", -- Hooked
-    player_disabled = "player_disabled",
-    player_dodged = "player_dodged",
-    player_healed = "player_healed",
-    player_jumped = "player_jumped",
-    player_killed = "player_killed",
-    player_knocked_down = "player_knocked_down",
-    player_rescued = "player_rescued",
-    player_revived = "player_revived",
-    player_spawned = "player_spawned",
-    player_waiting_for_rescue = "player_waiting_for_rescue",
-}
