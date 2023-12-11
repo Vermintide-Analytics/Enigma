@@ -2,8 +2,9 @@ local enigma = get_mod("Enigma")
 
 enigma.CARD_TYPE = {
     passive = "passive",
-    surge = "surge",
-    ability = "ability"
+    attack = "attack",
+    ability = "ability",
+    chaos = "chaos"
 }
 enigma.validate_card_type = function(type)
     if type(type) ~= "string" then

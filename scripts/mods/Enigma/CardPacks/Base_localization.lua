@@ -107,7 +107,41 @@ return {
     },
 
 
-    -- Surge cards
+    -- Attack cards
+    base_cyclone_strike = {
+        en = "Cyclone Strike"
+    },
+    base_cyclone_strike_description = {
+        en = "Strike all nearby enemies with a light attack headshot"
+    },
+    
+
+
+    -- Ability cards
+    base_dubious_insurance = {
+        en = "Dubious Insurance"
+    },
+    base_dubious_insurance_auto = {
+        en = "When you are disabled"
+    },
+    base_dubious_insurance_description = {
+        en = "Free yourself from being disabled"
+    },
+    base_long_rest = {
+        en = "Long Rest"
+    },
+    base_long_rest_description = {
+        en = "Shuffle %i random cards from your discard pile into your draw pile"
+    },
+    base_ranalds_play = {
+        en = "Ranald's Play"
+    },
+    base_ranalds_play_description = {
+        en = "Play a random card from your hand for free"
+    },
+    base_ranalds_play_auto = {
+        en = "Tiny chance to play at a random time"
+    },
     base_retreat = {
         en = "Retreat!"
     },
@@ -132,37 +166,4 @@ return {
     base_wrath_of_khorne = {
         en = "Wrath of Khorne"
     },
-
-
-    -- Ability cards
-    base_cyclone_strike = {
-        en = "Cyclone Strike"
-    },
-    base_cyclone_strike_description = {
-        en = "Strike all nearby enemies with a light attack headshot"
-    },
-    base_dubious_insurance = {
-        en = "Dubious Insurance"
-    },
-    base_dubious_insurance_auto = {
-        en = "When you are disabled"
-    },
-    base_dubious_insurance_description = {
-        en = "Free yourself from being disabled"
-    },
-    base_ranalds_play = {
-        en = "Ranald's Play"
-    },
-    base_ranalds_play_description = {
-        en = "Play a random card from your hand for free"
-    },
-    base_ranalds_play_auto = {
-        en = "Tiny chance to play at a random time"
-    },
-    base_long_rest = {
-        en = "Long Rest"
-    },
-    base_long_rest_description = {
-        en = "Shuffle %i random cards from your discard pile into your draw pile"
-    }
 }

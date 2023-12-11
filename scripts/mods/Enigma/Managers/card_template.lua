@@ -32,13 +32,6 @@ local template_template = {
     on_discard_server = nil,
     on_discard_remote = nil,
 
-    on_surge_begin_local = nil,
-    on_surge_begin_server = nil,
-    on_surge_begin_remote = nil,
-    on_surge_end_local = nil,
-    on_surge_end_server = nil,
-    on_surge_end_remote = nil,
-
     description_lines = {},
 
     auto_condition_local = nil,
@@ -198,16 +191,16 @@ ctm.register_passive_card = function(self, pack_id, card_id, card_def)
     return self:register_card(pack_id, card_id, enigma.CARD_TYPE.passive, card_def)
 end
 
-ctm.register_surge_card = function(self, pack_id, card_id, card_def)
-    if type(card_def.duration) ~= "number" or card_def.duration <= 0 then
-        enigma:echo_bad_function_call("register_surge_card", "duration", {pack_id = pack_id, id = card_def.id, name = card_def.name, rarity = card_def.rarity, cost = card_def.cost, duration = card_def.duration})
-        return
-    end
-    return self:register_card(pack_id, card_id, enigma.CARD_TYPE.surge, card_def)
+ctm.register_attack_card = function(self, pack_id, card_id, card_def)
+    return self:register_card(pack_id, card_id, enigma.CARD_TYPE.attack, card_def)
 end
 
 ctm.register_ability_card = function(self, pack_id, card_id, card_def)
     return self:register_card(pack_id, card_id, enigma.CARD_TYPE.ability, card_def)
+end
+
+ctm.register_chaos_card = function(self, pack_id, card_id, card_def)
+    return self:register_card(pack_id, card_id, enigma.CARD_TYPE.chaos, card_def)
 end
 
 ctm.add_update = function(self, card_id, func, context)

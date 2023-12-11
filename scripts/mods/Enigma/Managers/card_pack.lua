@@ -29,10 +29,10 @@ local get_pack_handle = function(pack_id)
                 enigma.managers.card_template:register_passive_card(pack_id, card_id, card_def)
             end
         end,
-        register_surge_cards = function(card_defs)
+        register_attack_cards = function(card_defs)
             for card_id,card_def in pairs(card_defs) do
                 card_def.mod_id = pack.mod_id
-                enigma.managers.card_template:register_surge_card(pack_id, card_id, card_def)
+                enigma.managers.card_template:register_attack_card(pack_id, card_id, card_def)
             end
         end,
         register_ability_cards = function(card_defs)
@@ -41,6 +41,12 @@ local get_pack_handle = function(pack_id)
                 enigma.managers.card_template:register_ability_card(pack_id, card_id, card_def)
             end
         end,
+        register_chaos_cards = function(card_defs)
+            for card_id,card_def in pairs(card_defs) do
+                card_def.mod_id = pack.mod_id
+                enigma.managers.card_template:register_chaos_card(pack_id, card_id, card_def)
+            end
+        end
     }
 end
 

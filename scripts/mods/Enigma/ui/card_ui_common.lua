@@ -51,13 +51,13 @@ local ui_common = {
 			239,
 			169
 		},
-        surge = {
+        attack = {
             255,
             187,
             124,
             118
         },
-		surge_highlight = {
+		attack_highlight = {
 			255,
 			223,
 			173,
@@ -74,6 +74,18 @@ local ui_common = {
 			207,
 			217,
 			251
+		},
+        chaos = {
+            255,
+            50,
+            55,
+            50
+        },
+		chaos_highlight = {
+			255,
+			80,
+			80,
+			80
 		},
         default = {
             255,
@@ -307,6 +319,12 @@ local TEXT_COLOR = {
 	0,
 	0,
 	0
+}
+local TEXT_COLOR_WHITE = {
+	255,
+	255,
+	255,
+	255
 }
 local KEYWORD_COLOR = {
 	255,
@@ -824,8 +842,9 @@ ui_common.add_card_display = function(scenegraph_defs, widget_defs, scenegraph_p
 	add_card_widgets(widget_defs, card_scenegraph_id, sizes)
 end
 
-local set_widgets_visibility = function(widgets, card_node_id, visible, is_surge_card)
+local set_widgets_visibility = function(widgets, card_node_id, visible, has_duration)
 	visible = not not visible
+	has_duration = not not has_duration
 	
 	widgets[card_node_id].content.visible = visible
 	
@@ -842,7 +861,7 @@ local set_widgets_visibility = function(widgets, card_node_id, visible, is_surge
 	local card_cost_widget = widgets[card_cost_node_id]
 	card_cost_widget.content.visible = visible
 	local card_duration_widget = widgets[card_duration_node_id]
-	card_duration_widget.content.visible = visible and is_surge_card
+	card_duration_widget.content.visible = visible and has_duration
 	local card_image_widget = widgets[card_image_node_id]
 	card_image_widget.content.visible = visible
 	local card_pack_widget = widgets[card_pack_node_id]
@@ -861,10 +880,12 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 	local sizes = calculate_card_sizes(card_width)
 	local pretty_margin = sizes.pretty_margin
 
-	set_widgets_visibility(widgets, card_node_id, card, card and card.card_type == enigma.CARD_TYPE.surge)
+	set_widgets_visibility(widgets, card_node_id, card, card and card.duration)
 	if not card then
 		return
 	end
+
+	local basic_text_color = (card.card_type == enigma.CARD_TYPE.chaos) and TEXT_COLOR_WHITE or TEXT_COLOR
 
 	-- Set scenegraph node sizes and positions
 	scenegraph_nodes[card_node_id].size[1] = card_width
@@ -1019,6 +1040,7 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 		basic_details_widget.content.details = table.concat(lines, "\n")
 		basic_details_widget.style.details._dynamic_wraped_text = ""
 		basic_details_widget.style.details.font_size = sizes.card_details_font_size
+		basic_details_widget.style.details.text_color = basic_text_color
 	else
 		basic_details_widget.content.details = ""
 	end
@@ -1042,6 +1064,7 @@ ui_common.update_card_display = function(scenegraph_nodes, widgets, card_node_id
 		text_style.offset[2] = sizes.card_details_font_size*-0.5
 		text_style._dynamic_wraped_text = ""
 		text_style.font_size = sizes.card_details_font_size
+		text_style.text_color = basic_text_color
 
 		local content = keyword_details_widget.content
 		content.title = ""

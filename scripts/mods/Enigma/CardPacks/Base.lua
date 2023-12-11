@@ -11,8 +11,8 @@ local game = enigma.managers.game
 local buff = enigma.managers.buff
 
 pack_handle.register_passive_cards({
-    ex1 = {
-        name = "base_ex_1",
+    ex_passive = {
+        name = "base_ex_passive",
         rarity = LEGENDARY,
         cost = 4,
         description_lines = {
@@ -28,21 +28,6 @@ pack_handle.register_passive_cards({
         channel = 10,
         ephemeral = true,
         infinite = true
-    },
-    ex2 = {
-        name = "base_ex_2",
-        rarity = LEGENDARY,
-        cost = 4,
-        description_lines = {
-            {
-                format = "description_test"
-            }
-        },
-        auto_descriptions = {
-            {
-                format = "auto_description_test"
-            }
-        },
     },
     caffeinated = {
         name = "base_caffeinated",
@@ -251,7 +236,141 @@ pack_handle.register_passive_cards({
     },
 })
 
-pack_handle.register_surge_cards({
+pack_handle.register_attack_cards({
+    ex_attack = {
+        name = "base_ex_attack",
+        rarity = LEGENDARY,
+        cost = 4,
+        description_lines = {
+            {
+                format = "description_test"
+            }
+        },
+        auto_descriptions = {
+            {
+                format = "auto_description_test"
+            }
+        },
+    },
+    cyclone_strike = {
+        name = "base_cyclone_strike",
+        rarity = RARE,
+        cost = 0,
+        texture = "enigma_base_cyclone_strike",
+        -- TODO implement card
+        description_lines = {
+            {
+                format = "base_cyclone_strike_description"
+            }
+        }
+    },
+})
+
+pack_handle.register_ability_cards({
+    ex_ability = {
+        name = "base_ex_ability",
+        rarity = EPIC,
+        cost = 4,
+        description_lines = {
+            {
+                format = "description_test"
+            }
+        },
+        retain_descriptions = {
+            {
+                format = "retain_description_test"
+            }
+        },
+        auto_descriptions = {
+            {
+                format = "auto_description_test"
+            }
+        },
+        condition_descriptions = {
+            {
+                format = "condition_description_test"
+            }
+        },
+        channel = 10,
+        ephemeral = true,
+        infinite = true
+    },
+    dubious_insurance = {
+        name = "base_dubious_insurance",
+        rarity = EPIC,
+        cost = 0,
+        texture = "enigma_base_dubious_insurance",
+        on_play_server = function(card)
+            if card.disabler_unit then
+                -- TODO kill the disabler?
+            end
+        end,
+        events_local = {
+            player_disabled = function(card, disabled_unit, disable_type, disabler)
+                if disabled_unit == card.context.unit then
+                    card.disabler_unit = disabler
+                    game.try_play_card(card)
+                end
+            end
+        },
+        unplayable = true,
+        description_lines = {
+            {
+                format = "base_dubious_insurance_description"
+            }
+        },
+        auto_descriptions = {
+            {
+                format = "base_dubious_insurance_auto"
+            }
+        }
+    },
+    long_rest = {
+        name = "base_long_rest",
+        rarity = LEGENDARY,
+        cost = 3,
+        texture = "enigma_base_long_rest",
+        on_play_local = function(card)
+            local discard_pile = game.self_data.discard_pile
+            local to_return_to_draw_pile = math.min(5, #discard_pile)
+            local indexes = enigma:n_random_indexes(#discard_pile, to_return_to_draw_pile)
+            for i=to_return_to_draw_pile,1,-1 do
+                game:shuffle_card_into_draw_pile(discard_pile[indexes[i]])
+            end
+        end,
+        channel = 10,
+        ephemeral = true,
+        description_lines = {
+            {
+                format = "base_long_rest_description",
+                parameters = { 5 }
+            }
+        }
+    },
+    ranalds_play = {
+        name = "base_ranalds_play",
+        rarity = LEGENDARY,
+        cost = 1,
+        texture = "enigma_base_ranalds_play",
+        on_play_local = function(card)
+            local hand_size = #game.self_data.hand
+            if hand_size < 1 then
+                return -- If no other cards in hand... nothing happens! Too bad!
+            end
+            local card_index = enigma:random_range_int(1, hand_size)
+            game:try_play_card_from_hand(card_index, true)
+        end,
+        description_lines = {
+            {
+                format = "base_ranalds_play_description"
+            }
+        },
+        auto_descriptions = {
+            {
+                format = "base_ranalds_play_auto"
+            }
+        }
+    },
     retreat = {
         name = "base_retreat",
         rarity = RARE,
@@ -378,9 +497,10 @@ pack_handle.register_surge_cards({
     },
 })
 
-pack_handle.register_ability_cards({
-    exfull = {
-        name = "base_ex_full",
+pack_handle.register_chaos_cards({
+    
+    ex_chaos = {
+        name = "base_ex_chaos",
         rarity = EPIC,
         cost = 4,
         description_lines = {
@@ -406,93 +526,5 @@ pack_handle.register_ability_cards({
         channel = 10,
         ephemeral = true,
         infinite = true
-    },
-    cyclone_strike = {
-        name = "base_cyclone_strike",
-        rarity = RARE,
-        cost = 0,
-        texture = "enigma_base_cyclone_strike",
-        -- TODO implement card
-        description_lines = {
-            {
-                format = "base_cyclone_strike_description"
-            }
-        }
-    },
-    dubious_insurance = {
-        name = "base_dubious_insurance",
-        rarity = EPIC,
-        cost = 0,
-        texture = "enigma_base_dubious_insurance",
-        on_play_server = function(card)
-            if card.disabler_unit then
-                -- TODO kill the disabler?
-            end
-        end,
-        events_local = {
-            player_disabled = function(card, disabled_unit, disable_type, disabler)
-                if disabled_unit == card.context.unit then
-                    card.disabler_unit = disabler
-                    game.try_play_card(card)
-                end
-            end
-        },
-        unplayable = true,
-        description_lines = {
-            {
-                format = "base_dubious_insurance_description"
-            }
-        },
-        auto_descriptions = {
-            {
-                format = "base_dubious_insurance_auto"
-            }
-        }
-    },
-    ranalds_play = {
-        name = "base_ranalds_play",
-        rarity = LEGENDARY,
-        cost = 1,
-        texture = "enigma_base_ranalds_play",
-        on_play_local = function(card)
-            local hand_size = #game.self_data.hand
-            if hand_size < 1 then
-                return -- If no other cards in hand... nothing happens! Too bad!
-            end
-            local card_index = enigma:random_range_int(1, hand_size)
-            game:try_play_card_from_hand(card_index, true)
-        end,
-        description_lines = {
-            {
-                format = "base_ranalds_play_description"
-            }
-        },
-        auto_descriptions = {
-            {
-                format = "base_ranalds_play_auto"
-            }
-        }
-    },
-    long_rest = {
-        name = "base_long_rest",
-        rarity = LEGENDARY,
-        cost = 3,
-        texture = "enigma_base_long_rest",
-        on_play_local = function(card)
-            local discard_pile = game.self_data.discard_pile
-            local to_return_to_draw_pile = math.min(5, #discard_pile)
-            local indexes = enigma:n_random_indexes(#discard_pile, to_return_to_draw_pile)
-            for i=to_return_to_draw_pile,1,-1 do
-                game:shuffle_card_into_draw_pile(discard_pile[indexes[i]])
-            end
-        end,
-        channel = 10,
-        ephemeral = true,
-        description_lines = {
-            {
-                format = "base_long_rest_description",
-                parameters = { 5 }
-            }
-        }
     },
 })
