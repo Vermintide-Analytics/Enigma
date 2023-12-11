@@ -65,16 +65,6 @@ local handle_local_card_played = function(card, index, location, skip_warpstone_
     if card.on_play_local then
         card:on_play_local(play_type)
     end
-    if card.card_type == enigma.CARD_TYPE.surge then
-        card.surging = true
-        if cgm.is_server and card.on_surge_begin_server then
-            card:on_surge_begin_server()
-        end
-        if card.on_surge_begin_local then
-            card:on_surge_begin_local()
-        end
-        cgm.self_data.active_surge_cards[card] = card.duration
-    end
 
     card.times_played = card.times_played + 1
 
@@ -105,8 +95,6 @@ enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_nam
         hand = {},
         discard_pile = {},
         out_of_play_pile = {},
-
-        active_surge_cards = {},
     }
 
     local missing_packs = {}
@@ -160,8 +148,6 @@ cgm.init_game = function(self, deck_name, card_templates, is_server)
         hand = {},
         discard_pile = {},
         out_of_play_pile = {},
-
-        active_surge_cards = {},
 
         _card_draw_gain_rate = 0,
         available_card_draws = 0,
@@ -392,46 +378,6 @@ cgm._run_remote_card_updates = function(self, dt)
         end
     end
 end
-cgm._update_local_active_surge_cards = function(self, dt)
-    local finished_surge_cards = {}
-    for card,_ in pairs(self.self_data.active_surge_cards) do
-        self.self_data.active_surge_cards[card] = self.self_data.active_surge_cards[card] - dt
-        if self.self_data.active_surge_cards[card] <= 0 then
-            table.insert(finished_surge_cards, card)
-        end
-    end
-    for _,card in ipairs(finished_surge_cards) do
-        card.surging = false
-        if self.is_server and card.on_surge_end_server then
-            card:on_surge_end_server()
-        end
-        if card.on_surge_end_local then
-            card:on_surge_end_local()
-        end
-        self.self_data.active_surge_cards[card] = nil
-    end
-end
-cgm._update_remote_active_surge_cards = function(self, dt)
-    for _,peer_data in pairs(self.peer_data) do
-        local finished_surge_cards = {}
-        for card,_ in pairs(peer_data.active_surge_cards) do
-            peer_data.active_surge_cards[card] = peer_data.active_surge_cards[card] - dt
-            if peer_data.active_surge_cards[card] <= 0 then
-                table.insert(finished_surge_cards, card)
-            end
-        end
-        for _,card in ipairs(finished_surge_cards) do
-            card.surging = false
-            if self.is_server and card.on_surge_end_server then
-                card:on_surge_end_server()
-            end
-            if card.on_surge_end_remote then
-                card:on_surge_end_remote()
-            end
-            peer_data.active_surge_cards[card] = nil
-        end
-    end
-end
 
 cgm._evaluate_local_card_conditions = function(self)
     if self.is_Server then
@@ -524,9 +470,6 @@ cgm.update = function(self, dt)
         
         self:_run_local_card_updates(dt)
         self:_run_remote_card_updates(dt)
-
-        self:_update_local_active_surge_cards(dt)
-        self:_update_remote_active_surge_cards(dt)
 
         self:_evaluate_local_card_conditions()
         self:_evaluate_local_card_autos()
@@ -621,16 +564,6 @@ enigma:network_register(net.event_card_played, function(peer_id, index, location
     end
     if card.on_play_remote then
         card:on_play_remote(play_type)
-    end
-    if card.card_type == enigma.CARD_TYPE.surge then
-        card.surging = true
-        if cgm.is_server and card.on_surge_begin_server then
-            card:on_surge_begin_server()
-        end
-        if card.on_surge_begin_remote then
-            card:on_surge_begin_remote()
-        end
-        peer_data.active_surge_cards[card] = card.duration
     end
 
     card.times_played = card.times_played + 1
@@ -956,6 +889,16 @@ cgm.check_players_and_units_all_set = function(self)
     cgm:start_game_if_all_ready()
     return true
 end
+
+-- Utilities
+cgm.player_and_bot_units = function(self)
+    if not self.is_in_game then
+        return
+    end
+    local side = Managers.state and Managers.state.side and Managers.state.side:get_side_from_name("heroes")
+	return side and side.PLAYER_AND_BOT_UNITS
+end
+
 
 -- Hooks
 local bulldozer_player_set_player_unit = function(self, unit)

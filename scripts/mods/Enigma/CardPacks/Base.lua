@@ -295,6 +295,40 @@ pack_handle.register_ability_cards({
         ephemeral = true,
         infinite = true
     },
+    divine_insurance = {
+        name = "base_divine_insurance",
+        rarity = EPIC,
+        cost = 2,
+        texture = "enigma_base_divine_insurance",
+        duration = 60,
+        on_play_server = function(card)
+            if card.disabler_unit then
+                enigma:execute_unit(card.disabler_unit, card.context.unit)
+            end
+            buff:surge_stat(card.context.unit, "chance_ignore_assassin", 1, card.duration)
+            buff:surge_stat(card.context.unit, "chance_ignore_leech", 1, card.duration)
+            buff:surge_stat(card.context.unit, "chance_ignore_packmaster", 1, card.duration)
+        end,
+        events_local = {
+            player_disabled = function(card, disabled_unit, disable_type, disabler)
+                if disabled_unit == card.context.unit then
+                    card.disabler_unit = disabler
+                    game.try_play_card(card)
+                end
+            end
+        },
+        unplayable = true,
+        description_lines = {
+            {
+                format = "base_divine_insurance_description"
+            }
+        },
+        auto_descriptions = {
+            {
+                format = "base_divine_insurance_auto"
+            }
+        }
+    },
     dubious_insurance = {
         name = "base_dubious_insurance",
         rarity = EPIC,
@@ -302,7 +336,7 @@ pack_handle.register_ability_cards({
         texture = "enigma_base_dubious_insurance",
         on_play_server = function(card)
             if card.disabler_unit then
-                -- TODO kill the disabler?
+                enigma:execute_unit(card.disabler_unit, card.context.unit)
             end
         end,
         events_local = {
@@ -426,6 +460,63 @@ pack_handle.register_ability_cards({
             {
                 format = "description_power_level_skaven",
                 parameters = { 35 }
+            }
+        }
+    },
+    ubersreik_hero = {
+        name = "base_ubersreik_hero",
+        rarity = RARE,
+        cost = 1,
+        texture = "enigma_base_ubersreik_hero",
+        disabled_allies = {},
+        on_play_server = function(card)
+            -- Find closest disabled ally and kill their disabler
+            local us = card.context.unit
+            local closest_unit = nil
+            local closest_distance = nil
+            for unit,disabled in pairs(card.disabled_allies) do
+                if disabled then
+                    local distance = enigma:distance_between_units(unit, us)
+                    if closest_distance == nil or distance < closest_distance then
+                        closest_distance = distance
+                        closest_unit = unit
+                    end
+                end
+            end
+            if not closest_unit then
+                enigma:warning("Ubersreik Hero could not find a disabled ally when it was played!")
+                return
+            end
+            local status = ScriptUnit.extension(closest_unit, "status_system")
+            local disabler = status:get_disabler_unit()
+            if not disabler then
+                enigma:warning("Ubersreik Hero could not find the disabler unit when it was played!")
+                return
+            end
+            enigma:execute_unit(disabler, us)
+        end,
+        condition_local = function(card)
+            -- At least one ally is disabled
+            local players_and_bots = game:player_and_bot_units()
+            local any_disabled = false
+            for _,unit in ipairs(players_and_bots) do
+                if unit ~= card.context.unit then -- Skip ourselves
+                    local status = ScriptUnit.extension(unit, "status_system")
+                    local disabled = status:is_disabled()
+                    card.disabled_allies[unit] = disabled
+                    any_disabled = any_disabled or disabled
+                end
+            end
+            return any_disabled
+        end,
+        description_lines = {
+            {
+                format = "base_ubersreik_hero_description"
+            }
+        },
+        condition_descriptions = {
+            {
+                format = "base_ubersreik_hero_condition"
             }
         }
     },

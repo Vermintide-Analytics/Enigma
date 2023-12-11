@@ -141,6 +141,10 @@ enigma.execute_man_sized_enemy = function (self, unit, params)
     return enigma:execute_unit(hit_unit, unit)
 end
 
+enigma.distance_between_units = function(self, unit1, unit2)
+    return Vector3.distance(Unit.world_position(unit1, 0), Unit.world_position(unit2, 0))
+end
+
 -- File IO
 enigma.save = function(self, file_name, data, callback)
     return Managers.save:auto_save(file_name, data, callback, true)
