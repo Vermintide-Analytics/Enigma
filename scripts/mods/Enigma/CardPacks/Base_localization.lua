@@ -254,10 +254,10 @@ return {
         en = "Take %i Damage for each time this card has been drawn\n(%i damage)"
     },
 
-    base_life_tap = {
-        en = "Life Tap"
+    base_life_sap = {
+        en = "Life Sap"
     },
-    base_life_tap_retain = {
+    base_life_sap_retain = {
         en = "Take %i Damage when you draw a card"
     },
 

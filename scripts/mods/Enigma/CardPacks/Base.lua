@@ -737,11 +737,11 @@ pack_handle.register_chaos_cards({
         },
         infinite = true
     },
-    life_tap = {
-        name = "base_life_tap",
+    life_sap = {
+        name = "base_life_sap",
         rarity = RARE,
         cost = 2,
-        texture = "enigma_base_life_tap",
+        texture = "enigma_base_life_sap",
         any_card_drawn_server = function(card, other_card)
             if not card:is_in_hand() or other_card == card then
                 return
@@ -750,7 +750,7 @@ pack_handle.register_chaos_cards({
         end,
         retain_descriptions = {
             {
-                format = "base_life_tap_retain",
+                format = "base_life_sap_retain",
                 parameters = { 10 }
             }
         },
