@@ -1221,15 +1221,12 @@ enigma:hook(BTStaggerAction, "enter", function(func, self, unit, blackboard, t)
     end
     local new_pusher = blackboard.pushing_unit
     if new_pusher == previous_pusher then
-        enigma:info("PUSHER DID NOT CHANGE")
         return
     end
     if previous_pusher then
-        enigma:info("ENDING PUSH FOR PREVIOUS PUSHER")
         push_ended_for_pusher(previous_pusher, staggered_breed)
     end
     blackboard.previous_pushing_unit = new_pusher
-    enigma:info("STARTING PUSH FOR NEW PUSHER")
     push_started_for_pusher(new_pusher, staggered_breed)
 end)
 
