@@ -302,7 +302,6 @@ pack_handle.register_ability_cards({
         texture = "enigma_base_blood_transfusion",
         on_play_server = function(card)
             local us = card.context.unit
-            DamageUtils.add_damage_network(us, us, 15, "full", "health_degen", nil, Vector3.up(), "health_degen")
             local health_ext = ScriptUnit.extension(us, "health_system")
             health_ext:add_damage(us, 15, "full", "forced", nil, Vector3.up())
 

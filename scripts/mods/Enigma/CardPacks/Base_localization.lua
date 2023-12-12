@@ -147,7 +147,7 @@ return {
         en = "Blood Transfusion"
     },
     base_blood_transfusion_description = {
-        en = "Allies gain %i Health"
+        en = "Heal Allies for %i Health"
     },
 
 
