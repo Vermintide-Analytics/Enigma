@@ -11,11 +11,14 @@ local net = {
     broadcast_pacing_intensity = "broadcast_pacing_intensity",
     notify_card_condition_met_changed = "notify_card_condition_met_changed",
     notify_card_auto_condition_met_changed = "notify_card_auto_condition_met_changed",
+    sync_player_accumulated_stagger = "sync_player_accumulated_stagger"
 }
 
 local cgm = {
     self_data = {},
     peer_data = {},
+
+    data_by_unit = {},
 }
 cgm.self_data = nil -- Initialize as table then set to null to shut up the Lua diagnostics complaining about accessing fields from nil
 enigma.managers.game = cgm
@@ -106,6 +109,21 @@ enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_nam
         active_duration_cards = {}
     }
 
+    if cgm.is_server then
+        peer_data.accumulated_stagger = {
+            trash = 0,
+            elite = 0,
+            special = 0,
+            boss = 0
+        }
+        peer_data.currently_staggered_enemies = {
+            trash = 0,
+            elite = 0,
+            special = 0,
+            boss = 0
+        }
+    end
+
     local missing_packs = {}
     local card_manager = enigma.managers.card_template
     for _,card_id in ipairs(card_ids_in_deck) do
@@ -166,6 +184,21 @@ cgm.init_game = function(self, deck_name, card_templates, is_server)
     }
 
     self_data.available_card_draws = enigma.mega_resource_start and 99 or self_data.available_card_draws
+
+    if self.is_server then
+        self_data.accumulated_stagger = {
+            trash = 0,
+            elite = 0,
+            special = 0,
+            boss = 0
+        }
+        self_data.currently_staggered_enemies = {
+            trash = 0,
+            elite = 0,
+            special = 0,
+            boss = 0
+        }
+    end
 
     local card_manager = enigma.managers.card_template
     for _,card_id in ipairs(card_ids) do
@@ -229,6 +262,9 @@ cgm.start_game = function(self)
     end
 
     if self.is_server then
+        self.sync_accumulated_stagger_interval = 3
+        self.time_until_sync_accumulated_stagger = self.sync_accumulated_stagger_interval
+
         self.conflict = Managers.state.conflict
         self.pacing = self.conflict.pacing
         self.pacing_intensity = 0
@@ -245,6 +281,7 @@ cgm.end_game = function(self)
     self.game_state = nil
     self.self_data = nil
     self.peer_data = {}
+    self.data_by_unit = {}
     self.is_server = nil
     self.conflict = nil
     self.pacing = nil
@@ -411,7 +448,7 @@ cgm._update_local_card_active_durations = function(self, dt)
     _update_card_active_durations_for_cards(self.self_data.hand, dt)
     _update_card_active_durations_for_cards(self.self_data.discard_pile, dt)
 end
-cgm._update_remote_active_surge_cards = function(self, dt)
+cgm._update_remote_card_active_durations = function(self, dt)
     for _,peer_data in pairs(self.peer_data) do
         _update_card_active_durations_for_cards(peer_data.draw_pile, dt)
         _update_card_active_durations_for_cards(peer_data.hand, dt)
@@ -479,6 +516,45 @@ cgm._evaluate_remote_card_autos = function(self)
         end
     end
 end
+cgm._update_accumulated_staggers = function(self, dt)
+    local sync = false
+    self.time_until_sync_accumulated_stagger = self.time_until_sync_accumulated_stagger - dt
+    if self.time_until_sync_accumulated_stagger <= 0 then
+        sync = true
+        self.time_until_sync_accumulated_stagger = self.time_until_sync_accumulated_stagger + self.sync_accumulated_stagger_interval
+    end
+
+    for enemy_type,num in pairs(self.self_data.currently_staggered_enemies) do
+        self.self_data.accumulated_stagger[enemy_type] = self.self_data.accumulated_stagger[enemy_type] + num*dt
+    end
+    if sync then
+        local trash = self.self_data.accumulated_stagger["trash"]
+        local elite = self.self_data.accumulated_stagger["elite"]
+        local special = self.self_data.accumulated_stagger["special"]
+        local boss = self.self_data.accumulated_stagger["boss"]
+        enigma.managers.warp:_process_accumulated_stagger(trash, elite, special, boss)
+        self.self_data.accumulated_stagger["trash"] = 0
+        self.self_data.accumulated_stagger["elite"] = 0
+        self.self_data.accumulated_stagger["special"] = 0
+        self.self_data.accumulated_stagger["boss"] = 0
+    end
+    for peer_id,peer_data in pairs(self.peer_data) do
+        for enemy_type,num in pairs(peer_data.currently_staggered_enemies) do
+            peer_data.accumulated_stagger[enemy_type] = peer_data.accumulated_stagger[enemy_type] + num*dt
+        end
+        if sync then
+            local trash = peer_data.accumulated_stagger["trash"]
+            local elite = peer_data.accumulated_stagger["elite"]
+            local special = peer_data.accumulated_stagger["special"]
+            local boss = peer_data.accumulated_stagger["boss"]
+            enigma:network_send(net.sync_player_accumulated_stagger, peer_id, trash, elite, special, boss)
+            peer_data.accumulated_stagger["trash"] = 0
+            peer_data.accumulated_stagger["elite"] = 0
+            peer_data.accumulated_stagger["special"] = 0
+            peer_data.accumulated_stagger["boss"] = 0
+        end
+    end
+end
 local card_draw_gain_lut = {
     {
         threshold = 60,
@@ -520,7 +596,7 @@ cgm.update = function(self, dt)
         self:_run_remote_card_updates(dt)
         
         self:_update_local_card_active_durations(dt)
-        self:_update_remote_active_surge_cards(dt)
+        self:_update_remote_card_active_durations(dt)
 
         self:_evaluate_local_card_conditions()
         self:_evaluate_local_card_autos()
@@ -528,6 +604,8 @@ cgm.update = function(self, dt)
         if self.is_server then
             self:_evaluate_remote_card_conditions()
             self:_evaluate_remote_card_autos()
+
+            self:_update_accumulated_staggers(dt)
 
             self.time_until_broadcast_pacing_intensity = self.time_until_broadcast_pacing_intensity - dt
             
@@ -987,7 +1065,7 @@ end
 
 -- Utilities
 cgm.player_and_bot_units = function(self)
-    if not self.is_in_game then
+    if not self:is_in_game() then
         return
     end
     local side = Managers.state and Managers.state.side and Managers.state.side:get_side_from_name("heroes")
@@ -1001,6 +1079,7 @@ local bulldozer_player_set_player_unit = function(self, unit)
         cgm.server_peer_id = Managers.mechanism:server_peer_id()
         cgm.self_data.player = self
         cgm.self_data.unit = self.player_unit
+        cgm.data_by_unit[self.player_unit] = cgm.self_data
         if cgm.game_state == "loading" then
             cgm:check_players_and_units_all_set()
         end
@@ -1012,6 +1091,7 @@ local remote_player_set_player_unit = function(self, unit)
     if peer_data then
         peer_data.player = self
         peer_data.unit = self.player_unit
+        cgm.data_by_unit[self.player_unit] = peer_data
         if cgm.game_state == "loading" then
             cgm:check_players_and_units_all_set()
         end
@@ -1019,6 +1099,62 @@ local remote_player_set_player_unit = function(self, unit)
 end
 enigma.managers.hook:hook_safe("Enigma", BulldozerPlayer, "set_player_unit", bulldozer_player_set_player_unit, "card_game_start")
 enigma.managers.hook:hook_safe("Enigma", RemotePlayer, "set_player_unit", remote_player_set_player_unit, "card_game_start")
+
+enigma:network_register(net.sync_player_accumulated_stagger, function(peer_id, trash, elite, special, boss)
+    if peer_id ~= cgm.server_peer_id then
+        enigma:warning("Only the server is allowed to tell us how much stagger we have accumulated recently")
+        return
+    end
+    enigma.managers.warp:_process_accumulated_stagger(trash, elite, special, boss)
+end)
+
+local push_started_for_pusher = function(pusher, staggered_breed)
+    local player_data = cgm.data_by_unit[pusher]
+    if player_data then
+        local enemy_type = staggered_breed.boss and "boss" or staggered_breed.special and "special" or staggered_breed.elite and "elite" or "trash"
+        player_data.currently_staggered_enemies[enemy_type] = player_data.currently_staggered_enemies[enemy_type] + 1
+    end
+end
+local push_ended_for_pusher = function(pusher, staggered_breed)
+    local player_data = cgm.data_by_unit[pusher]
+    if player_data then
+        local enemy_type = staggered_breed.boss and "boss" or staggered_breed.special and "special" or staggered_breed.elite and "elite" or "trash"
+        player_data.currently_staggered_enemies[enemy_type] = player_data.currently_staggered_enemies[enemy_type] - 1
+    end
+end
+
+enigma:hook(BTStaggerAction, "enter", function(func, self, unit, blackboard, t)
+    local staggered_breed = Unit.get_data(unit, "breed")
+    local previous_pusher = blackboard.previous_pushing_unit
+    func(self, unit, blackboard, t)
+    if not cgm:is_in_game() then
+        return
+    end
+    local new_pusher = blackboard.pushing_unit
+    if new_pusher == previous_pusher then
+        enigma:info("PUSHER DID NOT CHANGE")
+        return
+    end
+    if previous_pusher then
+        enigma:info("ENDING PUSH FOR PREVIOUS PUSHER")
+        push_ended_for_pusher(previous_pusher, staggered_breed)
+    end
+    blackboard.previous_pushing_unit = new_pusher
+    enigma:info("STARTING PUSH FOR NEW PUSHER")
+    push_started_for_pusher(new_pusher, staggered_breed)
+end)
+
+enigma:hook(BTStaggerAction, "leave", function(func, self, unit, blackboard, t, reason, destroy)
+    local staggered_breed = Unit.get_data(unit, "breed")
+    local pusher = blackboard.pushing_unit
+    func(self, unit, blackboard, t, reason, destroy)
+    if not cgm:is_in_game() then
+        return
+    end
+    blackboard.previous_pushing_unit = nil
+    push_ended_for_pusher(pusher, staggered_breed)
+end)
+
 
 -- Events
 cgm.on_game_state_changed = function(self, status, state_name)
@@ -1040,13 +1176,6 @@ cgm.dump = function(self)
     enigma:dump(self.peer_data, "PEER GAME DATA", 3)
     enigma:dump(self, "CARD GAME MANAGER", 0)
 end
-
-enigma:command("hand", "", function()
-    enigma:echo("Cards in hand:")
-    for i,card in ipairs(cgm.self_data.hand) do
-        enigma:echo(" "..i..". "..card.name)
-    end
-end)
 
 enigma:command("gain_draw", "", function(num)
     num = num or 1

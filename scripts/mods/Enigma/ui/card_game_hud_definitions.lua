@@ -67,20 +67,6 @@ local scenegraph_definition = {
 			1
 		}
 	},
-	out_of_play_column = {
-		parent = "info_panel",
-		vertical_alignment = "center",
-		horizontal_alignment = "left",
-		size = {
-			COLUMN_WIDTH,
-			INFO_PANEL_HEIGHT - PRETTY_MARGIN*2
-		},
-		position = {
-			PRETTY_MARGIN*3 + COLUMN_WIDTH*2,
-			0,
-			1
-		}
-	},
 	warp_dust_bar = {
 		parent = "info_panel",
 		vertical_alignment = "center",
@@ -281,49 +267,6 @@ local widgets = {
 			},
 		}
 	},
-	out_of_play_column = {
-		scenegraph_id = "out_of_play_column",
-		element = {
-			passes = {
-				{
-					pass_type = "texture",
-					texture_id = "icon",
-					style_id = "icon"
-				},
-				{
-					pass_type = "text",
-					text_id = "text",
-					style_id = "text"
-				}
-			}
-		},
-		content = {
-			icon = "enigma_card_x",
-			text = "0"
-		},
-		style = {
-			icon = {
-				vertical_alignment = "bottom",
-				horizontal_alignment = "center",
-				texture_size = {
-					COLUMN_WIDTH-8,
-					COLUMN_WIDTH-8
-				},
-				offset = {
-					0,
-					4,
-					0
-				}
-			},
-			text = {
-				vertical_alignment = "top",
-				horizontal_alignment = "center",
-				font_size = COLUMN_WIDTH,
-				font_type = "hell_shark",
-				text_color = Colors.get_color_table_with_alpha("white", 255),
-			},
-		}
-	},
 	warp_dust_bar = {
 		scenegraph_id = "warp_dust_bar",
 		element = {
@@ -337,7 +280,7 @@ local widgets = {
 		content = {
 		},
 		style = {
-			icon = {
+			background = {
 				color = {
 					255,
 					80,
@@ -360,7 +303,7 @@ local widgets = {
 		content = {
 		},
 		style = {
-			icon = {
+			background = {
 				color = {
 					255,
 					0,
@@ -426,7 +369,7 @@ local widgets = {
 		content = {
 		},
 		style = {
-			icon = {
+			background = {
 				color = {
 					255,
 					80,
@@ -449,7 +392,7 @@ local widgets = {
 		content = {
 		},
 		style = {
-			icon = {
+			background = {
 				color = {
 					255,
 					255,

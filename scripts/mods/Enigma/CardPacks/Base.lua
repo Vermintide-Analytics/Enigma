@@ -598,9 +598,12 @@ pack_handle.register_ability_cards({
         cost = 2,
         duration = 60,
         texture = "enigma_base_warpfire_strikes",
+        on_play_local = function(card)
+            -- TODO implement card
+            enigma:echo(card.name.." "..enigma:localize("not_yet_implemented"))
+        end,
         events_server = {
             enemy_damaged = function(card, health_ext, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
-                enigma:echo(card.name.." "..enigma:localize("not_yet_implemented"))
                 if #card.active_durations < 1 then
                     return
                 end

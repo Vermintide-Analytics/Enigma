@@ -144,9 +144,7 @@ em._invoke_event_callbacks = function(self, event, ...)
         enigma:warning("Cannot invoke callbacks for nonexistent event ("..tostring(event)..")")
         return
     end
-    enigma:debug("EVENT TRIGGERED: "..event)
     for card,cb in pairs(self.events[event]) do
-        enigma:debug("Triggering callback for card: "..card.name)
         if not cb then
             return
         end

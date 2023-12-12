@@ -31,7 +31,6 @@ EnigmaCardGameHud.create_ui_elements = function (self)
 
 	self.draw_pile_widget = self._widgets_by_name.draw_pile_column
 	self.discard_pile_widget = self._widgets_by_name.discard_pile_column
-	self.out_of_play_widget = self._widgets_by_name.out_of_play_column
 	self.warpstone_widget = self._widgets_by_name.warpstone_column
 	self.card_draw_widget = self._widgets_by_name.card_draw_column
 
@@ -64,7 +63,6 @@ EnigmaCardGameHud.update = function (self, dt, t)
 	local game_data = enigma.managers.game.self_data
 	local num_draw_pile = #game_data.draw_pile
 	local num_discard_pile = #game_data.discard_pile
-	local num_out_of_game = #game_data.out_of_play_pile
 	local card_draws = game_data.available_card_draws
 	local card_draws_ipart = math.floor(card_draws)
 	local card_draws_fpart = card_draws - card_draws_ipart
@@ -74,7 +72,6 @@ EnigmaCardGameHud.update = function (self, dt, t)
 
 	self.draw_pile_widget.content.text = num_draw_pile
 	self.discard_pile_widget.content.text = num_discard_pile
-	self.out_of_play_widget.content.text = num_out_of_game
 	
 	self.warpstone_widget.content.text = warpstone
 	self.warp_dust_bar_node_inner.size[2] = self.warp_dust_bar_node.size[2] * (warp_dust / self.WARP_DUST_PER_WARPSTONE)

@@ -62,6 +62,9 @@ local template_template = {
         trim_template_properties(inst)
         inst.mod = get_mod(inst.mod_id)
         inst.times_played = 0
+        if self.duration then
+            inst.active_durations = {}
+        end
         return inst
     end,
 
