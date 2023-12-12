@@ -1,5 +1,7 @@
 local enigma = get_mod("Enigma")
 
+enigma.VERSION = "IN DEV"
+
 enigma.managers = {}
 
 enigma.random_seed = 12345 -- The same password I have on my luggage
@@ -134,6 +136,8 @@ enigma.on_all_mods_loaded = function()
 
     process_prebuilt_deck_registrations()
     add_test_deck()
+
+    enigma:echo("Enigma Version: "..enigma.VERSION)
 end
 
 -- Commands
