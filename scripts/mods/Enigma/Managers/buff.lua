@@ -14,6 +14,7 @@ local bm = {
 enigma.managers.buff = bm
 
 local custom_buff_definitions = {
+    cannot_use_career_skill = 0,
     card_draw_multiplier = 1.0,
     chance_ignore_assassin = 0,
     chance_ignore_leech = 0,
@@ -41,13 +42,7 @@ bm.global_stat_updated_callbacks.total_ammo = {
 }
 
 local update_movement_stat = function(unit, stat, new, old, path_to_setting)
-    local bonus
-    local multiplier
-    if old == 0 then
-        bonus = new - old
-    else
-        multiplier = new / old
-    end
+    local bonus = new - old
 
     local buff = {
         template = {
@@ -56,7 +51,6 @@ local update_movement_stat = function(unit, stat, new, old, path_to_setting)
     }
     local params = {
         bonus = bonus,
-        multiplier = multiplier
     }
     BuffFunctionTemplates.functions.apply_movement_buff(unit, buff, params)
 end
@@ -316,9 +310,7 @@ end)
 enigma:hook(BTTargetPouncedAction, "enter", function(func, self, unit, blackboard, t)
     local pounced_unit = blackboard.jump_data and blackboard.jump_data.target_unit
     local custom_buffs = pounced_unit and bm.unit_custom_buffs[pounced_unit]
-    enigma:info("Attempting to enter target pounced action")
     if custom_buffs and enigma:test_chance(custom_buffs.chance_ignore_assassin) then
-        enigma:info("Skipping entering target pounced action")
         enigma:execute_unit(unit, pounced_unit)
         return
     end
@@ -328,9 +320,7 @@ end)
 enigma:hook(BTPackMasterAttackAction, "attack_success", function(func, self, unit, blackboard)
     local hook_target = blackboard.target_unit
     local custom_buffs = hook_target and bm.unit_custom_buffs[hook_target]
-    enigma:info("Attempting to enter hook attack action")
     if custom_buffs and enigma:test_chance(custom_buffs.chance_ignore_packmaster) then
-        enigma:info("Skipping entering hook attack action")
         enigma:execute_unit(unit, hook_target)
         return
     end
@@ -340,13 +330,20 @@ end)
 enigma:hook(BTCorruptorGrabAction, "grab_player", function(func, self, t, unit, blackboard)
     local leech_target = blackboard.corruptor_target
     local custom_buffs = leech_target and bm.unit_custom_buffs[leech_target]
-    enigma:info("Attempting to enter leech grab action")
     if custom_buffs and enigma:test_chance(custom_buffs.chance_ignore_leech) then
-        enigma:info("Skipping entering leech grab action")
         enigma:execute_unit(unit, leech_target)
         return
     end
     return func(self, t, unit, blackboard)
+end)
+
+enigma:hook(CareerExtension, "can_use_activated_ability", function(func, self, ability_id)
+    local unit = self._unit
+    local custom_buffs = unit and bm.unit_custom_buffs[unit]
+    if custom_buffs and custom_buffs.cannot_use_career_skill > 0 then
+        return false
+    end
+    return func(self, ability_id)
 end)
 
 reg_hook_safe(GenericHealthExtension, "add_damage", function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)

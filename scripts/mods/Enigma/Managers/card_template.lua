@@ -9,11 +9,48 @@ local trim_template_properties = function(card_instance)
     card_instance.instance = nil
 end
 
+local card_loc_helper = function(mod, format, parameters)
+    if parameters then
+        return mod:localize(format, unpack(parameters))
+    end
+    return mod:localize(format)
+end
+
+local refresh_card_detail_localization = function(card)
+    local mod = get_mod(card.mod_id)
+    for _,description_table in ipairs(card.description_lines) do
+        description_table.localized = card_loc_helper(mod, description_table.format, description_table.parameters)
+    end
+    for _,retain_description_table in ipairs(card.retain_descriptions) do
+        retain_description_table.localized = card_loc_helper(mod, retain_description_table.format, retain_description_table.parameters)
+    end
+    for _,auto_description_table in ipairs(card.auto_descriptions) do
+        auto_description_table.localized = card_loc_helper(mod, auto_description_table.format, auto_description_table.parameters)
+    end
+    for _,condition_description_table in ipairs(card.condition_descriptions) do
+        condition_description_table.localized = card_loc_helper(mod, condition_description_table.format, condition_description_table.parameters)
+    end
+end
+
+local set_common_card_properties = function(template, type, pack, id)
+    local mod = get_mod(template.mod_id)
+    template.name = mod:localize(template.name)
+    refresh_card_detail_localization(template)
+
+    template.card_type = type
+    template.card_pack = pack
+    template.id = tostring(template.card_pack.id) .. "/" .. id
+end
+
 local template_template = {
     location = enigma.CARD_LOCATION.draw_pile,
     location_changed_local = nil,
     location_changed_server = nil,
     location_changed_remote = nil,
+
+    any_card_drawn_local = nil,
+    any_card_drawn_server = nil,
+    any_card_drawn_remote = nil,
 
     on_game_start_local = nil,
     on_game_start_server = nil,
@@ -65,6 +102,13 @@ local template_template = {
         if self.duration then
             inst.active_durations = {}
         end
+        inst.sync_property = function(card, property)
+            if not property then
+                enigma:warning("Cannot sync card property: "..tostring(property))
+                return
+            end
+            enigma.managers.game:sync_card_property(card, property, card[property])
+        end
         return inst
     end,
 
@@ -79,6 +123,10 @@ local template_template = {
     end,
     is_out_of_play = function(self)
         return self.location == enigma.CARD_LOCATION.out_of_play_pile
+    end,
+    set_dirty = function(self)
+        refresh_card_detail_localization(self)
+        self.dirty = true
     end,
 }
 
@@ -124,34 +172,6 @@ local create_card_template_handle = function(card_id)
             ctm:add_warp_hungry(card_id, duration)
         end
     }
-end
-
-local card_loc_helper = function(mod, format, parameters)
-    if parameters then
-        return mod:localize(format, unpack(parameters))
-    end
-    return mod:localize(format)
-end
-
-local set_common_card_properties = function(template, type, pack, id)
-    local mod = get_mod(template.mod_id)
-    template.name = mod:localize(template.name)
-    for _,description_table in ipairs(template.description_lines) do
-        description_table.localized = card_loc_helper(mod, description_table.format, description_table.parameters)
-    end
-    for _,retain_description_table in ipairs(template.retain_descriptions) do
-        retain_description_table.localized = card_loc_helper(mod, retain_description_table.format, retain_description_table.parameters)
-    end
-    for _,auto_description_table in ipairs(template.auto_descriptions) do
-        auto_description_table.localized = card_loc_helper(mod, auto_description_table.format, auto_description_table.parameters)
-    end
-    for _,condition_description_table in ipairs(template.condition_descriptions) do
-        condition_description_table.localized = card_loc_helper(mod, condition_description_table.format, condition_description_table.parameters)
-    end
-
-    template.card_type = type
-    template.card_pack = pack
-    template.id = tostring(template.card_pack.id) .. "/" .. id
 end
 
 ctm.register_card = function(self, pack_id, card_id, card_type, card_def, additional_params)

@@ -30,6 +30,77 @@ local loc = {
 		en = "Warp-Hungry (%is)",
 	},
 
+	-- Settings
+	hotkeys_group_title = {
+		en = "Hotkeys",
+	},
+	card_mode_hotkey_title = {
+		en = "Card Mode / Deck Editor",
+	},
+	card_mode_hotkey_description = {
+		en = "In the keep, this will open the Deck Editor. In a game, this will open Card Mode"
+	},
+	draw_card_hotkey_title = {
+		en = "Draw Card",
+	},
+	play_hotkeys_group_title = {
+		en = "Play Card Hotkeys"
+	},
+	play_hotkeys_group_description = {
+		en = "Hotkeys for playing cards from your hand while in Card Mode"
+	},
+	card_1_title = {
+		en = "Card 1"
+	},
+	play_1_hotkey_description = {
+		en = "Play the 1st card from your hand while in Card Mode"
+	},
+	card_2_title = {
+		en = "Card 2"
+	},
+	play_2_hotkey_description = {
+		en = "Play the 2nd card from your hand while in Card Mode"
+	},
+	card_3_title = {
+		en = "Card 3"
+	},
+	play_3_hotkey_description = {
+		en = "Play the 3rd card from your hand while in Card Mode"
+	},
+	card_4_title = {
+		en = "Card 4"
+	},
+	play_4_hotkey_description = {
+		en = "Play the 4th card from your hand while in Card Mode"
+	},
+	card_5_title = {
+		en = "Card 5"
+	},
+	play_5_hotkey_description = {
+		en = "Play the 5th card from your hand while in Card Mode"
+	},
+	quick_play_hotkeys_group_title = {
+		en = "Quick-Play Card Hotkeys"
+	},
+	quick_play_hotkeys_group_description = {
+		en = "Hotkeys for playing cards from your hand at any time (outside of Card Mode)"
+	},
+	quick_play_1_hotkey_description = {
+		en = "Play the 1st card from your hand"
+	},
+	quick_play_2_hotkey_description = {
+		en = "Play the 2nd card from your hand"
+	},
+	quick_play_3_hotkey_description = {
+		en = "Play the 3rd card from your hand"
+	},
+	quick_play_4_hotkey_description = {
+		en = "Play the 4th card from your hand"
+	},
+	quick_play_5_hotkey_description = {
+		en = "Play the 5th card from your hand"
+	},
+
 	-- UI
 	delete = {
 		en = "Delete",
@@ -44,7 +115,7 @@ local loc = {
 		en = "%i of %i",
 	},
 	not_yet_implemented = {
-		en = "Does not do anything... yet"
+		en = "Does not do anything... yet",
 	},
 
 	-- Deck List
@@ -54,10 +125,10 @@ local loc = {
 
 	-- Deck Editor
 	deck_editor_window_title = {
-		en = "Deck Planner"
+		en = "Deck Planner",
 	},
 	deck_list = {
-		en = "Deck List"
+		en = "Deck List",
 	}
 }
 

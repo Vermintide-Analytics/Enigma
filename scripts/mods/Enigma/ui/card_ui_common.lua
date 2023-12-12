@@ -887,6 +887,8 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 	if not card then
 		return
 	end
+	
+	card.dirty = false
 
 	local basic_text_color = (card.card_type == enigma.CARD_TYPE.chaos) and TEXT_COLOR_WHITE or TEXT_COLOR
 
@@ -1193,7 +1195,6 @@ ui_common.update_card_display_if_needed = function(ui_renderer, scenegraph_nodes
 		return ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, nil, card_width)
 	end
 	if card.dirty or card ~= widgets[card_node_id].cached_card or card_width ~= widgets[card_node_id].cached_card_width then
-		card.dirty = false
 		widgets[card_node_id].cached_card = card
 		widgets[card_node_id].cached_card_width = card_width
 		return ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width)

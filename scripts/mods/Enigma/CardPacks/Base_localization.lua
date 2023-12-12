@@ -20,6 +20,9 @@ return {
     description_dodge_range = {
         en = "%+.1f%% Dodge Range"
     },
+    description_dodge_range_and_speed = {
+        en = "%+.1f%% Dodge Range\n%+.1f%% Dodge Speed"
+    },
     description_dodge_speed = {
         en = "%+.1f%% Dodge Speed"
     },
@@ -233,4 +236,64 @@ return {
     base_wrath_of_khorne = {
         en = "Wrath of Khorne"
     },
+
+
+    -- Chaos cards
+    
+    base_incompetence = {
+        en = "Incompetence"
+    },
+    base_incompetence_retain = {
+        en = "%+i%% Warp Dust\n %+i%% Card Draw"
+    },
+
+    base_injury = {
+        en = "Injury"
+    },
+    base_injury_description = {
+        en = "Take %i Damage for each time this card has been drawn\n(%i damage)"
+    },
+
+    base_life_tap = {
+        en = "Life Tap"
+    },
+    base_life_tap_retain = {
+        en = "Take %i Damage when you draw a card"
+    },
+
+    base_parasite = {
+        en = "Parasite"
+    },
+    base_parasite_retain = {
+        en = "Take %i Damage every %i seconds"
+    },
+
+    base_silence = {
+        en = "Silence"
+    },
+    base_silence_retain = {
+        en = "Cannot use your career skill"
+    },
+
+    base_slow = {
+        en = "Slow"
+    },
+
+    base_thorn = {
+        en = "Thorn"
+    },
+    
+    base_virus = {
+        en = "Virus"
+    },
+    base_virus_description = {
+        en = "Shuffle a Virus into a random ally's draw pile"
+    },
+    base_virus_auto = {
+        en = "Retained for %i seconds (%is)"
+    },
+
+    base_vulnerability = {
+        en = "Vulnerability"
+    }
 }

@@ -36,13 +36,13 @@ return {
 					{
 						setting_id = "play_hotkeys_group",
 						type = "group",
-						title = "play_hotkeys_group_name",
+						title = "play_hotkeys_group_title",
 						description = "play_hotkeys_group_description",
 						sub_widgets = {
 							{
 								setting_id = "play_1_hotkey",
 								type = "keybind",
-								title = "play_1_hotkey_title",
+								title = "card_1_title",
 								tooltip = "play_1_hotkey_description",
 								keybind_global = true,
 								keybind_trigger = "pressed",
@@ -53,7 +53,7 @@ return {
 							{
 								setting_id = "play_2_hotkey",
 								type = "keybind",
-								title = "play_2_hotkey_title",
+								title = "card_2_title",
 								tooltip = "play_2_hotkey_description",
 								keybind_global = true,
 								keybind_trigger = "pressed",
@@ -64,7 +64,7 @@ return {
 							{
 								setting_id = "play_3_hotkey",
 								type = "keybind",
-								title = "play_3_hotkey_title",
+								title = "card_3_title",
 								tooltip = "play_3_hotkey_description",
 								keybind_global = true,
 								keybind_trigger = "pressed",
@@ -75,7 +75,7 @@ return {
 							{
 								setting_id = "play_4_hotkey",
 								type = "keybind",
-								title = "play_4_hotkey_title",
+								title = "card_4_title",
 								tooltip = "play_4_hotkey_description",
 								keybind_global = true,
 								keybind_trigger = "pressed",
@@ -86,7 +86,7 @@ return {
 							{
 								setting_id = "play_5_hotkey",
 								type = "keybind",
-								title = "play_5_hotkey_title",
+								title = "card_5_title",
 								tooltip = "play_5_hotkey_description",
 								keybind_global = true,
 								keybind_trigger = "pressed",
@@ -99,13 +99,13 @@ return {
 					{
 						setting_id = "quick_play_hotkeys_group",
 						type = "group",
-						title = "quick_play_hotkeys_group_name",
+						title = "quick_play_hotkeys_group_title",
 						description = "quick_play_hotkeys_group_description",
 						sub_widgets = {
 							{
 								setting_id = "quick_play_1_hotkey",
 								type = "keybind",
-								title = "quick_play_1_hotkey_title",
+								title = "card_1_title",
 								tooltip = "quick_play_1_hotkey_description",
 								keybind_global = true,
 								keybind_trigger = "pressed",
@@ -116,7 +116,7 @@ return {
 							{
 								setting_id = "quick_play_2_hotkey",
 								type = "keybind",
-								title = "quick_play_2_hotkey_title",
+								title = "card_2_title",
 								tooltip = "quick_play_2_hotkey_description",
 								keybind_global = true,
 								keybind_trigger = "pressed",
@@ -127,7 +127,7 @@ return {
 							{
 								setting_id = "quick_play_3_hotkey",
 								type = "keybind",
-								title = "quick_play_3_hotkey_title",
+								title = "card_3_title",
 								tooltip = "quick_play_3_hotkey_description",
 								keybind_global = true,
 								keybind_trigger = "pressed",
@@ -138,7 +138,7 @@ return {
 							{
 								setting_id = "quick_play_4_hotkey",
 								type = "keybind",
-								title = "quick_play_4_hotkey_title",
+								title = "card_4_title",
 								tooltip = "quick_play_4_hotkey_description",
 								keybind_global = true,
 								keybind_trigger = "pressed",
@@ -149,7 +149,7 @@ return {
 							{
 								setting_id = "quick_play_5_hotkey",
 								type = "keybind",
-								title = "quick_play_5_hotkey_title",
+								title = "card_5_title",
 								tooltip = "quick_play_5_hotkey_description",
 								keybind_global = true,
 								keybind_trigger = "pressed",

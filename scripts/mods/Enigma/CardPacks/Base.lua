@@ -305,8 +305,7 @@ pack_handle.register_ability_cards({
         texture = "enigma_base_blood_transfusion",
         on_play_server = function(card)
             local us = card.context.unit
-            local health_ext = ScriptUnit.extension(us, "health_system")
-            health_ext:add_damage(us, 15, "full", "forced", nil, Vector3.up())
+            game:force_damage(card.context.unit, 15)
 
             local players_and_bots = game:player_and_bot_units()
             for _,unit in ipairs(players_and_bots) do
@@ -346,12 +345,9 @@ pack_handle.register_ability_cards({
                 if not card:is_in_hand() then
                     return
                 end
-                enigma:info("DIVINE INSURANCE PLAYER DISABLED")
                 if disabled_unit == card.context.unit then
                     card.disabler_unit = disabler
                     game:try_play_card(card)
-                else
-                    enigma:info("Disabled unit aint us!")
                 end
             end
         },
@@ -382,12 +378,9 @@ pack_handle.register_ability_cards({
                 if not card:is_in_hand() then
                     return
                 end
-                enigma:info("DUBIOUS INSURANCE PLAYER DISABLED")
                 if disabled_unit == card.context.unit then
                     card.disabler_unit = disabler
                     game:try_play_card(card)
-                else
-                    enigma:info("Disabled unit aint us!")
                 end
             end
         },
@@ -438,6 +431,7 @@ pack_handle.register_ability_cards({
             local card_index = enigma:random_range_int(1, hand_size)
             game:try_play_card_from_hand(card_index, true)
         end,
+        -- TODO implement tiny chance to auto play
         description_lines = {
             {
                 format = "base_ranalds_play_description"
@@ -455,7 +449,7 @@ pack_handle.register_ability_cards({
         cost = 1,
         duration = 15,
         texture = "enigma_base_retreat",
-        on_surge_begin_local = function(card)
+        on_play_local = function(card)
             buff:surge_stat(card.context.unit, "movement_speed", 0.5, card.duration)
             buff:surge_stat(card.context.unit, "dodge_range", 0.3, card.duration)
             buff:surge_stat(card.context.unit, "dodge_speed", 0.3, card.duration)
@@ -624,11 +618,11 @@ pack_handle.register_ability_cards({
         cost = 1,
         duration = 31.4,
         texture = "enigma_base_warpstone_pie",
-        on_surge_begin_server = function(card)
+        on_play_server = function(card)
             buff:surge_stat(card.context.unit, "power_level", .314, card.duration)
             buff:surge_stat(card.context.unit, "damage_taken", -.314, card.duration)
         end,
-        on_surge_begin_local = function(card)
+        on_play_local = function(card)
             buff:surge_stat(card.context.unit, "movement_speed", -.314, card.duration)
         end,
         description_lines = {
@@ -652,7 +646,7 @@ pack_handle.register_ability_cards({
         cost = 1,
         duration = 10,
         texture = "enigma_base_wrath_of_khorne",
-        on_surge_begin_server = function(card)
+        on_play_server = function(card)
             buff:surge_stat(card.context.unit, "chance_instantly_slay_man_sized_enemy", 1.0, card.duration)
         end,
         description_lines = {
@@ -692,6 +686,252 @@ pack_handle.register_chaos_cards({
         },
         channel = 10,
         ephemeral = true,
+        infinite = true,
+    },
+    incompetence = {
+        name = "base_incompetence",
+        rarity = COMMON,
+        cost = 1,
+        texture = "enigma_base_incompetence",
+        warp_dust_decrease = -0.1,
+        card_draw_decrease = -0.1,
+        location_changed_local = function(card, old, new)
+            if new == "hand" then
+                buff:update_stat(card.context.unit, "warp_dust_multiplier", card.warp_dust_decrease)
+                buff:update_stat(card.context.unit, "card_draw_multiplier", card.card_draw_decrease)
+            elseif old == "hand" then
+                buff:update_stat(card.context.unit, "warp_dust_multiplier", card.warp_dust_decrease * -1)
+                buff:update_stat(card.context.unit, "card_draw_multiplier", card.card_draw_decrease * -1)
+            end
+        end,
+        retain_descriptions = {
+            {
+                format = "base_incompetence_retain",
+                parameters = { -10, -10 }
+            }
+        },
+        ephemeral = true
+    },
+    injury = {
+        name = "base_injury",
+        rarity = EPIC,
+        cost = 0,
+        times_drawn = 0,
+        damage_per_draw = 5,
+        texture = "enigma_base_injury",
+        location_changed_server = function(card, old, new)
+            if new == enigma.CARD_LOCATION.hand and old == enigma.CARD_LOCATION.draw_pile then
+                card.times_drawn = card.times_drawn + 1
+                card.description_lines[1].parameters[2] = card.damage_per_draw * card.times_drawn
+                card:set_dirty()
+            end
+        end,
+        on_play_server = function(card)
+            game:force_damage(card.context.unit, card.damage_per_draw * card.times_drawn)
+        end,
+        description_lines = {
+            {
+                format = "base_injury_description",
+                parameters = { 5, 0 }
+            },
+        },
         infinite = true
+    },
+    life_tap = {
+        name = "base_life_tap",
+        rarity = RARE,
+        cost = 2,
+        texture = "enigma_base_life_tap",
+        any_card_drawn_server = function(card, other_card)
+            if not card:is_in_hand() or other_card == card then
+                return
+            end
+            game:force_damage(card.context.unit, 10)
+        end,
+        retain_descriptions = {
+            {
+                format = "base_life_tap_retain",
+                parameters = { 10 }
+            }
+        },
+        ephemeral = true
+    },
+    parasite = {
+        name = "base_parasite",
+        rarity = EPIC,
+        cost = 2,
+        texture = "enigma_base_parasite",
+        damage = 1,
+        damage_interval = 5,
+        location_changed_server = function(card, old, new)
+            if new == enigma.CARD_LOCATION.hand then
+                card.time_until_damage = card.damage_interval
+            end
+        end,
+        update_server = function(card, dt)
+            if not card:is_in_hand() then
+                return
+            end
+            card.time_until_damage = card.time_until_damage - dt
+            if card.time_until_damage <= 0 then
+                game:force_damage(card.context.unit, 1)
+                card.time_until_damage = card.damage_interval
+            end
+        end,
+        retain_descriptions = {
+            {
+                format = "base_parasite_retain",
+                parameters = { 1, 5 }
+            }
+        },
+        ephemeral = true
+    },
+    silence = {
+        name = "base_silence",
+        rarity = LEGENDARY,
+        cost = 3,
+        texture = "enigma_base_silence",
+        location_changed_server = function(card, old, new)
+            if new == enigma.CARD_LOCATION.hand then
+                buff:update_stat(card.context.unit, "cannot_use_career_skill", 1)
+            elseif old == enigma.CARD_LOCATION.hand then
+                buff:update_stat(card.context.unit, "cannot_use_career_skill", -1)
+            end
+        end,
+        retain_descriptions = {
+            {
+                format = "base_silence_retain",
+            },
+        },
+        ephemeral = true
+    },
+    slow = {
+        name = "base_slow",
+        rarity = RARE,
+        cost = 1,
+        texture = "enigma_base_slow",
+        dodge_decrease = -0.25,
+        location_changed_local = function(card, old, new)
+            if new == "hand" then
+                buff:update_stat(card.context.unit, "dodge_range", card.dodge_decrease)
+                buff:update_stat(card.context.unit, "dodge_speed", card.dodge_decrease)
+            elseif old == "hand" then
+                buff:update_stat(card.context.unit, "dodge_range", card.dodge_decrease * -1)
+                buff:update_stat(card.context.unit, "dodge_speed", card.dodge_decrease * -1)
+            end
+        end,
+        retain_descriptions = {
+            {
+                format = "description_dodge_range_and_speed",
+                parameters = { -25, -25 }
+            }
+        },
+        ephemeral = true
+    },
+    thorn = {
+        name = "base_thorn",
+        rarity = COMMON,
+        cost = 0,
+        texture = "enigma_base_thorn",
+        on_play_server = function(card)
+            game:force_damage(card.context.unit, 5)
+        end,
+        description_lines = {
+            {
+                format = "description_take_damage",
+                parameters = { 5 }
+            }
+        },
+        ephemeral = true
+    },
+    virus = {
+        name = "base_virus",
+        rarity = LEGENDARY,
+        cost = 0,
+        texture = "enigma_base_virus",
+        infection_duration = 60,
+        power_level_reduction = -0.1,
+        on_play_local = function(card)
+            -- Pick a random peer, set the infected_peer property and then sync it
+            local peer_ids = {}
+            for peer_id,_ in pairs(game.peer_data) do
+                table.insert(peer_ids, peer_id)
+            end
+            if #peer_ids < 1 then
+                return
+            end
+            local selected_peer_id = peer_ids[enigma:random_range_int(1, #peer_ids)]
+            card.infected_peer = selected_peer_id
+            card:sync_property("infected_peer")
+        end,
+        on_property_synced = function(card, property, value)
+            if property == "infected_peer" then
+                if value == game.self_data.peer_id then
+                    -- We have been infected!
+                    game:shuffle_new_card_into_draw_pile(card.id)
+                end
+            end
+        end,
+        location_changed_local = function(card, old, new)
+            if new == enigma.CARD_LOCATION.hand then
+                card.remaining_infection_duration = card.infection_duration
+                buff:update_stat(card.context.unit, "power_level", card.power_level_reduction)
+            elseif old == enigma.CARD_LOCATION.hand then
+                buff:update_stat(card.context.unit, "power_level", card.power_level_reduction * -1)
+            end
+        end,
+        update_local = function(card, dt)
+            if card.location == enigma.CARD_LOCATION.hand then
+                card.remaining_infection_duration = card.remaining_infection_duration - dt
+                local previous_int_seconds = card.remaining_infection_duration_int
+                card.remaining_infection_duration_int = math.ceil(card.remaining_infection_duration)
+                if card.remaining_infection_duration <= 0 then
+                    local played = game:try_play_card(card)
+                    if not played then
+                        card.remaining_infection_duration = 1 -- If we couldn't play the card for some reason, try again in 1 second
+                    end
+                end
+                if card.remaining_infection_duration_int ~= previous_int_seconds then
+                    card.auto_descriptions[1].parameters[2] = card.remaining_infection_duration_int
+                    card:set_dirty()
+                end
+            end
+        end,
+        description_lines = {
+            {
+                format = "base_virus_description",
+            }
+        },
+        retain_descriptions = {
+            {
+                format = "description_power_level",
+                parameters = { -10 }
+            }
+        },
+        auto_descriptions = {
+            {
+                format = "base_virus_auto",
+                parameters = { 60, 60 }
+            }
+        },
+        ephemeral = true,
+        unplayable = true
+    },
+    vulnerability = {
+        name = "base_vulnerability",
+        rarity = RARE,
+        cost = 0,
+        duration = 60,
+        texture = "enigma_base_vulnerability",
+        on_play_server = function(card)
+            buff:surge_stat(card.context.unit, "damage_taken", 0.25, card.duration)
+        end,
+        description_lines = {
+            {
+                format = "description_damage_taken",
+                parameters = { 25 }
+            }
+        },
+        ephemeral = true
     },
 })

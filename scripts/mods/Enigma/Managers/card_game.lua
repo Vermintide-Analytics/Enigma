@@ -11,7 +11,8 @@ local net = {
     broadcast_pacing_intensity = "broadcast_pacing_intensity",
     notify_card_condition_met_changed = "notify_card_condition_met_changed",
     notify_card_auto_condition_met_changed = "notify_card_auto_condition_met_changed",
-    sync_player_accumulated_stagger = "sync_player_accumulated_stagger"
+    sync_card_property = "sync_card_property",
+    sync_player_accumulated_stagger = "sync_player_accumulated_stagger",
 }
 
 local cgm = {
@@ -86,6 +87,9 @@ local handle_local_card_played = function(card, index, location, skip_warpstone_
         else
             table.insert(cgm.self_data[destination_pile], card)
             card.location = destination_pile
+            if cgm.is_server and card.location_changed_server then
+                card:location_changed_server(location, destination_pile)
+            end
             if card.location_changed_local then
                 card:location_changed_local(location, destination_pile)
             end
@@ -106,7 +110,9 @@ enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_nam
         discard_pile = {},
         out_of_play_pile = {},
 
-        active_duration_cards = {}
+        active_duration_cards = {},
+
+        peer_id = peer_id,
     }
 
     if cgm.is_server then
@@ -181,6 +187,8 @@ cgm.init_game = function(self, deck_name, card_templates, is_server)
         _card_draw_gain_rate = 0,
         available_card_draws = 0,
         card_draw_gain_multiplier = 1,
+
+        peer_id = Network.peer_id(),
     }
 
     self_data.available_card_draws = enigma.mega_resource_start and 99 or self_data.available_card_draws
@@ -623,6 +631,15 @@ cgm.update = function(self, dt)
     end
 end
 
+local invoke_card_drawn_callbacks = function(cards, func_name, drawn_card)
+    for _,other_card in ipairs(cards) do
+        if other_card[func_name] then
+            local func = other_card[func_name]
+            func(other_card, drawn_card)
+        end
+    end
+end
+
 enigma:network_register(net.event_card_drawn, function(peer_id)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
@@ -644,6 +661,14 @@ enigma:network_register(net.event_card_drawn, function(peer_id)
     if card.location_changed_remote then
         card:location_changed_remote(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
     end
+    if cgm.is_server then
+        invoke_card_drawn_callbacks(peer_data.draw_pile, "any_card_drawn_server", card)
+        invoke_card_drawn_callbacks(peer_data.hand, "any_card_drawn_server", card)
+        invoke_card_drawn_callbacks(peer_data.discard_pile, "any_card_drawn_server", card)
+    end
+    invoke_card_drawn_callbacks(peer_data.draw_pile, "any_card_drawn_remote", card)
+    invoke_card_drawn_callbacks(peer_data.hand, "any_card_drawn_remote", card)
+    invoke_card_drawn_callbacks(peer_data.discard_pile, "any_card_drawn_remote", card)
 end)
 cgm._draw_card_for_free = function(self)
     if #self.self_data.draw_pile < 1 then
@@ -663,9 +688,21 @@ cgm._draw_card_for_free = function(self)
     end
     table.insert(self.self_data.hand, card)
     card.location = enigma.CARD_LOCATION.hand
+    if self.is_server and card.location_changed_server then
+        card:location_changed_server(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
+    end
     if card.location_changed_local then
         card:location_changed_local(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
     end
+    if self.is_server then
+        invoke_card_drawn_callbacks(self.self_data.draw_pile, "any_card_drawn_server", card)
+        invoke_card_drawn_callbacks(self.self_data.hand, "any_card_drawn_server", card)
+        invoke_card_drawn_callbacks(self.self_data.discard_pile, "any_card_drawn_server", card)
+    end
+    invoke_card_drawn_callbacks(self.self_data.draw_pile, "any_card_drawn_local", card)
+    invoke_card_drawn_callbacks(self.self_data.hand, "any_card_drawn_local", card)
+    invoke_card_drawn_callbacks(self.self_data.discard_pile, "any_card_drawn_local", card)
+
     enigma:network_send(net.event_card_drawn, "others")
     enigma:info("Drew card ["..card.id.."]")
     return true
@@ -887,6 +924,9 @@ cgm.discard_card = function(self, index, from_draw_pile, discard_type)
     local destination_pile = enigma.CARD_LOCATION.discard_pile
     table.insert(self.self_data[destination_pile], card)
     card.location = destination_pile
+    if self.is_server and card.location_changed_server then
+        card:location_changed_server(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
+    end
     if card.location_changed_local then
         card:location_changed_local(pile, enigma.CARD_LOCATION.discard_pile)
     end
@@ -978,6 +1018,9 @@ cgm.shuffle_card_into_draw_pile = function(self, card)
     local original_pile = card.location
     local original_pile_index = get_card_index_in_pile(self.self_data[original_pile], card)
     card.location = enigma.CARD_LOCATION.draw_pile
+    if self.is_server and card.location_changed_server then
+        card:location_changed_server(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
+    end
     if card.location_changed_local then
         card:location_changed_local(original_pile, enigma.CARD_LOCATION.draw_pile)
     end
@@ -1070,6 +1113,52 @@ cgm.player_and_bot_units = function(self)
     end
     local side = Managers.state and Managers.state.side and Managers.state.side:get_side_from_name("heroes")
 	return side and side.PLAYER_AND_BOT_UNITS
+end
+cgm.force_damage = function(self, unit, damage, damager)
+    damager = damager or unit
+    local health_ext = ScriptUnit.extension(unit, "health_system")
+    health_ext:add_damage(damager, damage, "full", "forced", nil, Vector3.up())
+end
+
+enigma:network_register(net.sync_card_property, function(sender, card_owner_peer_id, pile_name, index, property, value)
+    local data = nil
+    if card_owner_peer_id == cgm.self_data.peer_id then
+        data = cgm.self_data
+    else
+        data = cgm.peer_data[card_owner_peer_id]
+    end
+    if not data then
+        enigma:warning("Received sync_card_property with an invalid peer_id")
+        return
+    end
+    local cards = pile_name and data[pile_name]
+    if not cards then
+        enigma:warning("Received sync_card_property with an invalid pile name")
+        return
+    end
+    local card = index and cards[index]
+    if not card then
+        enigma:warning("Received sync_card_property with an invalid card index")
+        return
+    end
+    if not property then
+        enigma:warning("Received sync_card_property with an invalid property name")
+        return
+    end
+    card[property] = value
+    if card.on_property_synced then
+        card:on_property_synced(property, value)
+    end
+end)
+cgm.sync_card_property = function(self, card, property, value)
+    if not property then
+        enigma:warning("Cannot sync card property: "..tostring(property))
+        return
+    end
+    local pile_name = card.location
+    local pile = card.context[pile_name]
+    local card_owner_peer_id = card.context.peer_id
+    enigma:network_send(net.sync_card_property, "others", card_owner_peer_id, pile_name, get_card_index_in_pile(pile, card), property, value)
 end
 
 
