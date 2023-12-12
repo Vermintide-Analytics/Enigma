@@ -66,6 +66,9 @@ local handle_local_card_played = function(card, index, location, skip_warpstone_
     end
 
     card.times_played = card.times_played + 1
+    if card.duration then
+        table.insert(card.active_durations, 1, card.duration)
+    end
 
     if can_expend_charge then
         card.charges = card.charges - 1
@@ -99,6 +102,8 @@ enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_nam
         hand = {},
         discard_pile = {},
         out_of_play_pile = {},
+
+        active_duration_cards = {}
     }
 
     local missing_packs = {}
@@ -152,6 +157,8 @@ cgm.init_game = function(self, deck_name, card_templates, is_server)
         hand = {},
         discard_pile = {},
         out_of_play_pile = {},
+
+        active_duration_cards = {},
 
         _card_draw_gain_rate = 0,
         available_card_draws = 0,
@@ -384,6 +391,34 @@ cgm._run_remote_card_updates = function(self, dt)
     end
 end
 
+local _update_card_active_durations_for_cards = function(cards, dt)
+    for _,card in ipairs(cards) do
+        if card.active_durations then
+            for i=1,#card.active_durations do
+                card.active_durations[i] = card.active_durations[i] - dt
+            end
+            for i=#card.active_durations,1,-1 do
+                if card.active_durations[i] <= 0 then
+                    table.remove(card.active_durations, i)
+                end
+            end
+        end
+    end
+end
+
+cgm._update_local_card_active_durations = function(self, dt)
+    _update_card_active_durations_for_cards(self.self_data.draw_pile, dt)
+    _update_card_active_durations_for_cards(self.self_data.hand, dt)
+    _update_card_active_durations_for_cards(self.self_data.discard_pile, dt)
+end
+cgm._update_remote_active_surge_cards = function(self, dt)
+    for _,peer_data in pairs(self.peer_data) do
+        _update_card_active_durations_for_cards(peer_data.draw_pile, dt)
+        _update_card_active_durations_for_cards(peer_data.hand, dt)
+        _update_card_active_durations_for_cards(peer_data.discard_pile, dt)
+    end
+end
+
 cgm._evaluate_local_card_conditions = function(self)
     if self.is_server then
         for _,card in ipairs(self.self_data.hand) do
@@ -483,6 +518,9 @@ cgm.update = function(self, dt)
         
         self:_run_local_card_updates(dt)
         self:_run_remote_card_updates(dt)
+        
+        self:_update_local_card_active_durations(dt)
+        self:_update_remote_active_surge_cards(dt)
 
         self:_evaluate_local_card_conditions()
         self:_evaluate_local_card_autos()
@@ -589,6 +627,9 @@ enigma:network_register(net.event_card_played, function(peer_id, index, location
     end
 
     card.times_played = card.times_played + 1
+    if card.duration then
+        table.insert(card.active_durations, 1, card.duration)
+    end
     
     local can_expend_charge = card.charges and card.charges > 1
 

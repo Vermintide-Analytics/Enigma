@@ -43,6 +43,9 @@ local loc = {
 	page_count = {
 		en = "%i of %i",
 	},
+	not_yet_implemented = {
+		en = "Does not do anything... yet"
+	},
 
 	-- Deck List
 	create_deck = {
