@@ -19,7 +19,7 @@ local on_warpstone_amount_changed = function()
 end
 
 wm.start_game = function(self)
-    self.warpstone = enigma.mega_resource_start and 500 or 0
+    self.warpstone = enigma.mega_resource_start and 99 or 0
     self.warp_dust = 0.0
     enigma:register_mod_event_callback("update", self, "update")
 end

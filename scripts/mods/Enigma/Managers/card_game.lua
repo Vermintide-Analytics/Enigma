@@ -73,14 +73,16 @@ local handle_local_card_played = function(card, index, location, skip_warpstone_
         local destination_pile = enigma.CARD_LOCATION.discard_pile
         if card.ephemeral then
             destination_pile = enigma.CARD_LOCATION.out_of_play_pile
-        elseif card.infinite then
-            destination_pile = enigma.CARD_LOCATION.draw_pile
         end
-    
-        table.insert(cgm.self_data[destination_pile], card)
-        card.location = destination_pile
-        if card.location_changed_local then
-            card:location_changed_local(location, destination_pile)
+
+        if card.infinite and not card.ephemeral then
+            table.insert(cgm.self_data[enigma.CARD_LOCATION.draw_pile], 1, card) -- Put at bottom of draw pile
+        else
+            table.insert(cgm.self_data[destination_pile], card)
+            card.location = destination_pile
+            if card.location_changed_local then
+                card:location_changed_local(location, destination_pile)
+            end
         end
     end
 
@@ -156,7 +158,7 @@ cgm.init_game = function(self, deck_name, card_templates, is_server)
         card_draw_gain_multiplier = 1,
     }
 
-    self_data.available_card_draws = enigma.mega_resource_start and 100 or self_data.available_card_draws
+    self_data.available_card_draws = enigma.mega_resource_start and 99 or self_data.available_card_draws
 
     local card_manager = enigma.managers.card_template
     for _,card_id in ipairs(card_ids) do
