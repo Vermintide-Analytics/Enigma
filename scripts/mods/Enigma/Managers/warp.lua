@@ -45,7 +45,7 @@ end
 
 wm.add_warp_dust = function(self, amount, raw)
     if not raw then
-        local local_unit = enigma.managers.game.self_data and enigma.managers.game.self_data.unit
+        local local_unit = enigma.managers.game.local_data and enigma.managers.game.local_data.unit
         if local_unit then
             local custom_buffs = enigma.managers.buff.unit_custom_buffs[local_unit]
             if custom_buffs and custom_buffs.warp_dust_multiplier then
@@ -104,7 +104,7 @@ end
 
 
 local handle_damage_dealt = function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
-    local self_unit = enigma.managers.game.self_data and enigma.managers.game.self_data.unit
+    local self_unit = enigma.managers.game.local_data and enigma.managers.game.local_data.unit
     if attacker_unit == self_unit or source_attacker_unit == self_unit then
         local gain = damage_amount * wm.warp_dust_per_damage_dealt
         wm:add_warp_dust(gain)
@@ -115,7 +115,7 @@ reg_hook_safe(GenericHealthExtension, "add_damage", handle_damage_dealt, "enigma
 reg_hook_safe(RatOgreHealthExtension, "add_damage", handle_damage_dealt, "enigma_warp_manager_damage_dealt")
 
 local handle_damage_taken = function(self, attacker_unit, damage_amount, ...)
-    if self.unit == (enigma.managers.game.self_data and enigma.managers.game.self_data.unit) then
+    if self.unit == (enigma.managers.game.local_data and enigma.managers.game.local_data.unit) then
         local gain = damage_amount * wm.warp_dust_per_damage_taken
         wm:add_warp_dust(gain)
         enigma:info("Added "..gain.." warp dust from RECEIVING damage")

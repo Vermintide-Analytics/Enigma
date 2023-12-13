@@ -60,7 +60,7 @@ EnigmaCardGameHud.update = function (self, dt, t)
 	end
 
 	-- Info display
-	local game_data = enigma.managers.game.self_data
+	local game_data = enigma.managers.game.local_data
 	local num_draw_pile = #game_data.draw_pile
 	local num_discard_pile = #game_data.discard_pile
 	local card_draws = game_data.available_card_draws
@@ -80,7 +80,7 @@ EnigmaCardGameHud.update = function (self, dt, t)
 	self.card_draw_bar_node_inner.size[2] = self.card_draw_bar_node.size[2] * card_draws_fpart
 
 	-- Hand display
-	local hand = enigma.managers.game.self_data.hand
+	local hand = enigma.managers.game.local_data.hand
 	local hand_size = #hand
 	local horizontal_offset = (PRETTY_MARGIN + CARD_WIDTH)/2 * (hand_size-1) * -1
 	for i=1,5 do

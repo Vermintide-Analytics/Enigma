@@ -416,7 +416,7 @@ pack_handle.register_ability_cards({
         cost = 3,
         texture = "enigma_base_long_rest",
         on_play_local = function(card)
-            local discard_pile = game.self_data.discard_pile
+            local discard_pile = game.local_data.discard_pile
             local to_return_to_draw_pile = math.min(5, #discard_pile)
             local indexes = enigma:n_random_indexes(#discard_pile, to_return_to_draw_pile)
             for i=to_return_to_draw_pile,1,-1 do
@@ -438,7 +438,7 @@ pack_handle.register_ability_cards({
         cost = 1,
         texture = "enigma_base_ranalds_play",
         on_play_local = function(card)
-            local hand_size = #game.self_data.hand
+            local hand_size = #game.local_data.hand
             if hand_size < 1 then
                 return -- If no other cards in hand... nothing happens! Too bad!
             end
@@ -880,7 +880,7 @@ pack_handle.register_chaos_cards({
         end,
         on_property_synced = function(card, property, value)
             if property == "infected_peer" then
-                if value == game.self_data.peer_id then
+                if value == game.local_data.peer_id then
                     -- We have been infected!
                     game:shuffle_new_card_into_draw_pile(card.id)
                 end
