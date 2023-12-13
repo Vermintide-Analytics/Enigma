@@ -24,8 +24,8 @@ local custom_buff_definitions = {
     chance_ignore_leech = 0,
     chance_ignore_packmaster = 0,
     chance_instantly_slay_man_sized_enemy = 0,
-    dodge_range = 0,
-    dodge_speed = 0,
+    dodge_range = 1.0,
+    dodge_speed = 1.0,
     temporary_healing_received = 1.0,
     warp_dust_multiplier = 1.0,
 }
@@ -46,7 +46,12 @@ bm.global_stat_updated_callbacks.total_ammo = {
 }
 
 local update_movement_stat = function(unit, stat, new, old, path_to_setting)
-    local bonus = new - old
+    if new == 0 then
+        enigma:warning(tostring(stat).." multiplier became 0, movement will not behave correctly after this point")
+        new = 0.001
+    end
+    old = (old == 0 and 0.001) or old
+    local multiplier = new / old
 
     local buff = {
         template = {
@@ -54,7 +59,7 @@ local update_movement_stat = function(unit, stat, new, old, path_to_setting)
         }
     }
     local params = {
-        bonus = bonus,
+        multiplier = multiplier,
     }
     BuffFunctionTemplates.functions.apply_movement_buff(unit, buff, params)
 end
@@ -224,11 +229,6 @@ end
 local apply_stat_specific_properties = function(stat, buff_table)
     if stat == "movement_speed" then
         buff_table.multiplier = 1.0
-        buff_table.apply_buff_func = "apply_movement_buff"
-        buff_table.remove_buff_func = "remove_movement_buff"
-        buff_table.path_to_movement_setting_to_modify = {
-            "move_speed"
-        }
     end
 end
 for stat,method in pairs(StatBuffApplicationMethods) do
@@ -427,3 +427,47 @@ enigma:command("dump_network_constants", "", function()
         end
     end
 end)
+
+-- enigma:hook(BuffExtension, "apply_buffs_to_value", function(func, self, value, stat_buff)
+--     if stat_buff ~= "damage_taken" then
+--         return func(self, value, stat_buff)
+--     end
+-- 	local stat_buffs = self._stat_buffs[stat_buff]
+-- 	local final_value = value
+-- 	local procced = false
+-- 	local is_proc = StatBuffApplicationMethods[stat_buff] == "proc"
+-- 	local id = nil
+
+-- 	for name, stat_buff_data in pairs(stat_buffs) do
+--         enigma:info("--------------------")
+--         enigma:info("Stat Buff \""..tostring(name).."\"")
+-- 		local proc_chance = stat_buff_data.proc_chance
+--         enigma:info("proc_chance: "..tostring(proc_chance))
+
+-- 		if self:has_procced(proc_chance, stat_buff) then
+-- 			local bonus = stat_buff_data.bonus
+--             enigma:info("bonus: "..tostring(bonus))
+-- 			local multiplier = stat_buff_data.multiplier
+--             enigma:info("multiplier: "..tostring(multiplier))
+
+-- 			if type(multiplier) == "table" then
+-- 				local wind_strength = Managers.weave:get_wind_strength()
+-- 				multiplier = multiplier[wind_strength]
+-- 			end
+
+-- 			multiplier = multiplier + 1
+-- 			final_value = final_value * multiplier + bonus
+
+-- 			if is_proc then
+-- 				procced = true
+-- 				id = stat_buff_data.id
+
+-- 				break
+-- 			end
+-- 		end
+-- 	end
+
+--     enigma:info("final_value: "..tostring(final_value))
+
+-- 	return final_value, procced, id
+-- end)
