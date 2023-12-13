@@ -491,7 +491,7 @@ pack_handle.register_ability_cards({
         texture = "enigma_base_spare_engine",
         warp_dust_increase = 0.1,
         card_draw_increase = 0.25,
-        location_changed_local = function(card, old, new)
+        on_location_changed_local = function(card, old, new)
             if new == "hand" then
                 buff:update_stat(card.context.unit, "warp_dust_multiplier", card.warp_dust_increase)
                 buff:update_stat(card.context.unit, "card_draw_multiplier", card.card_draw_increase)
@@ -695,7 +695,7 @@ pack_handle.register_chaos_cards({
         texture = "enigma_base_incompetence",
         warp_dust_decrease = -0.1,
         card_draw_decrease = -0.1,
-        location_changed_local = function(card, old, new)
+        on_location_changed_local = function(card, old, new)
             if new == "hand" then
                 buff:update_stat(card.context.unit, "warp_dust_multiplier", card.warp_dust_decrease)
                 buff:update_stat(card.context.unit, "card_draw_multiplier", card.card_draw_decrease)
@@ -719,7 +719,7 @@ pack_handle.register_chaos_cards({
         times_drawn = 0,
         damage_per_draw = 5,
         texture = "enigma_base_injury",
-        location_changed_server = function(card, old, new)
+        on_location_changed_server = function(card, old, new)
             if new == enigma.CARD_LOCATION.hand and old == enigma.CARD_LOCATION.draw_pile then
                 card.times_drawn = card.times_drawn + 1
                 card.description_lines[1].parameters[2] = card.damage_per_draw * card.times_drawn
@@ -742,7 +742,7 @@ pack_handle.register_chaos_cards({
         rarity = RARE,
         cost = 2,
         texture = "enigma_base_life_sap",
-        any_card_drawn_server = function(card, other_card)
+        on_any_card_drawn_server = function(card, other_card)
             if not card:is_in_hand() or other_card == card then
                 return
             end
@@ -763,7 +763,7 @@ pack_handle.register_chaos_cards({
         texture = "enigma_base_parasite",
         damage = 1,
         damage_interval = 5,
-        location_changed_server = function(card, old, new)
+        on_location_changed_server = function(card, old, new)
             if new == enigma.CARD_LOCATION.hand then
                 card.time_until_damage = card.damage_interval
             end
@@ -791,7 +791,7 @@ pack_handle.register_chaos_cards({
         rarity = LEGENDARY,
         cost = 3,
         texture = "enigma_base_silence",
-        location_changed_server = function(card, old, new)
+        on_location_changed_server = function(card, old, new)
             if new == enigma.CARD_LOCATION.hand then
                 buff:update_stat(card.context.unit, "cannot_use_career_skill", 1)
             elseif old == enigma.CARD_LOCATION.hand then
@@ -811,7 +811,7 @@ pack_handle.register_chaos_cards({
         cost = 1,
         texture = "enigma_base_slow",
         dodge_decrease = -0.25,
-        location_changed_local = function(card, old, new)
+        on_location_changed_local = function(card, old, new)
             if new == "hand" then
                 buff:update_stat(card.context.unit, "dodge_range", card.dodge_decrease)
                 buff:update_stat(card.context.unit, "dodge_speed", card.dodge_decrease)
@@ -872,7 +872,7 @@ pack_handle.register_chaos_cards({
                 end
             end
         end,
-        location_changed_local = function(card, old, new)
+        on_location_changed_local = function(card, old, new)
             if new == enigma.CARD_LOCATION.hand then
                 card.remaining_infection_duration = card.infection_duration
                 buff:update_stat(card.context.unit, "power_level", card.power_level_reduction)

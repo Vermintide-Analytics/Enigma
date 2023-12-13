@@ -44,13 +44,13 @@ end
 
 local template_template = {
     location = enigma.CARD_LOCATION.draw_pile,
-    location_changed_local = nil,
-    location_changed_server = nil,
-    location_changed_remote = nil,
+    on_location_changed_local = nil,
+    on_location_changed_server = nil,
+    on_location_changed_remote = nil,
 
-    any_card_drawn_local = nil,
-    any_card_drawn_server = nil,
-    any_card_drawn_remote = nil,
+    on_any_card_drawn_local = nil,
+    on_any_card_drawn_server = nil,
+    on_any_card_drawn_remote = nil,
 
     on_game_start_local = nil,
     on_game_start_server = nil,
@@ -72,27 +72,29 @@ local template_template = {
     on_discard_server = nil,
     on_discard_remote = nil,
 
-    description_lines = {},
+    events_local = nil,
+    events_server = nil,
+    events_remote = nil,
+
+    on_property_synced = nil,
 
     auto_condition_local = nil,
     auto_condition_server = nil,
-    auto_descriptions = {},
-
     channel = nil,
     charges = nil,
-
     condition_local = nil,
     condition_server = nil,
-    condition_descriptions = {},
-
     double_agent = false,
     ephemeral = false,
     infinite = false,
-
-    retain_descriptions = {},
-
     unplayable = false,
     warp_hungry = nil,
+
+    description_lines = {},
+    auto_descriptions = {},
+    condition_descriptions = {},
+    retain_descriptions = {},
+
 
     instance = function(self)
         local inst = table.deep_copy(self, 100)

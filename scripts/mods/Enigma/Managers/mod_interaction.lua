@@ -31,12 +31,14 @@ local create_mod_interaction_handle = function(mod_id)
     }
 end
 
-mim.register_mod = function(self, mod_id, mod_table)
+mim.register_mod = function(self, mod_id)
+    local mod_table = get_mod(mod_id)
+    if not mod_table then
+        enigma:echo("Enigma could not register mod \""..tostring(mod_id).."\"")
+        return
+    end
     if type(mod_id) ~= "string" then
         enigma:echo_bad_function_call("register_mod", "mod_id", "mod_id", mod_id, "mod_table", mod_table)
-    end
-    if type(mod_id) ~= "table" then
-        enigma:echo_bad_function_call("register_mod", "mod_table", "mod_id", mod_id, "mod_table", mod_table)
     end
     self.mods[mod_id] = mod_table
     return create_mod_interaction_handle(mod_id)
