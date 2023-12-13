@@ -252,19 +252,19 @@ cgm.start_game = function(self)
     for _,card in ipairs(self.self_data.draw_pile) do
         if card.on_game_start_local then
             if self.is_server and card.on_game_start_server then
-                card:on_game_start_server(self.self_data)
+                card:on_game_start_server()
             end
-            card:on_game_start_local(self.self_data)
+            card:on_game_start_local()
         end
     end
 
     for _,peer_data in pairs(self.peer_data) do
         for _,card in ipairs(peer_data.draw_pile) do
             if self.is_server and card.on_game_start_server then
-                card:on_game_start_server(peer_data)
+                card:on_game_start_server()
             end
             if card.on_game_start_remote then
-                card:on_game_start_remote(peer_data)
+                card:on_game_start_remote()
             end
         end
     end

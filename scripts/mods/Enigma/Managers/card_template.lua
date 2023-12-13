@@ -91,9 +91,9 @@ local template_template = {
     warp_hungry = nil,
 
     description_lines = {},
+    retain_descriptions = {},
     auto_descriptions = {},
     condition_descriptions = {},
-    retain_descriptions = {},
 
 
     instance = function(self)
