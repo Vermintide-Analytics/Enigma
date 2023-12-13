@@ -108,6 +108,13 @@ return {
         en = "Gym Rat"
     },
 
+    base_plated_armor = {
+        en = "Plated Armor"
+    },
+    base_plated_armor_description = {
+        en = "Gain immunity to ratling gunners"
+    },
+
     base_soul_safe = {
         en = "Soul Safe"
     },

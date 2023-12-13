@@ -122,6 +122,20 @@ pack_handle.register_passive_cards({
             }
         }
     },
+    plated_armor = {
+        name = "base_plated_armor",
+        rarity = LEGENDARY,
+        cost = 2,
+        texture = "enigma_base_plated_armor",
+        on_play_server = function(card)
+            buff:update_stat(card.context.unit, "chance_ignore_gunner", 1.0)
+        end,
+        description_lines = {
+            {
+                format = "base_plated_armor_description"
+            }
+        },
+    },
     soul_safe = {
         name = "base_soul_safe",
         rarity = LEGENDARY,
