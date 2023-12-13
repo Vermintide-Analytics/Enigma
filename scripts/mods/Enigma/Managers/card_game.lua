@@ -565,12 +565,16 @@ cgm._update_accumulated_staggers = function(self, dt)
 end
 local card_draw_gain_lut = {
     {
-        threshold = 60,
-        rate = 0.016
+        threshold = 50,
+        rate = 0.050
     },
     {
-        threshold = 10,
-        rate = 0.008
+        threshold = 20,
+        rate = 0.036
+    },
+    {
+        threshold = 3,
+        rate = 0.020
     }
 }
 cgm._update_card_draw_gain_rate = function(self)
@@ -1197,48 +1201,20 @@ enigma:network_register(net.sync_player_accumulated_stagger, function(peer_id, t
     enigma.managers.warp:_process_accumulated_stagger(trash, elite, special, boss)
 end)
 
-local push_started_for_pusher = function(pusher, staggered_breed)
-    local player_data = cgm.data_by_unit[pusher]
-    if player_data then
-        local enemy_type = staggered_breed.boss and "boss" or staggered_breed.special and "special" or staggered_breed.elite and "elite" or "trash"
-        player_data.currently_staggered_enemies[enemy_type] = player_data.currently_staggered_enemies[enemy_type] + 1
+-- It would be nice if we could instead hook the "enter" and "leave" functions and track the number of staggered enemies ourselves,
+-- but I discovered that it was not reliable.
+enigma:hook_safe(BTStaggerAction, "run", function(self, unit, blackboard, t, dt)
+    if blackboard.pushing_unit then
+        local data = cgm.data_by_unit[blackboard.pushing_unit]
+        if data then
+            local enemy_type = blackboard.enemy_type
+            if not enemy_type then
+                local staggered_breed = Unit.get_data(unit, "breed")
+                enemy_type = staggered_breed.boss and "boss" or staggered_breed.special and "special" or staggered_breed.elite and "elite" or "trash"
+            end
+            data.accumulated_stagger[enemy_type] = data.accumulated_stagger[enemy_type] + dt
+        end
     end
-end
-local push_ended_for_pusher = function(pusher, staggered_breed)
-    local player_data = cgm.data_by_unit[pusher]
-    if player_data then
-        local enemy_type = staggered_breed.boss and "boss" or staggered_breed.special and "special" or staggered_breed.elite and "elite" or "trash"
-        player_data.currently_staggered_enemies[enemy_type] = player_data.currently_staggered_enemies[enemy_type] - 1
-    end
-end
-
-enigma:hook(BTStaggerAction, "enter", function(func, self, unit, blackboard, t)
-    local staggered_breed = Unit.get_data(unit, "breed")
-    local previous_pusher = blackboard.previous_pushing_unit
-    func(self, unit, blackboard, t)
-    if not cgm:is_in_game() then
-        return
-    end
-    local new_pusher = blackboard.pushing_unit
-    if new_pusher == previous_pusher then
-        return
-    end
-    if previous_pusher then
-        push_ended_for_pusher(previous_pusher, staggered_breed)
-    end
-    blackboard.previous_pushing_unit = new_pusher
-    push_started_for_pusher(new_pusher, staggered_breed)
-end)
-
-enigma:hook(BTStaggerAction, "leave", function(func, self, unit, blackboard, t, reason, destroy)
-    local staggered_breed = Unit.get_data(unit, "breed")
-    local pusher = blackboard.pushing_unit
-    func(self, unit, blackboard, t, reason, destroy)
-    if not cgm:is_in_game() then
-        return
-    end
-    blackboard.previous_pushing_unit = nil
-    push_ended_for_pusher(pusher, staggered_breed)
 end)
 
 
