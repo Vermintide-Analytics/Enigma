@@ -160,6 +160,7 @@ bm.surge_stat = function(self, unit, stat, difference, duration)
         difference = difference,
         remaining_duration = duration
     })
+    enigma:debug("Unit now has "..#self.unit_stat_surges[unit].." active stat surges")
 end
 
 local buff_params = {}
@@ -402,6 +403,7 @@ bm.update = function(self, dt)
             self:update_stat(unit, surge.stat, -1*surge.difference)
             table.remove(unit_stat_surges, finished_surges[i])
         end
+        enigma:debug("Unit now has "..#unit_stat_surges.." active stat surges")
     end
 end
 enigma:register_mod_event_callback("update", bm, "update")
