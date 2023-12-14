@@ -52,6 +52,14 @@ local template_template = {
     on_any_card_drawn_server = nil,
     on_any_card_drawn_remote = nil,
 
+    on_any_card_played_local = nil,
+    on_any_card_played_server = nil,
+    on_any_card_played_remote = nil,
+    
+    on_any_card_discarded_local = nil,
+    on_any_card_discarded_server = nil,
+    on_any_card_discarded_remote = nil,
+
     on_game_start_local = nil,
     on_game_start_server = nil,
     on_game_start_remote = nil,

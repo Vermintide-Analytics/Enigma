@@ -52,6 +52,20 @@ local remove_card_from_pile = function(pile, card)
     table.remove(pile, ind)
 end
 
+local invoke_card_event_callbacks = function(cards, func_name, ...)
+    for _,other_card in ipairs(cards) do
+        if other_card[func_name] then
+            local func = other_card[func_name]
+            func(other_card, ...)
+        end
+    end
+end
+local invoke_card_event_callbacks_for_all_piles = function(data, func_name, ...)
+    invoke_card_event_callbacks(data.draw_pile, func_name, ...)
+    invoke_card_event_callbacks(data.hand, func_name, ...)
+    invoke_card_event_callbacks(data.discard_pile, func_name, ...)
+end
+
 local handle_local_card_played = function(card, index, location, skip_warpstone_cost, play_type)
     if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(card.cost) then
         enigma:echo("Not enough warpstone to play ["..card.name.."]")
@@ -74,6 +88,10 @@ local handle_local_card_played = function(card, index, location, skip_warpstone_
     if card.on_play_local then
         card:on_play_local(play_type)
     end
+    if cgm.is_server then
+        invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_played_server", card)
+    end
+    invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_played_local", card)
 
     card.times_played = card.times_played + 1
     if card.duration then
@@ -654,15 +672,6 @@ cgm.update = function(self, dt)
     end
 end
 
-local invoke_card_drawn_callbacks = function(cards, func_name, drawn_card)
-    for _,other_card in ipairs(cards) do
-        if other_card[func_name] then
-            local func = other_card[func_name]
-            func(other_card, drawn_card)
-        end
-    end
-end
-
 enigma:network_register(net.event_card_drawn, function(peer_id)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
@@ -685,13 +694,9 @@ enigma:network_register(net.event_card_drawn, function(peer_id)
         card:on_location_changed_remote(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
     end
     if cgm.is_server then
-        invoke_card_drawn_callbacks(peer_data.draw_pile, "on_any_card_drawn_server", card)
-        invoke_card_drawn_callbacks(peer_data.hand, "on_any_card_drawn_server", card)
-        invoke_card_drawn_callbacks(peer_data.discard_pile, "on_any_card_drawn_server", card)
+        invoke_card_event_callbacks_for_all_piles(peer_data, "on_any_card_drawn_server", card)
     end
-    invoke_card_drawn_callbacks(peer_data.draw_pile, "on_any_card_drawn_remote", card)
-    invoke_card_drawn_callbacks(peer_data.hand, "on_any_card_drawn_remote", card)
-    invoke_card_drawn_callbacks(peer_data.discard_pile, "on_any_card_drawn_remote", card)
+    invoke_card_event_callbacks_for_all_piles(peer_data, "on_any_card_drawn_remote", card)
 end)
 cgm._draw_card_for_free = function(self)
     if #self.local_data.draw_pile < 1 then
@@ -717,14 +722,10 @@ cgm._draw_card_for_free = function(self)
     if card.on_location_changed_local then
         card:on_location_changed_local(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
     end
-    if self.is_server then
-        invoke_card_drawn_callbacks(self.local_data.draw_pile, "on_any_card_drawn_server", card)
-        invoke_card_drawn_callbacks(self.local_data.hand, "on_any_card_drawn_server", card)
-        invoke_card_drawn_callbacks(self.local_data.discard_pile, "on_any_card_drawn_server", card)
+    if cgm.is_server then
+        invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_drawn_server", card)
     end
-    invoke_card_drawn_callbacks(self.local_data.draw_pile, "on_any_card_drawn_local", card)
-    invoke_card_drawn_callbacks(self.local_data.hand, "on_any_card_drawn_local", card)
-    invoke_card_drawn_callbacks(self.local_data.discard_pile, "on_any_card_drawn_local", card)
+    invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_drawn_local", card)
 
     enigma:network_send(net.event_card_drawn, "others")
     enigma:info("Drew card ["..card.id.."]")
@@ -763,6 +764,10 @@ enigma:network_register(net.event_card_played, function(peer_id, index, location
     if card.on_play_remote then
         card:on_play_remote(play_type)
     end
+    if cgm.is_server then
+        invoke_card_event_callbacks_for_all_piles(peer_data, "on_any_card_played_server", card)
+    end
+    invoke_card_event_callbacks_for_all_piles(peer_data, "on_any_card_played_remote", card)
 
     card.times_played = card.times_played + 1
     if card.duration then
@@ -915,6 +920,10 @@ enigma:network_register(net.event_card_discarded, function(peer_id, index, from_
     if card.on_discard_remote then
         card:on_discard_remote(discard_type)
     end
+    if cgm.is_server then
+        invoke_card_event_callbacks_for_all_piles(peer_data, "on_any_card_discarded_server", card)
+    end
+    invoke_card_event_callbacks_for_all_piles(peer_data, "on_any_card_discarded_remote", card)
     local destination_pile = enigma.CARD_LOCATION.discard_pile
     table.insert(peer_data[destination_pile], card)
     card.location = destination_pile
@@ -944,6 +953,11 @@ cgm.discard_card = function(self, index, from_draw_pile, discard_type)
     if card.on_discard_local then
         card:on_discard_local(self.local_data, discard_type)
     end
+    if cgm.is_server then
+        invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_discarded_server", card)
+    end
+    invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_discarded_local", card)
+
     local destination_pile = enigma.CARD_LOCATION.discard_pile
     table.insert(self.local_data[destination_pile], card)
     card.location = destination_pile
