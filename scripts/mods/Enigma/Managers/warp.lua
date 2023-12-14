@@ -104,6 +104,9 @@ end
 
 
 local handle_damage_dealt = function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+    if self.dead then
+        return
+    end
     local self_unit = enigma.managers.game.local_data and enigma.managers.game.local_data.unit
     if attacker_unit == self_unit or source_attacker_unit == self_unit then
         local gain = damage_amount * wm.warp_dust_per_damage_dealt
