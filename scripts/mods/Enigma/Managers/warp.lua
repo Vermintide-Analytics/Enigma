@@ -9,7 +9,7 @@ local wm = {
 
     warp_dust_per_second = 3.0,
     warp_dust_per_damage_dealt = 0.1,
-    warp_dust_per_damage_taken = 5.0,
+    warp_dust_per_damage_taken = 3.0,
     warp_dust_per_stagger_seconds = {
         trash = 2.0,
         elite = 5.0,
@@ -117,8 +117,8 @@ end
 reg_hook_safe(GenericHealthExtension, "add_damage", handle_damage_dealt, "enigma_warp_manager_damage_dealt")
 reg_hook_safe(RatOgreHealthExtension, "add_damage", handle_damage_dealt, "enigma_warp_manager_damage_dealt")
 
-local handle_damage_taken = function(self, attacker_unit, damage_amount, ...)
-    if self.unit == (enigma.managers.game.local_data and enigma.managers.game.local_data.unit) then
+local handle_damage_taken = function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, ...)
+    if self.unit == (enigma.managers.game.local_data and enigma.managers.game.local_data.unit) and damage_type ~= "temporary_health_degen" then
         local gain = damage_amount * wm.warp_dust_per_damage_taken
         wm:add_warp_dust(gain)
         enigma:info("Added "..gain.." warp dust from RECEIVING damage")
