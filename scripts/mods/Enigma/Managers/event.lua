@@ -208,6 +208,9 @@ end, "enigma_event_trigger_procs")
 
 reg_hook_safe(DeathSystem, "kill_unit", function(self, unit, killing_blow)
 	local breed = Unit.get_data(unit, "breed")
+    if not breed then
+        return
+    end
     if breed.is_player then
         em:_invoke_event_callbacks(enigma.EVENTS.player_killed, unit, killing_blow)
     else
