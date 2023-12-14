@@ -11,6 +11,7 @@ local net = {
     broadcast_pacing_intensity = "broadcast_pacing_intensity",
     notify_card_condition_met_changed = "notify_card_condition_met_changed",
     notify_card_auto_condition_met_changed = "notify_card_auto_condition_met_changed",
+    sync_level_progress = "sync_level_progress",
     sync_card_property = "sync_card_property",
     sync_player_accumulated_stagger = "sync_player_accumulated_stagger",
 }
@@ -20,6 +21,11 @@ local cgm = {
     peer_data = {},
 
     data_by_unit = {},
+
+    level_progress_card_draw = {
+        adventure = 15,
+        deus = 9
+    }
 }
 cgm.local_data = nil -- Initialize as table then set to null to shut up the Lua diagnostics complaining about accessing fields from nil
 enigma.managers.game = cgm
@@ -122,12 +128,6 @@ enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_nam
             special = 0,
             boss = 0
         }
-        peer_data.currently_staggered_enemies = {
-            trash = 0,
-            elite = 0,
-            special = 0,
-            boss = 0
-        }
     end
 
     local missing_packs = {}
@@ -173,7 +173,7 @@ cgm.init_game = function(self, deck_name, card_templates, is_server)
     for _,template in ipairs(card_templates) do
         table.insert(card_ids, template.id)
     end
-    enigma.random_seed = table.shuffle(card_ids, enigma.random_seed)
+    enigma:shuffle(card_ids)
     
     local local_data = {
         deck_name = deck_name,
@@ -200,13 +200,9 @@ cgm.init_game = function(self, deck_name, card_templates, is_server)
             special = 0,
             boss = 0
         }
-        local_data.currently_staggered_enemies = {
-            trash = 0,
-            elite = 0,
-            special = 0,
-            boss = 0
-        }
     end
+
+    self.furthest_level_progress = 0
 
     local card_manager = enigma.managers.card_template
     for _,card_id in ipairs(card_ids) do
@@ -248,6 +244,7 @@ cgm.start_game = function(self)
     end
     enigma:echo("Starting Enigma game")
     self.game_state = "in_progress"
+    self.game_mode = enigma:game_mode_key()
 
     for _,card in ipairs(self.local_data.draw_pile) do
         if card.on_game_start_local then
@@ -278,6 +275,9 @@ cgm.start_game = function(self)
         self.pacing_intensity = 0
         self.broadcast_pacing_intensity_interval = 5
         self.time_until_broadcast_pacing_intensity = self.broadcast_pacing_intensity_interval
+
+        self.broadcast_level_progress_interval = 5
+        self.time_until_broadcast_level_progress = self.broadcast_level_progress_interval
     end
 
     enigma.managers.warp:start_game()
@@ -336,11 +336,28 @@ enigma:network_register(net.notify_card_auto_condition_met_changed, function(pee
 end)
 enigma:network_register(net.broadcast_pacing_intensity, function(peer_id, pacing_intensity)
     if peer_id ~= cgm.server_peer_id then
-        enigma:warning("Only the server is allowed to tell us when a card auto-trigger condition met changes")
+        enigma:warning("Only the server is allowed to tell us the current pacing intensity")
         return
     end
     cgm.pacing_intensity = pacing_intensity
     cgm:_update_card_draw_gain_rate()
+end)
+enigma:network_register(net.sync_level_progress, function(peer_id, progress)
+    if progress <= cgm.furthest_level_progress then
+        return
+    end
+    local new_progress = progress - cgm.furthest_level_progress
+    local gain = new_progress * cgm.level_progress_card_draw[cgm.game_mode]
+    local local_unit = cgm.local_data.unit
+    if local_unit then
+        local custom_buffs = enigma.managers.buff.unit_custom_buffs[local_unit]
+        if custom_buffs and custom_buffs.card_draw_multiplier then
+            gain = gain * custom_buffs.card_draw_multiplier
+        end
+    end
+    cgm.local_data.available_card_draws = cgm.local_data.available_card_draws + gain
+    enigma:info("Gained "..gain.." card draw for level progress ("..cgm.furthest_level_progress.." -> "..progress..")")
+    cgm.furthest_level_progress = progress
 end)
 
 cgm._update_active_channel = function(self, dt)
@@ -531,10 +548,6 @@ cgm._update_accumulated_staggers = function(self, dt)
         sync = true
         self.time_until_sync_accumulated_stagger = self.time_until_sync_accumulated_stagger + self.sync_accumulated_stagger_interval
     end
-
-    for enemy_type,num in pairs(self.local_data.currently_staggered_enemies) do
-        self.local_data.accumulated_stagger[enemy_type] = self.local_data.accumulated_stagger[enemy_type] + num*dt
-    end
     if sync then
         local trash = self.local_data.accumulated_stagger["trash"]
         local elite = self.local_data.accumulated_stagger["elite"]
@@ -547,9 +560,6 @@ cgm._update_accumulated_staggers = function(self, dt)
         self.local_data.accumulated_stagger["boss"] = 0
     end
     for peer_id,peer_data in pairs(self.peer_data) do
-        for enemy_type,num in pairs(peer_data.currently_staggered_enemies) do
-            peer_data.accumulated_stagger[enemy_type] = peer_data.accumulated_stagger[enemy_type] + num*dt
-        end
         if sync then
             local trash = peer_data.accumulated_stagger["trash"]
             local elite = peer_data.accumulated_stagger["elite"]
@@ -566,15 +576,15 @@ end
 local card_draw_gain_lut = {
     {
         threshold = 50,
-        rate = 0.050
+        rate = 0.020
     },
     {
         threshold = 20,
-        rate = 0.036
+        rate = 0.014
     },
     {
         threshold = 3,
-        rate = 0.020
+        rate = 0.008
     }
 }
 cgm._update_card_draw_gain_rate = function(self)
@@ -597,7 +607,6 @@ cgm._update_card_draw_gain_rate = function(self)
     end
     rate = rate * pacing_multiplier
     self.local_data._card_draw_gain_rate = rate
-    return rate
 end
 cgm.update = function(self, dt)
     if self.game_state == "in_progress" then
@@ -620,12 +629,18 @@ cgm.update = function(self, dt)
             self:_update_accumulated_staggers(dt)
 
             self.time_until_broadcast_pacing_intensity = self.time_until_broadcast_pacing_intensity - dt
-            
             if self.time_until_broadcast_pacing_intensity <= 0 then
                 self.pacing_intensity = self.pacing.total_intensity
                 self:_update_card_draw_gain_rate()
                 enigma:network_send(net.broadcast_pacing_intensity, "others", self.pacing_intensity)
                 self.time_until_broadcast_pacing_intensity = self.broadcast_pacing_intensity_interval
+            end
+
+            self.time_until_broadcast_level_progress = self.time_until_broadcast_level_progress - dt
+            if self.time_until_broadcast_level_progress <= 0 then
+                local progress = enigma:get_level_progress() or 0
+                enigma:network_send(net.sync_level_progress, "all", progress)
+                self.time_until_broadcast_level_progress = self.broadcast_level_progress_interval
             end
         end
 

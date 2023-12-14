@@ -72,7 +72,7 @@ enigma.traveling_to_morris_map = function(self)
 end
 
 enigma.game_mode_key = function(self)
-    return Managers.state and Managers.state.game_mode:game_mode_key()
+    return Managers.state and Managers.state.game_mode and Managers.state.game_mode:game_mode_key()
 end
 enigma.detect_game_mode = function(self)
     local level_key = self:level_key()
@@ -149,6 +149,18 @@ enigma.distance_between_units = function(self, unit1, unit2)
     return Vector3.distance(Unit.world_position(unit1, 0), Unit.world_position(unit2, 0))
 end
 
+enigma.get_level_progress = function()
+    local conflict = Managers.state.conflict
+
+    local traveled = conflict and conflict.main_path_info and conflict.main_path_info.ahead_travel_dist
+    local total = conflict and conflict.level_analysis and conflict.level_analysis.main_path_data and conflict.level_analysis.main_path_data.total_dist
+    if traveled and total then
+        return traveled/total
+    end
+
+    return nil
+end
+
 -- File IO
 enigma.save = function(self, file_name, data, callback)
     return Managers.save:auto_save(file_name, data, callback, true)
@@ -170,6 +182,9 @@ enigma.random_range = function(self, min, max)
 end
 enigma.random_range_int = function(self, min, max)
     return math.floor(self:random_range(min, max+1))
+end
+enigma.shuffle = function(self, array)
+    enigma.random_seed = table.shuffle(array, enigma.random_seed)
 end
 enigma.test_chance = function(self, chance)
     local rand = self:random()
