@@ -44,6 +44,12 @@ return {
     description_power_level_skaven = {
         en = "%+.1f%% Power vs Skaven"
     },
+    description_restore_health = {
+        en = "Restore %i Health"
+    },
+    description_restore_temporary_health = {
+        en = "Restore %i Temporary Health"
+    },
     description_take_damage = {
         en = "Take %i Damage"
     },
@@ -181,11 +187,19 @@ return {
         en = "Free yourself from being disabled"
     },
 
+    base_field_medicine = {
+        en = "Field Medicine"
+    },
+
     base_long_rest = {
         en = "Long Rest"
     },
     base_long_rest_description = {
         en = "Shuffle %i random cards from your discard pile into your draw pile"
+    },
+
+    base_quick_stimulants = {
+        en = "Quick Stimulants"
     },
 
     base_ranalds_play = {

@@ -265,6 +265,7 @@ pack_handle.register_attack_cards({
                 format = "auto_description_test"
             }
         },
+        charges = 3
     },
     cyclone_strike = {
         name = "base_cyclone_strike",
@@ -410,6 +411,24 @@ pack_handle.register_ability_cards({
             }
         }
     },
+    field_medicine = {
+        name = "base_field_medicine",
+        rarity = COMMON,
+        cost = 1,
+        texture = "enigma_base_field_medicine",
+        on_play_server = function(card)
+            local us = card.context.unit
+            DamageUtils.heal_network(us, us, 15, "health_regen")
+        end,
+        charges = 5,
+        channel = 2,
+        description_lines = {
+            {
+                format = "description_restore_health",
+                parameters = { 15 }
+            },
+        }
+    },
     long_rest = {
         name = "base_long_rest",
         rarity = LEGENDARY,
@@ -430,6 +449,23 @@ pack_handle.register_ability_cards({
                 format = "base_long_rest_description",
                 parameters = { 5 }
             }
+        }
+    },
+    quick_stimulants = {
+        name = "base_quick_stimulants",
+        rarity = COMMON,
+        cost = 1,
+        texture = "enigma_base_quick_stimulants",
+        on_play_server = function(card)
+            local us = card.context.unit
+            DamageUtils.heal_network(us, us, 25, "heal_from_proc")
+        end,
+        charges = 5,
+        description_lines = {
+            {
+                format = "description_restore_temporary_health",
+                parameters = { 25 }
+            },
         }
     },
     ranalds_play = {

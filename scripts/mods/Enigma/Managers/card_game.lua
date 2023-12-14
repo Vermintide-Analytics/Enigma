@@ -82,6 +82,7 @@ local handle_local_card_played = function(card, index, location, skip_warpstone_
 
     if can_expend_charge then
         card.charges = card.charges - 1
+        card:set_dirty()
     else
         local destination_pile = enigma.CARD_LOCATION.discard_pile
         if card.ephemeral then

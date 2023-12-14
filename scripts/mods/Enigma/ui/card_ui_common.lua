@@ -966,7 +966,7 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 		end
 	end
 
-	local any_simple_keywords = card.channel or card.double_agent or card.ephemeral or card.infinite or card.unplayable or card.warp_hungry
+	local any_simple_keywords = card.channel or card.charges or card.double_agent or card.ephemeral or card.infinite or card.unplayable or card.warp_hungry
 	local simple_keywords_vertical_spacing = any_simple_keywords and 1 or 0
 
 	local total_vertical_spacing = description_vertical_spacing + retain_vertical_spacing + auto_vertical_spacing + condition_vertical_spacing + simple_keywords_vertical_spacing
@@ -1166,6 +1166,9 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 		local keywords = {}
 		if card.channel then
 			table.insert(keywords, enigma:localize("channel", card.channel))
+		end
+		if card.charges then
+			table.insert(keywords, enigma:localize("charges", card.charges))
 		end
 		if card.double_agent then
 			table.insert(keywords, enigma:localize("double_agent"))

@@ -8,6 +8,9 @@ local loc = {
 	channel = {
 		en = "Channel (%is)",
 	},
+	charges = {
+		en = "Charges (%i)"
+	},
 	condition = {
 		en = "Condition",
 	},
