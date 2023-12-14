@@ -510,7 +510,7 @@ pack_handle.register_ability_cards({
                 if damaged_unit ~= card.context.unit or damage_amount < 25 then
                     return
                 end
-                game.try_play_card(card)
+                game:try_play_card(card)
             end
         },
         description_lines = {
