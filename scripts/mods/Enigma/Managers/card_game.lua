@@ -192,6 +192,7 @@ cgm.init_game = function(self, deck_name, card_templates, is_server)
     }
 
     local_data.available_card_draws = enigma.mega_resource_start and 99 or local_data.available_card_draws
+    local_data.deferred_card_draws = 0
 
     if self.is_server then
         local_data.accumulated_stagger = {
@@ -355,8 +356,7 @@ enigma:network_register(net.sync_level_progress, function(peer_id, progress)
             gain = gain * custom_buffs.card_draw_multiplier
         end
     end
-    cgm.local_data.available_card_draws = cgm.local_data.available_card_draws + gain
-    enigma:info("Gained "..gain.." card draw for level progress ("..cgm.furthest_level_progress.." -> "..progress..")")
+    cgm.local_data.deferred_card_draws = cgm.local_data.deferred_card_draws + gain
     cgm.furthest_level_progress = progress
 end)
 
@@ -645,6 +645,9 @@ cgm.update = function(self, dt)
         end
 
         self.local_data.available_card_draws = self.local_data.available_card_draws + (self.local_data._card_draw_gain_rate * dt)
+        local pull_from_deferred = self.local_data.deferred_card_draws * dt * 0.5
+        self.local_data.deferred_card_draws = self.local_data.deferred_card_draws - pull_from_deferred
+        self.local_data.available_card_draws = self.local_data.available_card_draws + pull_from_deferred
 
     elseif self.game_state == "loading" then
     end
