@@ -145,7 +145,7 @@ enigma.distance_between_units = function(self, unit1, unit2)
     return Vector3.distance(Unit.world_position(unit1, 0), Unit.world_position(unit2, 0))
 end
 
-enigma.get_level_progress = function()
+enigma.get_level_progress = function(self)
     local conflict = Managers.state.conflict
 
     local traveled = conflict and conflict.main_path_info and conflict.main_path_info.ahead_travel_dist
