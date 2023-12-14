@@ -145,7 +145,7 @@ em._invoke_event_callbacks = function(self, event, ...)
         return
     end
     for card,cb in pairs(self.events[event]) do
-        if not cb then
+        if not cb or card.location == enigma.CARD_LOCATION.out_of_play_pile then
             return
         end
         cb(card, ...)
