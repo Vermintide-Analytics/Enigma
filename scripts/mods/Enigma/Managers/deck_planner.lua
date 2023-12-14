@@ -94,17 +94,17 @@ dpm.deck_is_valid = function(self, deck)
 
     for i,v in ipairs(deck.cards) do
         if type(v) == "string" then
-            return false -- Deck contains cards that do not exist within installed card packs
+            return false, "Deck contains invalid cards" -- Deck contains cards that do not exist within installed card packs
         end
     end
     if self:is_cp_over_max(deck) then
-        return false -- Deck exceeds cp limit
+        return false, "Deck exceeds CP limit" -- Deck exceeds cp limit
     end
     if self:is_num_cards_under_min(deck) then
-        return false -- Deck does not meed card minimum
+        return false, "Deck does not have enough cards" -- Deck does not meet card minimum
     end
     if self:is_num_cards_over_max(deck) then
-        return false -- Deck exceeds card maximum
+        return false, "Deck has too many cards" -- Deck exceeds card maximum
     end
     return true -- All checks passed
 end
@@ -492,7 +492,15 @@ end
 
 dpm.is_equipped_deck_valid = function(self)
     local equipped_deck = self:equipped_deck()
-    local valid = equipped_deck and self:deck_is_valid(equipped_deck)
+    local valid, invalid_reason
+    if not equipped_deck then
+        valid, invalid_reason = false, "No deck equipped"
+    else
+        valid, invalid_reason = self:deck_is_valid(equipped_deck)
+    end
+    if not valid and invalid_reason then
+        enigma:info("Equipped deck is not valid because: "..tostring(invalid_reason))
+    end
     self.game_init_data.valid = valid
     self.game_init_data.cards = equipped_deck and equipped_deck.cards
     self.game_init_data.deck_name = equipped_deck and equipped_deck.name
@@ -596,7 +604,7 @@ end
 
 -- Hooks
 enigma:hook(GameModeManager, "evaluate_end_zone_activation_conditions", function(func, self)
-    if self:game_mode() ~= "inn" or not enigma.managers.deck_planner.all_players_equipped_decks_valid then
+    if enigma:in_keep() and not enigma.managers.deck_planner.all_players_equipped_decks_valid then
         return false
     end
     return func(self)

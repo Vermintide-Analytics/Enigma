@@ -54,6 +54,9 @@ enigma.in_morris_hub = function(self)
     local level_key = Managers.state and Managers.state.game_mode:game_mode_key()
     return level_key == "morris_hub"
 end
+enigma.in_keep = function(self)
+    return enigma:in_inn() or enigma:in_morris_hub()
+end
 enigma.in_morris_map = function(self)
     local level_key = Managers.state and Managers.state.game_mode:game_mode_key()
     return level_key == "dlc_morris_map"
@@ -79,6 +82,7 @@ enigma.game_mode = function(self)
     elseif level_key == "morris_hub" or level_key == "dlc_morris_map" then
         game_mode_key = "deus"
     end
+    enigma:info("Game mode: "..tostring(game_mode_key or Managers.state and Managers.state.game_mode and Managers.state.game_mode:game_mode_key()))
     return game_mode_key or Managers.state and Managers.state.game_mode and Managers.state.game_mode:game_mode_key()
 end
 enigma.is_game_mode_supported = function(self, game_mode_key)
