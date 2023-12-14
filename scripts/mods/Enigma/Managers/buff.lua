@@ -403,7 +403,9 @@ bm.update = function(self, dt)
             self:update_stat(unit, surge.stat, -1*surge.difference)
             table.remove(unit_stat_surges, finished_surges[i])
         end
-        enigma:debug("Unit now has "..#unit_stat_surges.." active stat surges")
+        if #finished_surges > 0 then
+            enigma:debug("Unit now has "..#unit_stat_surges.." active stat surges")
+        end
     end
 end
 enigma:register_mod_event_callback("update", bm, "update")
