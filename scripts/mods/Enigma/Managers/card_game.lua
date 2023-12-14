@@ -242,7 +242,7 @@ cgm.init_game = function(self, deck_name, card_templates, is_server)
             card.auto_condition_local_met = true
         end
         card.context = local_data
-        card.owner = enigma:self_peer_id()
+        card.owner = enigma:local_peer_id()
         card.original_owner = card.owner
         table.insert(local_data.draw_pile, card)
         if is_server then
@@ -264,7 +264,7 @@ cgm.start_game = function(self)
     end
     enigma:echo("Starting Enigma game")
     self.game_state = "in_progress"
-    self.game_mode = enigma:game_mode_key()
+    self.game_mode = enigma:game_mode()
 
     for _,card in ipairs(self.local_data.draw_pile) do
         if card.on_game_start_local then
@@ -1071,7 +1071,7 @@ cgm.change_card_cost = function(self, card, new_cost)
         enigma:warning("Could not change card cost, invalid card")
         return
     end
-    if card.owner ~= enigma:self_peer_id() then
+    if card.owner ~= enigma:local_peer_id() then
         enigma:warning("Attempted to set card cost for someone else's card, this is not allowed.")
         return
     end

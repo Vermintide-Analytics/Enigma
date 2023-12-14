@@ -105,7 +105,7 @@ EnigmaDeckListUI._handle_input = function(self, dt, t)
 		while enigma.managers.deck_planner.decks[name] do
 			name = "New Deck "..i
 		end
-		local game_mode = enigma:detect_game_mode()
+		local game_mode = enigma:game_mode()
 		local new_deck = enigma.managers.deck_planner:create_empty_deck(name, game_mode)
 		if new_deck then
 			Managers.ui:handle_transition("deck_planner_view", { deck_name = new_deck.name })
@@ -221,7 +221,7 @@ EnigmaDeckListUI.update_filtered_decks = function(self)
 		return
 	end
 
-	local game_mode = enigma:detect_game_mode()
+	local game_mode = enigma:game_mode()
 
 	table.clear(self.filtered_decks)
 

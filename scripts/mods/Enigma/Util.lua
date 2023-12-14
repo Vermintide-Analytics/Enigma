@@ -36,11 +36,11 @@ enigma.is_server = function(self)
     return Managers.player and Managers.player.is_server
 end
 
-enigma.self_peer_id = function(self)
+enigma.local_peer_id = function(self)
     return Network and Network.peer_id()
 end
-enigma.is_peer_self = function(self, peer_id)
-    return peer_id == self:self_peer_id()
+enigma.is_peer_local = function(self, peer_id)
+    return peer_id == self:local_peer_id()
 end
 
 enigma.level_key = function(self)
@@ -71,10 +71,7 @@ enigma.traveling_to_morris_map = function(self)
     return level_key == "dlc_morris_map"
 end
 
-enigma.game_mode_key = function(self)
-    return Managers.state and Managers.state.game_mode and Managers.state.game_mode:game_mode_key()
-end
-enigma.detect_game_mode = function(self)
+enigma.game_mode = function(self)
     local level_key = self:level_key()
     local game_mode_key
     if level_key == "inn_level" then
@@ -82,7 +79,7 @@ enigma.detect_game_mode = function(self)
     elseif level_key == "morris_hub" or level_key == "dlc_morris_map" then
         game_mode_key = "deus"
     end
-    return game_mode_key or self:game_mode_key()
+    return game_mode_key or Managers.state and Managers.state.game_mode and Managers.state.game_mode:game_mode_key()
 end
 enigma.is_game_mode_supported = function(self, game_mode_key)
     return game_mode_key == "adventure" or game_mode_key == "deus"
@@ -133,12 +130,11 @@ enigma.is_enemy_man_sized = function(self, unit)
     local breed = Unit.get_data(unit, "breed")
     return breed and not breed.boss
 end
-enigma.execute_man_sized_enemy = function (self, unit, params)
-    local hit_unit = params[1]
-    if not self:is_enemy_man_sized(hit_unit) then
-        return
+enigma.execute_man_sized_enemy = function (self, to_execute, executor)
+    if not self:is_enemy_man_sized(to_execute) then
+        return false
     end
-    return enigma:execute_unit(hit_unit, unit)
+    return enigma:execute_unit(to_execute, executor)
 end
 
 enigma.distance_between_units = function(self, unit1, unit2)

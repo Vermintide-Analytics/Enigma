@@ -367,7 +367,7 @@ reg_hook_safe(GenericHealthExtension, "add_damage", function(self, attacker_unit
     if attacker_unit and breed and not breed.boss and damage_type ~= "execute" then
         local attacker_custom_buffs = bm.unit_custom_buffs[attacker_unit]
         if attacker_custom_buffs and enigma:test_chance(attacker_custom_buffs.chance_instantly_slay_man_sized_enemy) then
-            enigma:execute_man_sized_enemy(attacker_unit, {unit})
+            enigma:execute_man_sized_enemy(unit, attacker_unit)
         end
     end
 end, "enigma_buff")

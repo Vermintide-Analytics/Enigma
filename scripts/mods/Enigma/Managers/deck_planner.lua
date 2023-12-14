@@ -55,10 +55,10 @@ local deck_template = {}
 ----------
 -- Util --
 ----------
-local self_peer_id
+local local_peer_id
 dpm.init = function(self)
-    self_peer_id = Network.peer_id()
-    self.player_data[self_peer_id] = { valid = false }
+    local_peer_id = Network.peer_id()
+    self.player_data[local_peer_id] = { valid = false }
 
     self:load_save_data()
     dpm:update_self_equipped_deck_valid()
@@ -110,7 +110,7 @@ dpm.deck_is_valid = function(self, deck)
 end
 
 dpm.update_self_equipped_deck_valid = function(self)
-    local cached = self.player_data[self_peer_id].valid
+    local cached = self.player_data[local_peer_id].valid
     local current = self:is_equipped_deck_valid()
     if cached ~= current then
         self:notify_players_of_deck_validity()
@@ -473,8 +473,8 @@ dpm.unequip_deck_for_current_career_and_game_mode = function(self, skip_save)
 end
 
 dpm.equipped_deck = function(self)
-    local game_mode_key = enigma:detect_game_mode()
-    if not game_mode_key then
+    local game_mode = enigma:game_mode()
+    if not game_mode then
         enigma:echo("Enigma could not determine equipped deck. Unable to determine current game mode.")
         return nil
     end
@@ -484,10 +484,10 @@ dpm.equipped_deck = function(self)
         enigma:echo("Enigma could not determine equipped deck. Unabled to determine current career.")
         return nil
     end
-    if not self.equipped_decks[game_mode_key][career] then
+    if not self.equipped_decks[game_mode][career] then
         return nil
     end
-    return self.decks[self.equipped_decks[game_mode_key][career]]
+    return self.decks[self.equipped_decks[game_mode][career]]
 end
 
 dpm.is_equipped_deck_valid = function(self)
@@ -596,7 +596,7 @@ end
 
 -- Hooks
 enigma:hook(GameModeManager, "evaluate_end_zone_activation_conditions", function(func, self)
-    if self:game_mode_key() ~= "inn" or not enigma.managers.deck_planner.all_players_equipped_decks_valid then
+    if self:game_mode() ~= "inn" or not enigma.managers.deck_planner.all_players_equipped_decks_valid then
         return false
     end
     return func(self)
