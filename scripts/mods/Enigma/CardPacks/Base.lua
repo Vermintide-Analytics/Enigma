@@ -506,6 +506,9 @@ pack_handle.register_ability_cards({
         end,
         events_local = {
             player_damaged = function(card, health_ext, _, damage_amount)
+                if not card:is_in_hand() then
+                    return
+                end
                 local damaged_unit = health_ext.unit
                 if damaged_unit ~= card.context.unit or damage_amount < 25 then
                     return
