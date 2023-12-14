@@ -5,6 +5,16 @@ dofile("scripts/mods/Enigma/ui/deck_list_ui")
 
 local uim = {
     big_card_to_display = nil,
+
+	hud_data = {
+		hand_indexes_just_removed = {
+			false,
+			false,
+			false,
+			false,
+			false
+		}
+	}
 }
 enigma.managers.ui = uim
 
@@ -22,6 +32,22 @@ end
 
 uim.hide_deck_editor = function(self)
     self.show_deck_editor = false
+end
+
+uim.enable_chat_ui = function(self)
+	GameSettingsDevelopment.allow_chat_input = true
+end
+uim.disable_chat_ui = function(self)
+	GameSettingsDevelopment.allow_chat_input = false
+end
+
+uim.text_input_focused = function(self)
+	enigma.text_input_focused = true
+	uim.disable_chat_ui()
+end
+uim.text_input_lost_focus = function(self)
+	enigma.text_input_focused = false
+	uim.enable_chat_ui()
 end
 
 uim.transitions = {

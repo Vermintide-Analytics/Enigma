@@ -66,7 +66,7 @@ EnigmaDeckEditorUI.on_exit = function(self, params)
 	self.input_manager:device_unblock_all_services("mouse", 1)
 
 	self.active = false
-	enigma.text_input_focused = false
+	enigma.managers.ui:text_input_lost_focus()
 end
 
 EnigmaDeckEditorUI.update = function (self, dt, t)
@@ -132,17 +132,17 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 	local deck_name_content = self._widgets_by_name.deck_name.content
 	if deck_name_content.deck_name_input_hotspot.on_pressed then
 		deck_name_content.deck_name_input_active = true
-		enigma.text_input_focused = true
+		enigma.managers.ui:text_input_focused()
 	elseif deck_name_content.screen_hotspot.on_pressed then
 		deck_name_content.deck_name_input_active = false
-		enigma.text_input_focused = false
+		enigma.managers.ui:text_input_lost_focus()
 	end
 
 	local keystrokes = Keyboard.keystrokes()
 	for _, stroke in ipairs(keystrokes) do
 		if stroke == Keyboard.ENTER or stroke == Keyboard.ESCAPE then
 			deck_name_content.deck_name_input_active = false
-			enigma.text_input_focused = false
+			enigma.managers.ui:text_input_lost_focus()
 		end
 	end
 

@@ -119,6 +119,10 @@ local handle_local_card_played = function(card, index, location, skip_warpstone_
                 card:on_location_changed_local(location, destination_pile)
             end
         end
+
+        if location == enigma.CARD_LOCATION.hand then
+            enigma.managers.ui.hud_data.hand_indexes_just_removed[index] = true
+        end
     end
 
     enigma:network_send(net.event_card_played, "others", index, location, play_type)

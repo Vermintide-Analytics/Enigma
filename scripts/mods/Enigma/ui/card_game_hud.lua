@@ -82,13 +82,24 @@ EnigmaCardGameHud.update = function (self, dt, t)
 	-- Hand display
 	local hand = enigma.managers.game.local_data.hand
 	local hand_size = #hand
-	local horizontal_offset = (PRETTY_MARGIN + CARD_WIDTH)/2 * (hand_size-1) * -1
+	local desired_horizontal_position = (PRETTY_MARGIN + CARD_WIDTH)/2 * (hand_size-1) * -1
+	local removed_card_shift = 0
 	for i=1,5 do
 		local card = hand[i]
 		ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, "card_"..i, card, CARD_WIDTH)
 		local card_scenegraph_node = self.ui_scenegraph["card_"..i]
-		card_scenegraph_node.position[1] = horizontal_offset
-		horizontal_offset = horizontal_offset + PRETTY_MARGIN + CARD_WIDTH
+		
+		if enigma.managers.ui.hud_data.hand_indexes_just_removed[i] then
+			-- Without this, playing a card in a lower index causes this card to instantly jolt to the left, which is
+			-- visually confusing about which card was removed from the hand.
+			removed_card_shift = removed_card_shift + PRETTY_MARGIN + CARD_WIDTH
+			enigma.managers.ui.hud_data.hand_indexes_just_removed[i] = false
+		end
+		card_scenegraph_node.position[1] = card_scenegraph_node.position[1] + removed_card_shift
+
+		local current_horizontal_position = card_scenegraph_node.position[1]
+		card_scenegraph_node.position[1] = math.lerp(current_horizontal_position, desired_horizontal_position, 0.1)
+		desired_horizontal_position = desired_horizontal_position + PRETTY_MARGIN + CARD_WIDTH
 	end
 
 	self:draw(dt)
