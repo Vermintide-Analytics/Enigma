@@ -1,7 +1,7 @@
 local enigma = get_mod("Enigma")
 
 local mim = {}
-enigma.managers.mod_interaction = mim
+enigma.managers.mod = mim
 
 mim.mods = {}
 

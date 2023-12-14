@@ -79,13 +79,13 @@ end)
 
 enigma:command("enigmadump", "dump some Enigma info to the console", function(manager)
     if not manager then
-        enigma.managers.mod_interaction:dump()
+        enigma.managers.mod:dump()
         enigma.managers.card_pack:dump()
         enigma.managers.card_template:dump()
         enigma.managers.deck_planner:dump()
         enigma.managers.game:dump()
-    elseif manager == "mod_interaction" then
-        enigma.managers.mod_interaction:dump()
+    elseif manager == "mod" then
+        enigma.managers.mod:dump()
     elseif manager == "card_pack" then
         enigma.managers.card_pack:dump()
     elseif manager == "card_template" then
