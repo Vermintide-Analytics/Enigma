@@ -433,45 +433,41 @@ enigma:command("dump_network_constants", "", function()
 end)
 
 -- enigma:hook(BuffExtension, "apply_buffs_to_value", function(func, self, value, stat_buff)
---     if stat_buff ~= "damage_taken" then
---         return func(self, value, stat_buff)
+--     local final_value, procced, id = func(self, value, stat_buff)
+--     if stat_buff and stat_buff:find("damage") then
+--         enigma:info("VALUE ("..tostring(stat_buff)..") ::: "..tostring(value).." -> "..tostring(final_value))
 --     end
--- 	local stat_buffs = self._stat_buffs[stat_buff]
--- 	local final_value = value
--- 	local procced = false
--- 	local is_proc = StatBuffApplicationMethods[stat_buff] == "proc"
--- 	local id = nil
-
--- 	for name, stat_buff_data in pairs(stat_buffs) do
---         enigma:info("--------------------")
---         enigma:info("Stat Buff \""..tostring(name).."\"")
--- 		local proc_chance = stat_buff_data.proc_chance
---         enigma:info("proc_chance: "..tostring(proc_chance))
-
--- 		if self:has_procced(proc_chance, stat_buff) then
--- 			local bonus = stat_buff_data.bonus
---             enigma:info("bonus: "..tostring(bonus))
--- 			local multiplier = stat_buff_data.multiplier
---             enigma:info("multiplier: "..tostring(multiplier))
-
--- 			if type(multiplier) == "table" then
--- 				local wind_strength = Managers.weave:get_wind_strength()
--- 				multiplier = multiplier[wind_strength]
--- 			end
-
--- 			multiplier = multiplier + 1
--- 			final_value = final_value * multiplier + bonus
-
--- 			if is_proc then
--- 				procced = true
--- 				id = stat_buff_data.id
-
--- 				break
--- 			end
--- 		end
--- 	end
-
---     enigma:info("final_value: "..tostring(final_value))
-
+--     -- if stat_buff ~= "damage_taken" then
+--     --     return func(self, value, stat_buff)
+--     -- end
+-- 	-- local stat_buffs = self._stat_buffs[stat_buff]
+-- 	-- local final_value = value
+-- 	-- local procced = false
+-- 	-- local is_proc = StatBuffApplicationMethods[stat_buff] == "proc"
+-- 	-- local id = nil
+-- 	-- for name, stat_buff_data in pairs(stat_buffs) do
+--     --     enigma:info("--------------------")
+--     --     enigma:info("Stat Buff \""..tostring(name).."\"")
+-- 	-- 	local proc_chance = stat_buff_data.proc_chance
+--     --     enigma:info("proc_chance: "..tostring(proc_chance))
+-- 	-- 	if self:has_procced(proc_chance, stat_buff) then
+-- 	-- 		local bonus = stat_buff_data.bonus
+--     --         enigma:info("bonus: "..tostring(bonus))
+-- 	-- 		local multiplier = stat_buff_data.multiplier
+--     --         enigma:info("multiplier: "..tostring(multiplier))
+-- 	-- 		if type(multiplier) == "table" then
+-- 	-- 			local wind_strength = Managers.weave:get_wind_strength()
+-- 	-- 			multiplier = multiplier[wind_strength]
+-- 	-- 		end
+-- 	-- 		multiplier = multiplier + 1
+-- 	-- 		final_value = final_value * multiplier + bonus
+-- 	-- 		if is_proc then
+-- 	-- 			procced = true
+-- 	-- 			id = stat_buff_data.id
+-- 	-- 			break
+-- 	-- 		end
+-- 	-- 	end
+-- 	-- end
+--     -- enigma:info("final_value: "..tostring(final_value))
 -- 	return final_value, procced, id
 -- end)
