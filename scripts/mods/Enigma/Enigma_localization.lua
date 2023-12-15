@@ -46,6 +46,24 @@ local loc = {
 	draw_card_hotkey_title = {
 		en = "Draw Card",
 	},
+	card_mode_show_mode_title = {
+		en = "Hold/Toggle Card Mode"
+	},
+	card_mode_show_mode_description = {
+		en = "Hold: Card Mode will be active while you have the keybind pressed\nToggle: Pressing the keybind will toggle whether or not Card Mode is active"
+	},
+	keypress_hold = {
+		en = "Hold"
+	},
+	keypress_toggle = {
+		en = "Toggle"
+	},
+	hide_card_mode_on_card_play_title = {
+		en = "Hide Card Mode when Card Played"
+	},
+	hide_card_mode_on_card_play_description = {
+		en = "If enabled, Card Mode will be hidden if you play a card"
+	},
 	play_hotkeys_group_title = {
 		en = "Play Card Hotkeys"
 	},

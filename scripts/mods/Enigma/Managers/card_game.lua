@@ -122,6 +122,7 @@ local handle_local_card_played = function(card, index, location, skip_warpstone_
 
         if location == enigma.CARD_LOCATION.hand then
             enigma.managers.ui.hud_data.hand_indexes_just_removed[index] = true
+            enigma.managers.ui.card_mode_ui_data.hand_indexes_just_removed[index] = true
         end
     end
 
@@ -812,7 +813,7 @@ cgm._try_play_card_at_index_from_location = function(self, index, location, skip
     end
     local card = self.local_data[location][index]
     if not card then
-        enigma:echo("Attempted to play card at index "..tostring(index).." from "..location.." which only contains "..#self.local_data[location][index].. " cards")
+        enigma:echo("Attempted to play card at index "..tostring(index).." from "..location.." which only contains "..#self.local_data[location].. " cards")
         return
     end
 

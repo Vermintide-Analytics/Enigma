@@ -465,9 +465,7 @@ local widgets = {
 	}
 }
 
-for i=1,5 do
-	ui_common.add_card_display(scenegraph_definition, widgets, "hand_panel", "card_"..i, CARD_WIDTH)
-end
+ui_common.add_hand_display(scenegraph_definition, widgets, "hand_panel", CARD_WIDTH)
 
 return {
 	scenegraph_definition = scenegraph_definition,

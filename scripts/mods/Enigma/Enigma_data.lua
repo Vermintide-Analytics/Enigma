@@ -17,10 +17,28 @@ return {
 						title = "card_mode_hotkey_title",
 						tooltip = "card_mode_hotkey_description",
 						keybind_global = true,
-						keybind_trigger = "pressed",
+						keybind_trigger = "held",
 						keybind_type = "function_call",
 						function_name = "card_mode_key_pressed",
 						default_value = {}
+					},
+					{
+						setting_id = "card_mode_show_mode",
+						type = "dropdown",
+						title = "card_mode_show_mode_title",
+						tooltip = "card_mode_show_mode_description",
+						default_value = "toggle",
+						options = {
+							{ text = "keypress_hold", value = "hold" },
+							{ text = "keypress_toggle", value = "toggle" }
+						}
+					},
+					{
+						setting_id = "hide_card_mode_on_card_play",
+						type = "checkbox",
+						title = "hide_card_mode_on_card_play_title",
+						tooltip = "hide_card_mode_on_card_play_description",
+						default_value = true,
 					},
 					{
 						setting_id = "draw_card_hotkey",

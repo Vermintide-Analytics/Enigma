@@ -1204,4 +1204,35 @@ ui_common.update_card_display_if_needed = function(ui_renderer, scenegraph_nodes
 	end
 end
 
+ui_common.add_hand_display = function(scenegraph_defs, widget_defs, scenegraph_parent_id, card_width)
+	for i=1,5 do
+		ui_common.add_card_display(scenegraph_defs, widget_defs, scenegraph_parent_id, "hand_card_"..i, card_width)
+	end
+end
+
+ui_common.update_hand_display = function(ui_renderer, scenegraph_nodes, widgets_by_name, card_width, card_margin, hand_ui_data)
+	local hand = enigma.managers.game.local_data.hand
+	local hand_size = #hand
+	local desired_horizontal_position = (card_margin + card_width)/2 * (hand_size-1) * -1
+	local removed_card_shift = 0
+	for i=1,5 do
+		local card = hand[i]
+		local node_id = "hand_card_"..i
+		ui_common.update_card_display_if_needed(ui_renderer, scenegraph_nodes, widgets_by_name, node_id, card, card_width)
+		local card_scenegraph_node = scenegraph_nodes[node_id]
+		
+		if hand_ui_data.hand_indexes_just_removed[i] then
+			-- Without this, playing a card in a lower index causes this card to instantly jolt to the left, which is
+			-- visually confusing about which card was removed from the hand.
+			removed_card_shift = removed_card_shift + card_margin + card_width
+			hand_ui_data.hand_indexes_just_removed[i] = false
+		end
+		card_scenegraph_node.position[1] = card_scenegraph_node.position[1] + removed_card_shift
+
+		local current_horizontal_position = card_scenegraph_node.position[1]
+		card_scenegraph_node.position[1] = math.lerp(current_horizontal_position, desired_horizontal_position, 0.1)
+		desired_horizontal_position = desired_horizontal_position + card_margin + card_width
+	end
+end
+
 return ui_common

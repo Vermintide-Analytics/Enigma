@@ -14,6 +14,15 @@ local uim = {
 			false,
 			false
 		}
+	},
+	card_mode_ui_data = {
+		hand_indexes_just_removed = {
+			false,
+			false,
+			false,
+			false,
+			false
+		}
 	}
 }
 enigma.managers.ui = uim

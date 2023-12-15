@@ -49,6 +49,15 @@ local enigma_components = {
 			"mission_vote"
 		}
 	},
+	{
+		use_hud_scale = true,
+		class_name = "EnigmaCardModeUI",
+		filename = "scripts/mods/Enigma/ui/card_mode_ui",
+		visibility_groups = {
+			"alive",
+			"dead"
+		}
+	},
 }
 
 local components = {}
