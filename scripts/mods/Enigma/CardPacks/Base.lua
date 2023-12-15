@@ -11,24 +11,6 @@ local game = enigma.managers.game
 local buff = enigma.managers.buff
 
 pack_handle.register_passive_cards({
-    ex_passive = {
-        name = "base_ex_passive",
-        rarity = LEGENDARY,
-        cost = 4,
-        description_lines = {
-            {
-                format = "description_test"
-            }
-        },
-        auto_descriptions = {
-            {
-                format = "auto_description_test"
-            }
-        },
-        channel = 10,
-        ephemeral = true,
-        infinite = true
-    },
     caffeinated = {
         name = "base_caffeinated",
         rarity = COMMON,
@@ -251,22 +233,6 @@ pack_handle.register_passive_cards({
 })
 
 pack_handle.register_attack_cards({
-    ex_attack = {
-        name = "base_ex_attack",
-        rarity = LEGENDARY,
-        cost = 4,
-        description_lines = {
-            {
-                format = "description_test"
-            }
-        },
-        auto_descriptions = {
-            {
-                format = "auto_description_test"
-            }
-        },
-        charges = 3
-    },
     cyclone_strike = {
         name = "base_cyclone_strike",
         rarity = RARE,
@@ -285,34 +251,6 @@ pack_handle.register_attack_cards({
 })
 
 pack_handle.register_ability_cards({
-    ex_ability = {
-        name = "base_ex_ability",
-        rarity = EPIC,
-        cost = 4,
-        description_lines = {
-            {
-                format = "description_test"
-            }
-        },
-        retain_descriptions = {
-            {
-                format = "retain_description_test"
-            }
-        },
-        auto_descriptions = {
-            {
-                format = "auto_description_test"
-            }
-        },
-        condition_descriptions = {
-            {
-                format = "condition_description_test"
-            }
-        },
-        channel = 10,
-        ephemeral = true,
-        infinite = true
-    },
     blood_transfusion = {
         name = "base_blood_transfusion",
         rarity = COMMON,
@@ -712,35 +650,6 @@ pack_handle.register_ability_cards({
 })
 
 pack_handle.register_chaos_cards({
-    
-    ex_chaos = {
-        name = "base_ex_chaos",
-        rarity = EPIC,
-        cost = 4,
-        description_lines = {
-            {
-                format = "description_test"
-            }
-        },
-        retain_descriptions = {
-            {
-                format = "retain_description_test"
-            }
-        },
-        auto_descriptions = {
-            {
-                format = "auto_description_test"
-            }
-        },
-        condition_descriptions = {
-            {
-                format = "condition_description_test"
-            }
-        },
-        channel = 10,
-        ephemeral = true,
-        infinite = true,
-    },
     incompetence = {
         name = "base_incompetence",
         rarity = COMMON,
