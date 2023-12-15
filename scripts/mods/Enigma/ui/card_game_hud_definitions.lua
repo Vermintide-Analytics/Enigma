@@ -9,6 +9,9 @@ local BAR_WIDTH = 12
 local FONT_SIZE = 64
 local PRETTY_MARGIN = 10
 
+local CHANNEL_BAR_WIDTH = 600
+local CHANNEL_BAR_HEIGHT = 28
+
 -- Hand Panel Sizing
 local CARD_WIDTH = 128
 
@@ -163,6 +166,34 @@ local scenegraph_definition = {
 			0,
 			0,
 			0
+		}
+	},
+	channel_bar = {
+		parent = "hand_panel",
+		vertical_alignment = "bottom",
+		horizontal_alignment = "center",
+		size = {
+			CHANNEL_BAR_WIDTH,
+			CHANNEL_BAR_HEIGHT
+		},
+		position = {
+			0,
+			CHANNEL_BAR_HEIGHT*-1 - PRETTY_MARGIN,
+			1
+		}
+	},
+	channel_bar_inner = {
+		parent = "channel_bar",
+		vertical_alignment = "center",
+		horizontal_alignment = "left",
+		size = {
+			CHANNEL_BAR_WIDTH - 8,
+			CHANNEL_BAR_HEIGHT - 8
+		},
+		position = {
+			4,
+			0,
+			1
 		}
 	}
 }
@@ -462,7 +493,91 @@ local widgets = {
 				}
 			},
 		}
-	}
+	},
+	channel_bar = {
+		scenegraph_id = "channel_bar",
+		element = {
+			passes = {
+				{
+					pass_type = "rect",
+					style_id = "background"
+				},
+				{
+					pass_type = "text",
+					style_id = "text",
+					text_id = "text"
+				}
+			}
+		},
+		content = {
+			text = "channeling",
+			visible = false
+		},
+		style = {
+			background = {
+				color = {
+					255,
+					0,
+					0,
+					0
+				}
+			},
+			text = {
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				font_size = 20,
+				font_type = "hell_shark",
+				text_color = Colors.get_color_table_with_alpha("white", 255),
+				offset = {
+					0,
+					0,
+					5
+				}
+			}
+		}
+	},
+	channel_bar_inner = {
+		scenegraph_id = "channel_bar_inner",
+		element = {
+			passes = {
+				{
+					pass_type = "rect",
+					style_id = "background"
+				}
+			}
+		},
+		content = {
+			visible = false
+		},
+		style = {
+			background = {
+				color = {
+					255,
+					0,
+					0,
+					220
+				},
+				color_progress = {
+					255,
+					0,
+					0,
+					220
+				},
+				color_success = {
+					255,
+					0,
+					220,
+					0
+				},
+				color_failure = {
+					255,
+					220,
+					0,
+					0
+				}
+			}
+		}
+	},
 }
 
 ui_common.add_hand_display(scenegraph_definition, widgets, "hand_panel", CARD_WIDTH)
@@ -470,5 +585,6 @@ ui_common.add_hand_display(scenegraph_definition, widgets, "hand_panel", CARD_WI
 return {
 	scenegraph_definition = scenegraph_definition,
 	widgets = widgets,
-	card_width = CARD_WIDTH
+	card_width = CARD_WIDTH,
+	channel_bar_inner_width = CHANNEL_BAR_WIDTH - 8
 }

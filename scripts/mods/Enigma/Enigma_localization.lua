@@ -123,6 +123,15 @@ local loc = {
 	},
 
 	-- UI
+	channeling = {
+		en = "Channeling..."
+	},
+	channeling_cancelled = {
+		en = "Channel Cancelled"
+	},
+	channeling_complete = {
+		en = "Channel Complete"
+	},
 	delete = {
 		en = "Delete",
 	},

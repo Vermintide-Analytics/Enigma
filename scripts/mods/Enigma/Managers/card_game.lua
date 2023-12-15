@@ -389,6 +389,7 @@ cgm._update_active_channel = function(self, dt)
         return
     end
     if self.local_data.active_channel.cancelled then
+        self.local_data.previous_channel = self.local_data.active_channel
         self.local_data.active_channel = nil
         return
     end
@@ -399,6 +400,7 @@ cgm._update_active_channel = function(self, dt)
         local index = get_card_index_in_pile(pile, card)
         local skip_warpstone_cost = self.local_data.active_channel.skip_warpstone_cost
         local play_type = self.local_data.active_channel.play_type
+        self.local_data.previous_channel = self.local_data.active_channel
         self.local_data.active_channel = nil
         handle_local_card_played(card, index, card.location, skip_warpstone_cost, play_type)
     end
@@ -1202,9 +1204,21 @@ cgm.sync_card_property = function(self, card, property, value)
     local card_owner_peer_id = card.context.peer_id
     enigma:network_send(net.sync_card_property, "others", card_owner_peer_id, pile_name, get_card_index_in_pile(pile, card), property, value)
 end
-
+cgm.active_channel = function(self)
+    return self.local_data and self.local_data.active_channel
+end
+cgm.cancel_channel = function(self)
+    local active_channel = self:active_channel()
+    if active_channel then
+        cgm.local_data.active_channel.cancelled = true
+    end
+end
 
 -- Hooks
+local reg_hook_safe = function(obj, func_name, func, hook_id)
+    enigma.managers.hook:hook_safe("Enigma", obj, func_name, func, hook_id)
+end
+
 local bulldozer_player_set_player_unit = function(self, unit)
     if cgm.local_data then
         cgm.server_peer_id = Managers.mechanism:server_peer_id()
@@ -1230,6 +1244,85 @@ local remote_player_set_player_unit = function(self, unit)
 end
 enigma.managers.hook:hook_safe("Enigma", BulldozerPlayer, "set_player_unit", bulldozer_player_set_player_unit, "card_game_start")
 enigma.managers.hook:hook_safe("Enigma", RemotePlayer, "set_player_unit", remote_player_set_player_unit, "card_game_start")
+
+reg_hook_safe(PlayerUnitHealthExtension, "add_damage", function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+    if not cgm:is_in_game() then
+        return
+    end
+    if self.unit == cgm.local_data.unit and damage_amount > 0 and damage_type ~= "temporary_health_degen" then
+        cgm:cancel_channel()
+    end
+end, "card_game_player_damaged")
+
+enigma:hook(CharacterStateHelper, "get_movement_input", function(func, input_extension)
+    if not cgm:is_in_game() then
+        return func(input_extension)
+    end
+    local movement = func(input_extension)
+    if input_extension.unit == cgm.local_data.unit and Vector3.length(movement) > 0 then
+        cgm:cancel_channel()
+    end
+    return movement
+end)
+
+local cancel_channel_triggers = {
+    on_player_disabled = true,
+    on_block_broken = true,
+    on_knocked_down = true,
+    on_reload = true,
+    on_ability_activated = true,
+    on_death = true,
+    on_body_pushed = true,
+    on_push_used = true
+}
+reg_hook_safe(BuffExtension, "trigger_procs", function(self, event, ...)
+    if not cgm:is_in_game() then
+        return
+    end
+    if self._unit == cgm.local_data.unit then
+        local filtered_action_start = event == "on_start_action"
+        if filtered_action_start then
+            local action = select(1, ...)
+            filtered_action_start = action and action.kind ~= "block" and action.kind ~= "wield" and action.kind ~= "dummy"
+            if filtered_action_start then
+                cgm:cancel_channel()
+            end
+        elseif cancel_channel_triggers[event] then
+            cgm:cancel_channel()
+        end
+    end
+end, "enigma_card_game_trigger_procs")
+
+reg_hook_safe(PlayerCharacterStateJumping, "on_enter", function(self, unit, ...)
+    if not cgm:is_in_game() then
+        return
+    end
+    if unit == cgm.local_data.unit then
+        cgm:cancel_channel()
+    end
+end, "enigma_card_game_player_jump")
+
+local hand_channel_cancelling_status_change = function(unit, bad_status)
+    if not cgm:is_in_game() then
+        return
+    end
+    if unit == cgm.local_data.unit and bad_status then
+        cgm:cancel_channel()
+    end
+end
+
+reg_hook_safe(GenericStatusExtension, "set_pushed", function(self, pushed, t)
+    hand_channel_cancelling_status_change(self.unit, pushed)
+end, "enigma_card_game_set_pushed")
+
+reg_hook_safe(GenericStatusExtension, "set_catapulted", function(self, catapulted, velocity)
+    hand_channel_cancelling_status_change(self.unit, catapulted)
+end, "enigma_card_game_set_catapulted")
+
+reg_hook_safe(GenericStatusExtension, "set_in_vortex", function(self, in_vortex, vortex_unit)
+    hand_channel_cancelling_status_change(self.unit, in_vortex)
+end, "enigma_card_game_set_in_vortex")
+
 
 enigma:network_register(net.sync_player_accumulated_stagger, function(peer_id, trash, elite, special, boss)
     if peer_id ~= cgm.server_peer_id then
