@@ -92,7 +92,7 @@ EnigmaCardGameHud.update = function (self, dt, t)
 	self.card_draw_bar_node_inner.size[2] = self.card_draw_bar_node.size[2] * card_draws_fpart
 
 	-- Hand display
-	ui_common.update_hand_display(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, CARD_WIDTH, PRETTY_MARGIN, enigma.managers.ui.hud_data)
+	ui_common.update_hand_display(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, CARD_WIDTH, PRETTY_MARGIN, enigma.managers.ui.hud_data, "dirty_hud_ui")
 
 	-- Channel Bar
 	local active_channel = game_data.active_channel

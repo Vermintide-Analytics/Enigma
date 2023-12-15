@@ -136,7 +136,8 @@ local template_template = {
     end,
     set_dirty = function(self)
         refresh_card_detail_localization(self)
-        self.dirty = true
+        self.dirty_hud_ui = true
+        self.dirty_card_mode_ui = true
     end,
 }
 

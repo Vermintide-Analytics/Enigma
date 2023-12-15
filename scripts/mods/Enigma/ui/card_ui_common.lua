@@ -879,7 +879,7 @@ local set_widgets_visibility = function(widgets, card_node_id, visible, has_dura
 	additional_keywords_widget.content.visible = visible
 end
 
-ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width)
+ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name)
 	local sizes = calculate_card_sizes(card_width)
 	local pretty_margin = sizes.pretty_margin
 
@@ -888,7 +888,8 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 		return
 	end
 	
-	card.dirty = false
+	dirty_property_name = dirty_property_name or "dirty"
+	card[dirty_property_name] = false
 
 	local basic_text_color = (card.card_type == enigma.CARD_TYPE.chaos) and TEXT_COLOR_WHITE or TEXT_COLOR
 
@@ -1191,13 +1192,14 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 	end
 end
 
-ui_common.update_card_display_if_needed = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width)
+ui_common.update_card_display_if_needed = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name)
 	if not card then
 		widgets[card_node_id].cached_card = nil
 		widgets[card_node_id].cached_card_width = -1
 		return ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, nil, card_width)
 	end
-	if card.dirty or card ~= widgets[card_node_id].cached_card or card_width ~= widgets[card_node_id].cached_card_width then
+	dirty_property_name = dirty_property_name or "dirty"
+	if card[dirty_property_name] or card ~= widgets[card_node_id].cached_card or card_width ~= widgets[card_node_id].cached_card_width then
 		widgets[card_node_id].cached_card = card
 		widgets[card_node_id].cached_card_width = card_width
 		return ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width)
@@ -1210,7 +1212,7 @@ ui_common.add_hand_display = function(scenegraph_defs, widget_defs, scenegraph_p
 	end
 end
 
-ui_common.update_hand_display = function(ui_renderer, scenegraph_nodes, widgets_by_name, card_width, card_margin, hand_ui_data)
+ui_common.update_hand_display = function(ui_renderer, scenegraph_nodes, widgets_by_name, card_width, card_margin, hand_ui_data, card_dirty_property_name)
 	local hand = enigma.managers.game.local_data.hand
 	local hand_size = #hand
 	local desired_horizontal_position = (card_margin + card_width)/2 * (hand_size-1) * -1
@@ -1218,7 +1220,7 @@ ui_common.update_hand_display = function(ui_renderer, scenegraph_nodes, widgets_
 	for i=1,5 do
 		local card = hand[i]
 		local node_id = "hand_card_"..i
-		ui_common.update_card_display_if_needed(ui_renderer, scenegraph_nodes, widgets_by_name, node_id, card, card_width)
+		ui_common.update_card_display_if_needed(ui_renderer, scenegraph_nodes, widgets_by_name, node_id, card, card_width, card_dirty_property_name)
 		local card_scenegraph_node = scenegraph_nodes[node_id]
 		
 		if hand_ui_data.hand_indexes_just_removed[i] then

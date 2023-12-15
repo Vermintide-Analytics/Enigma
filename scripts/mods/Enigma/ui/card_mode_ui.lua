@@ -66,7 +66,7 @@ EnigmaCardModeUI.update = function (self, dt, t)
 	end
 	cached_card_mode = enigma.card_mode
 	
-	ui_common.update_hand_display(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, CARD_WIDTH, PRETTY_MARGIN, enigma.managers.ui.card_mode_ui_data)
+	ui_common.update_hand_display(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, CARD_WIDTH, PRETTY_MARGIN, enigma.managers.ui.card_mode_ui_data, "dirty_card_mode_ui")
 
 	if not enigma.card_mode then
 		return
