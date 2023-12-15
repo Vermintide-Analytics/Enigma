@@ -7,6 +7,15 @@ return {
 	options = {
 		widgets = {
 			{
+				setting_id = "added_difficulty",
+				type = "numeric",
+				title = "added_difficulty_title",
+				tooltip = "added_difficulty_description",
+				default_value = 0,
+				range = { 0, 100 },
+				decimals_number = 0
+			},
+			{
 				setting_id = "hotkeys_group",
 				type = "group",
 				title = "hotkeys_group_title",

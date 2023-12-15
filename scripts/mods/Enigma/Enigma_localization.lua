@@ -34,6 +34,12 @@ local loc = {
 	},
 
 	-- Settings
+	added_difficulty_title = {
+		en = "Added Difficulty"
+	},
+	added_difficulty_description = {
+		en = "Increase the difficulty of your game by inserting Chaos cards into your deck at the beginning of a game.\nAt 0, no Chaos cards will be added.\nAt 10, expect 2 or 3 cards which will almost always be Rare or Common.\nAt 100, expect to see at least 15 cards added, with several of them being Epic or Legendary."
+	},
 	hotkeys_group_title = {
 		en = "Hotkeys",
 	},

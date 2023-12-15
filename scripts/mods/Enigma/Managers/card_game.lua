@@ -30,6 +30,75 @@ local cgm = {
 cgm.local_data = nil -- Initialize as table then set to null to shut up the Lua diagnostics complaining about accessing fields from nil
 enigma.managers.game = cgm
 
+local chaos_card_difficulty_weight = {
+    [enigma.CARD_RARITY.common] = 3,
+    [enigma.CARD_RARITY.rare] = 5,
+    [enigma.CARD_RARITY.epic] = 8,
+    [enigma.CARD_RARITY.legendary] = 14
+}
+local chaos_card_rarity_weight_distribution_center = {
+    [enigma.CARD_RARITY.common] = 0,
+    [enigma.CARD_RARITY.rare] = 33,
+    [enigma.CARD_RARITY.epic] = 67,
+    [enigma.CARD_RARITY.legendary] = 100
+}
+local get_chaos_card_rarity_weight = function(rarity, added_difficulty)
+    local x = (added_difficulty - chaos_card_rarity_weight_distribution_center[rarity])/20
+    local exp = (x * x) / -2
+    return math.pow(1.5, exp)
+end
+local add_chaos_cards_based_on_added_difficulty = function(card_ids)
+    local added_cards = 0
+    local chaos_cards = {
+        [enigma.CARD_RARITY.common] = {},
+        [enigma.CARD_RARITY.rare] = {},
+        [enigma.CARD_RARITY.epic] = {},
+        [enigma.CARD_RARITY.legendary] = {}
+    }
+    for _,card in pairs(enigma.managers.card_template.card_templates) do
+        if card.card_type == enigma.CARD_TYPE.chaos then
+            table.insert(chaos_cards[card.rarity], card)
+        end
+    end
+    local added_difficulty = enigma:get("added_difficulty")
+    while added_difficulty > 0 do
+        local selected_rarity = nil
+
+        local common_weight = get_chaos_card_rarity_weight(enigma.CARD_RARITY.common, added_difficulty)
+        local rare_weight = get_chaos_card_rarity_weight(enigma.CARD_RARITY.rare, added_difficulty)
+        local epic_weight = get_chaos_card_rarity_weight(enigma.CARD_RARITY.epic, added_difficulty)
+        local legendary_weight = get_chaos_card_rarity_weight(enigma.CARD_RARITY.legendary, added_difficulty)
+        local total_weight = common_weight + rare_weight + epic_weight + legendary_weight
+
+        if enigma:test_chance(common_weight / total_weight) then
+            selected_rarity = enigma.CARD_RARITY.common
+        else
+            total_weight = total_weight - common_weight
+        end
+        if not selected_rarity and enigma:test_chance(rare_weight / total_weight) then
+            selected_rarity = enigma.CARD_RARITY.rare
+        else
+            total_weight = total_weight - rare_weight
+        end
+        if not selected_rarity and enigma:test_chance(epic_weight / total_weight) then
+            selected_rarity = enigma.CARD_RARITY.epic
+        end
+        selected_rarity = selected_rarity or enigma.CARD_RARITY.legendary
+
+        enigma:info("Selected rarity: "..tostring(selected_rarity).." : value of "..tostring(chaos_card_difficulty_weight[selected_rarity]))
+        enigma:info("Added difficulty: "..tostring(added_difficulty).." -> "..tostring(added_difficulty - chaos_card_difficulty_weight[selected_rarity]))
+        added_difficulty = added_difficulty - chaos_card_difficulty_weight[selected_rarity]
+
+        if #chaos_cards[selected_rarity] > 0 then
+            local selected_chaos_card = chaos_cards[selected_rarity][enigma:random_range_int(1, #chaos_cards[selected_rarity])]
+            table.insert(card_ids, selected_chaos_card.id)
+            added_cards = added_cards + 1
+            enigma:info("ADDED CHAOS CARD TO DECK: "..tostring(selected_chaos_card.id))
+        end
+    end
+    enigma:info("TOTAL CHAOS CARDS ADDED: "..tostring(added_cards))
+end
+
 local get_card_index_in_pile = function(pile, card)
     local ind
     for i,v in ipairs(pile) do
@@ -197,6 +266,7 @@ cgm.init_game = function(self, deck_name, card_templates, is_server)
     for _,template in ipairs(card_templates) do
         table.insert(card_ids, template.id)
     end
+    add_chaos_cards_based_on_added_difficulty(card_ids)
     enigma:shuffle(card_ids)
     
     local local_data = {
