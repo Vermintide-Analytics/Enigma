@@ -829,19 +829,19 @@ enigma:network_register(net.event_card_drawn, function(peer_id)
 end)
 cgm.try_draw_card = function(self, free)
     if not self:is_in_game() then
-        return false, "Not in a game"
+        return false, "not_in_game"
     end
     if not free and self.local_data.available_card_draws < 1 then
         enigma.managers.ui.time_since_available_draw_action_invalid = 0
-        return false, "Not enough available card draws"
+        return false, "not_enough_card_draw"
     end
     if #self.local_data.draw_pile < 1 then
         enigma.managers.ui.time_since_draw_pile_action_invalid = 0
-        return false, "Draw pile is empty"
+        return false, "draw_pile_empty"
     end
     if #self.local_data.hand > 4 then
         enigma.managers.ui.time_since_hand_size_action_invalid = 0
-        return false, "Hand is full"
+        return false, "hand_full"
     end
     hand_local_card_drawn(free)
     return true
