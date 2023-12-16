@@ -16,6 +16,23 @@ local net = {
     sync_player_accumulated_stagger = "sync_player_accumulated_stagger",
 }
 
+local format_card_event_log = function(card, event, remote_peer_id)
+    local context = remote_peer_id and "Peer: "..tostring(remote_peer_id) or "local"
+    return "["..context.."] "..event.." "..card.id
+end
+local format_drawing_card = function(card, remote_peer_id)
+    return format_card_event_log(card, "DRAWING", remote_peer_id)
+end
+local format_playing_card = function(card, remote_peer_id)
+    return format_card_event_log(card, "PLAYING", remote_peer_id)
+end
+local format_discarding_card = function(card, remote_peer_id)
+    return format_card_event_log(card, "DISCARDING", remote_peer_id)
+end
+local format_shuffling_card_into_draw_pile = function(card, remote_peer_id)
+    return format_card_event_log(card, "SHUFFLING INTO DRAW PILE", remote_peer_id)
+end
+
 local cgm = {
     local_data = {},
     peer_data = {},
@@ -146,7 +163,7 @@ local handle_local_card_played = function(card, index, location, skip_warpstone_
         enigma.managers.warp:pay_cost(card.cost)
     end
     
-    enigma:info("Playing card ["..card.id.."]")
+    enigma:info(format_playing_card(card))
 
     local can_expend_charge = card.charges and card.charges > 1
     if not can_expend_charge then
@@ -758,6 +775,7 @@ enigma:network_register(net.event_card_drawn, function(peer_id)
     end
     
     local card = table.remove(peer_data.draw_pile)
+    enigma:info(format_drawing_card(card, peer_id))
     if cgm.is_server and card.on_draw_server then
         card:on_draw_server()
     end
@@ -787,6 +805,7 @@ cgm._draw_card_for_free = function(self)
         return false, "Hand is full"
     end
     local card = table.remove(self.local_data.draw_pile)
+    enigma:info(format_drawing_card(card))
     if cgm.is_server and card.on_draw_server then
         card:on_draw_server()
     end
@@ -807,7 +826,6 @@ cgm._draw_card_for_free = function(self)
     invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_drawn_local", card)
 
     enigma:network_send(net.event_card_drawn, "others")
-    enigma:info("Drew card ["..card.id.."]")
     return true
 end
 cgm.try_draw_card = function(self)
@@ -837,6 +855,8 @@ enigma:network_register(net.event_card_played, function(peer_id, index, location
         enigma:warning("Received card played event from another player but we can't find the card to play")
         return
     end
+
+    enigma:info(format_playing_card(card, peer_id))
 
     if cgm.is_server and card.on_play_server then
         card:on_play_server(play_type)
@@ -997,6 +1017,7 @@ enigma:network_register(net.event_card_discarded, function(peer_id, index, from_
         pile = enigma.CARD_LOCATION.draw_pile
     end
     local card = table.remove(peer_data[pile], index)
+    enigma:info(format_discarding_card(card, peer_id))
     if cgm.is_server and card.on_discard_server then
         card:on_discard_server(discard_type)
     end
@@ -1028,6 +1049,8 @@ cgm.discard_card = function(self, index, from_draw_pile, discard_type)
         enigma:echo("Attempted to discared card at index "..tostring(index).." from "..pile.." which only contains "..#self.local_data[pile][index].. " cards")
         return
     end
+
+    enigma:info(format_discarding_card(card))
 
     remove_card_from_pile(self.local_data[card.location], card)
     if cgm.is_server and card.on_discard_server then
@@ -1069,6 +1092,7 @@ enigma:network_register(net.event_new_card_shuffled_into_draw_pile, function(pee
     end
 
     local card = template:instance()
+    enigma:info(format_shuffling_card_into_draw_pile(card, peer_id))
     if cgm.is_server and card.on_shuffle_into_draw_pile_server then
         card:on_shuffle_into_draw_pile_server(peer_data)
     end
@@ -1086,6 +1110,7 @@ cgm.shuffle_new_card_into_draw_pile = function(self, card_id)
     local draw_pile_size = #self.local_data.draw_pile
     local index = math.floor(enigma:random_range_int(1, draw_pile_size + 1))
     local card = template:instance()
+    enigma:info(format_shuffling_card_into_draw_pile(card))
     if cgm.is_server and card.on_shuffle_into_draw_pile_server then
         card:on_shuffle_into_draw_pile_server()
     end
@@ -1106,6 +1131,7 @@ enigma:network_register(net.event_card_shuffled_into_draw_pile, function(peer_id
         enigma:warning("Could not pull card from index "..source_index.." in "..source_pile)
         return
     end
+    enigma:info(format_shuffling_card_into_draw_pile(card, peer_id))
     remove_card_from_pile(peer_data[source_pile], card)
     if cgm.is_server and card.on_shuffle_into_draw_pile_server then
         card:on_shuffle_into_draw_pile_server(peer_data)
@@ -1130,6 +1156,8 @@ cgm.shuffle_card_into_draw_pile = function(self, card)
     if card.on_shuffle_into_draw_pile_local then
         card:on_shuffle_into_draw_pile_local(self.local_data)
     end
+    
+    enigma:info(format_shuffling_card_into_draw_pile(card))
 
     local draw_pile_size = #self.local_data.draw_pile
     local index = math.floor(enigma:random_range_int(1, draw_pile_size + 1))
