@@ -52,6 +52,7 @@ dofile("scripts/mods/Enigma/Managers/mod_interaction")
 dofile("scripts/mods/Enigma/Managers/user_interaction")
 dofile("scripts/mods/Enigma/Managers/card_game")
 dofile("scripts/mods/Enigma/Managers/ui")
+dofile("scripts/mods/Enigma/Managers/debug")
 
 enigma.queued_prebuilt_decks = {}
 local process_prebuilt_deck_registrations = function()
