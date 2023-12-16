@@ -35,3 +35,6 @@ enigma.CARD_LOCATION = {
 enigma.can_play_from_location = function(location)
     return location == enigma.CARD_LOCATION.draw_pile or location == enigma.CARD_LOCATION.hand
 end
+enigma.can_discard_from_location = function(location)
+    return location == enigma.CARD_LOCATION.draw_pile or location == enigma.CARD_LOCATION.hand
+end

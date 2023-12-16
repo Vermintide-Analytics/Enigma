@@ -250,6 +250,38 @@ local handle_local_card_played = function(card, index, location, skip_warpstone_
     return true
 end
 
+local handle_local_card_discarded = function(card, discard_type)
+    enigma:info(format_discarding_card(card))
+
+    local starting_location = card.location
+    local index = get_card_index_in_pile(cgm.local_data[starting_location], card)
+
+    remove_card_from_pile(cgm.local_data[starting_location], card)
+    if cgm.is_server and card.on_discard_server then
+        card:on_discard_server(cgm.local_data, discard_type)
+    end
+    if card.on_discard_local then
+        card:on_discard_local(cgm.local_data, discard_type)
+    end
+    if cgm.is_server then
+        invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_discarded_server", card)
+    end
+    invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_discarded_local", card)
+
+    local destination_pile = enigma.CARD_LOCATION.discard_pile
+    table.insert(cgm.local_data[destination_pile], card)
+    card.location = destination_pile
+    if cgm.is_server and card.on_location_changed_server then
+        card:on_location_changed_server(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
+    end
+    if card.on_location_changed_local then
+        card:on_location_changed_local(starting_location, enigma.CARD_LOCATION.discard_pile)
+    end
+    enigma:network_send(net.event_card_discarded, "others", index, starting_location, discard_type)
+    enigma:info("Discarded card ["..card.id.."]")
+    return true
+end
+
 cgm.game_state = nil
 
 enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_name, card_ids_in_deck)
@@ -1012,17 +1044,13 @@ cgm.try_play_card = function(self, card, skip_warpstone_cost, play_type)
     return self:_try_play_card_at_index_from_location(index, card.location, skip_warpstone_cost, play_type)
 end
 
-enigma:network_register(net.event_card_discarded, function(peer_id, index, from_draw_pile, discard_type)
+enigma:network_register(net.event_card_discarded, function(peer_id, index, location, discard_type)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
         return
     end
 
-    local pile = enigma.CARD_LOCATION.hand
-    if from_draw_pile then
-        pile = enigma.CARD_LOCATION.draw_pile
-    end
-    local card = table.remove(peer_data[pile], index)
+    local card = table.remove(peer_data[location], index)
     enigma:info(format_discarding_card(card, peer_id))
     if cgm.is_server and card.on_discard_server then
         card:on_discard_server(discard_type)
@@ -1038,13 +1066,13 @@ enigma:network_register(net.event_card_discarded, function(peer_id, index, from_
     table.insert(peer_data[destination_pile], card)
     card.location = destination_pile
     if cgm.is_server and card.on_location_changed_server then
-        card:on_location_changed_server(pile, enigma.CARD_LOCATION.discard_pile)
+        card:on_location_changed_server(location, enigma.CARD_LOCATION.discard_pile)
     end
     if card.on_location_changed_remote then
-        card:on_location_changed_remote(pile, enigma.CARD_LOCATION.discard_pile)
+        card:on_location_changed_remote(location, enigma.CARD_LOCATION.discard_pile)
     end
 end)
-cgm.try_discard_card = function(self, index, from_draw_pile, discard_type)
+cgm.try_discard_card_from_hand = function(self, index, discard_type)
     if not self:is_in_game() then
         if discard_type == "auto" then
             enigma:warning("Attempted to auto discard a card when not in a game")
@@ -1052,43 +1080,51 @@ cgm.try_discard_card = function(self, index, from_draw_pile, discard_type)
         return false, "not_in_game"
     end
     discard_type = discard_type or "auto"
-    local pile = enigma.CARD_LOCATION.hand
-    if from_draw_pile then
-        pile = enigma.CARD_LOCATION.draw_pile
-    end
-    local card = self.local_data[pile][index]
+    local location = enigma.CARD_LOCATION.hand
+    local card = self.local_data[location][index]
     if not card then
         if discard_type == "auto" then
-            enigma:info("Attempted to discard card at index "..tostring(index).." from "..pile.." which only contains "..#self.local_data[pile][index].. " cards")
+            enigma:info("Attempted to discard card at index "..tostring(index).." from "..location.." which only contains "..#self.local_data[location][index].. " cards")
         end
         return false, "invalid_card"
     end
-
-    enigma:info(format_discarding_card(card))
-
-    remove_card_from_pile(self.local_data[card.location], card)
-    if cgm.is_server and card.on_discard_server then
-        card:on_discard_server(self.local_data, discard_type)
+    handle_local_card_discarded(card, discard_type)
+end
+cgm.try_discard_card_from_draw_pile = function(self, index, discard_type)
+    if not self:is_in_game() then
+        if discard_type == "auto" then
+            enigma:warning("Attempted to auto discard a card when not in a game")
+        end
+        return false, "not_in_game"
     end
-    if card.on_discard_local then
-        card:on_discard_local(self.local_data, discard_type)
+    discard_type = discard_type or "auto"
+    local location = enigma.CARD_LOCATION.draw_pile
+    local card = self.local_data[location][index]
+    if not card then
+        if discard_type == "auto" then
+            enigma:info("Attempted to discard card at index "..tostring(index).." from "..location.." which only contains "..#self.local_data[location][index].. " cards")
+        end
+        return false, "invalid_card"
     end
-    if cgm.is_server then
-        invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_discarded_server", card)
+    handle_local_card_discarded(card, discard_type)
+end
+cgm.try_discard_card = function(self, card, discard_type)
+    discard_type = discard_type or "auto"
+    if not card then
+        enigma:warning("Tried to discard nil card")
+        return false, "invalid_card"
     end
-    invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_discarded_local", card)
-
-    local destination_pile = enigma.CARD_LOCATION.discard_pile
-    table.insert(self.local_data[destination_pile], card)
-    card.location = destination_pile
-    if self.is_server and card.on_location_changed_server then
-        card:on_location_changed_server(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
+    if not self:is_in_game() then
+        if discard_type == "auto" then
+            enigma:warning("Attempted to auto discard a card when not in a game")
+        end
+        return false, "not_in_game"
     end
-    if card.on_location_changed_local then
-        card:on_location_changed_local(pile, enigma.CARD_LOCATION.discard_pile)
+    if not enigma.can_discard_from_location(card.location) then
+        enigma:warning("Attempted to discard a card from the "..tostring(card.location)..". This is not allowed")
+        return false, "invalid_card_location"
     end
-    enigma:network_send(net.event_card_discarded, "others", index, from_draw_pile, discard_type)
-    enigma:info("Discarded card ["..card.id.."]")
+    handle_local_card_discarded(card, discard_type)
     return true
 end
 
