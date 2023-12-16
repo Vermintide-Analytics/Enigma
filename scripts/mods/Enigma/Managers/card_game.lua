@@ -1255,19 +1255,6 @@ cgm.check_players_and_units_all_set = function(self)
 end
 
 -- Utilities
-cgm.player_and_bot_units = function(self)
-    if not self:is_in_game() then
-        return
-    end
-    local side = Managers.state and Managers.state.side and Managers.state.side:get_side_from_name("heroes")
-	return side and side.PLAYER_AND_BOT_UNITS
-end
-cgm.force_damage = function(self, unit, damage, damager)
-    damager = damager or unit
-    local health_ext = ScriptUnit.extension(unit, "health_system")
-    health_ext:add_damage(damager, damage, "full", "forced", nil, Vector3.up())
-end
-
 enigma:network_register(net.sync_card_property, function(sender, card_owner_peer_id, pile_name, index, property, value)
     local data = nil
     if card_owner_peer_id == cgm.local_data.peer_id then

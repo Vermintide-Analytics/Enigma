@@ -103,6 +103,35 @@ enigma.local_player_career_name = function(self)
     return player and player:career_name()
 end
 
+enigma.player_and_bot_units = function(self)
+    local side = Managers.state and Managers.state.side and Managers.state.side:get_side_from_name("heroes")
+	return side and side.PLAYER_AND_BOT_UNITS
+end
+enigma.force_damage = function(self, unit, damage, damager)
+    damager = damager or unit
+    local health_ext = ScriptUnit.extension(unit, "health_system")
+    
+    local breed = Unit.get_data(unit, "breed")
+    local breed_name = breed and breed.name
+    enigma:info("DAMAGING "..tostring(breed_name).." for "..tostring(damage))
+
+    health_ext:add_damage(damager, damage, "full", "forced", nil, Vector3.up())
+end
+enigma.heal = function(self, unit, heal, healer, heal_type)
+    if not enigma:is_server() then
+        enigma:warning("Only the server can heal")
+        return false
+    end
+    healer = healer or unit
+    heal_type = heal_type or "health_regen"
+
+    local breed = Unit.get_data(unit, "breed")
+    local breed_name = breed and breed.name
+    enigma:info("HEALING "..tostring(breed_name).." for "..tostring(heal))
+
+    DamageUtils.heal_network(unit, healer, heal, heal_type)
+end
+
 enigma.get_ammo_extension = function(self, unit)
     if ScriptUnit.has_extension(unit, "ammo_system") then
         return ScriptUnit.extension(unit, "ammo_system")

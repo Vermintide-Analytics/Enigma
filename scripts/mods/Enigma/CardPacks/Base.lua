@@ -209,7 +209,7 @@ pack_handle.register_passive_cards({
             if card.times_played > 0 then
                 card.next_heal_time = card.next_heal_time - dt
                 if card.next_heal_time <= 0 then
-                    DamageUtils.heal_network(card.context.unit, card.context.unit, 5*card.times_played, "health_regen")
+                    enigma:heal(card.context.unit, 5*card.times_played)
                     card.next_heal_time = card.next_heal_time + card.heal_interval
                 end
             end
@@ -261,12 +261,12 @@ pack_handle.register_ability_cards({
         texture = "enigma_base_blood_transfusion",
         on_play_server = function(card)
             local us = card.context.unit
-            game:force_damage(card.context.unit, 15)
+            enigma:force_damage(card.context.unit, 15)
 
-            local players_and_bots = game:player_and_bot_units()
+            local players_and_bots = enigma:player_and_bot_units()
             for _,unit in ipairs(players_and_bots) do
                 if unit ~= card.context.unit then
-                    DamageUtils.heal_network(unit, us, 15, "health_regen")
+                    enigma:heal(unit, 15, us)
                 end
             end
         end,
@@ -359,7 +359,7 @@ pack_handle.register_ability_cards({
         texture = "enigma_base_field_medicine",
         on_play_server = function(card)
             local us = card.context.unit
-            DamageUtils.heal_network(us, us, 15, "health_regen")
+            enigma:heal(us, 15)
         end,
         charges = 5,
         channel = 2,
@@ -399,7 +399,7 @@ pack_handle.register_ability_cards({
         texture = "enigma_base_quick_stimulants",
         on_play_server = function(card)
             local us = card.context.unit
-            DamageUtils.heal_network(us, us, 25, "heal_from_proc")
+            enigma:heal(us, 25, us, "heal_from_proc")
         end,
         charges = 5,
         description_lines = {
@@ -532,7 +532,7 @@ pack_handle.register_ability_cards({
             local closest_unit_status = nil
             local closest_distance = nil
             
-            local players_and_bots = game:player_and_bot_units()
+            local players_and_bots = enigma:player_and_bot_units()
             for _,unit in pairs(players_and_bots) do
                 if unit ~= us then
                     local status = ScriptUnit.extension(unit, "status_system")
@@ -558,7 +558,7 @@ pack_handle.register_ability_cards({
         end,
         condition_local = function(card)
             -- At least one ally is disabled
-            local players_and_bots = game:player_and_bot_units()
+            local players_and_bots = enigma:player_and_bot_units()
             for _,unit in ipairs(players_and_bots) do
                 if unit ~= card.context.unit then -- Skip ourselves
                     local status = ScriptUnit.extension(unit, "status_system")
@@ -692,7 +692,7 @@ pack_handle.register_chaos_cards({
             end
         end,
         on_play_server = function(card)
-            game:force_damage(card.context.unit, card.damage_per_draw * card.times_drawn)
+            enigma:force_damage(card.context.unit, card.damage_per_draw * card.times_drawn)
         end,
         description_lines = {
             {
@@ -711,7 +711,7 @@ pack_handle.register_chaos_cards({
             if not card:is_in_hand() or other_card == card then
                 return
             end
-            game:force_damage(card.context.unit, 10)
+            enigma:force_damage(card.context.unit, 10)
         end,
         retain_descriptions = {
             {
@@ -739,7 +739,7 @@ pack_handle.register_chaos_cards({
             end
             card.time_until_damage = card.time_until_damage - dt
             if card.time_until_damage <= 0 then
-                game:force_damage(card.context.unit, 1)
+                enigma:force_damage(card.context.unit, 1)
                 card.time_until_damage = card.damage_interval
             end
         end,
@@ -799,7 +799,7 @@ pack_handle.register_chaos_cards({
         cost = 0,
         texture = "enigma_base_thorn",
         on_play_server = function(card)
-            game:force_damage(card.context.unit, 5)
+            enigma:force_damage(card.context.unit, 5)
         end,
         description_lines = {
             {
