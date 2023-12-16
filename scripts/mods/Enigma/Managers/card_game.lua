@@ -1044,7 +1044,13 @@ enigma:network_register(net.event_card_discarded, function(peer_id, index, from_
         card:on_location_changed_remote(pile, enigma.CARD_LOCATION.discard_pile)
     end
 end)
-cgm.discard_card = function(self, index, from_draw_pile, discard_type)
+cgm.try_discard_card = function(self, index, from_draw_pile, discard_type)
+    if not self:is_in_game() then
+        if discard_type == "auto" then
+            enigma:warning("Attempted to auto discard a card when not in a game")
+        end
+        return false, "not_in_game"
+    end
     discard_type = discard_type or "auto"
     local pile = enigma.CARD_LOCATION.hand
     if from_draw_pile then
@@ -1052,8 +1058,10 @@ cgm.discard_card = function(self, index, from_draw_pile, discard_type)
     end
     local card = self.local_data[pile][index]
     if not card then
-        enigma:echo("Attempted to discared card at index "..tostring(index).." from "..pile.." which only contains "..#self.local_data[pile][index].. " cards")
-        return
+        if discard_type == "auto" then
+            enigma:info("Attempted to discard card at index "..tostring(index).." from "..pile.." which only contains "..#self.local_data[pile][index].. " cards")
+        end
+        return false, "invalid_card"
     end
 
     enigma:info(format_discarding_card(card))
