@@ -261,7 +261,7 @@ pack_handle.register_ability_cards({
         texture = "enigma_base_blood_transfusion",
         on_play_server = function(card)
             local us = card.context.unit
-            enigma:force_damage(card.context.unit, 15)
+            enigma:force_damage(card.context.unit, 40)
 
             local players_and_bots = enigma:player_and_bot_units()
             for _,unit in ipairs(players_and_bots) do
@@ -274,7 +274,7 @@ pack_handle.register_ability_cards({
         description_lines = {
             {
                 format = "description_take_damage",
-                parameters = { 15 }
+                parameters = { 40 }
             },
             {
                 format = "base_blood_transfusion_description",
@@ -355,7 +355,7 @@ pack_handle.register_ability_cards({
     field_medicine = {
         name = "base_field_medicine",
         rarity = COMMON,
-        cost = 1,
+        cost = 0,
         texture = "enigma_base_field_medicine",
         on_play_server = function(card)
             local us = card.context.unit
@@ -395,7 +395,7 @@ pack_handle.register_ability_cards({
     quick_stimulants = {
         name = "base_quick_stimulants",
         rarity = COMMON,
-        cost = 1,
+        cost = 0,
         texture = "enigma_base_quick_stimulants",
         on_play_server = function(card)
             local us = card.context.unit
@@ -414,6 +414,9 @@ pack_handle.register_ability_cards({
         rarity = LEGENDARY,
         cost = 1,
         texture = "enigma_base_ranalds_play",
+        auto_play_chance_interval = 1,
+        time_until_auto_play_chance = 1,
+        auto_play_chance = 0.000577456, -- ~50% chance to auto play approximately for 20 minutes spent in your hand
         on_play_local = function(card)
             local hand_size = #game.local_data.hand
             if hand_size < 1 then
@@ -422,7 +425,17 @@ pack_handle.register_ability_cards({
             local card_index = enigma:random_range_int(1, hand_size)
             game:try_play_card_from_hand(card_index, true)
         end,
-        -- TODO implement tiny chance to auto play
+        update_local = function(card, dt)
+            if card:is_in_hand() then
+                card.time_until_auto_play_chance = card.time_until_auto_play_chance - dt
+                if card.time_until_auto_play_chance <= 0 then
+                    if enigma:test_chance(card.auto_play_chance) then
+                        game:try_play_card(card)
+                    end
+                    card.time_until_auto_play_chance = card.time_until_auto_play_chance + card.auto_play_chance_interval
+                end
+            end
+        end,
         description_lines = {
             {
                 format = "base_ranalds_play_description"
@@ -451,7 +464,7 @@ pack_handle.register_ability_cards({
                     return
                 end
                 local damaged_unit = health_ext.unit
-                if damaged_unit ~= card.context.unit or damage_amount < 25 then
+                if damaged_unit ~= card.context.unit or damage_amount < 60 then
                     return
                 end
                 game:try_play_card(card)
@@ -474,7 +487,7 @@ pack_handle.register_ability_cards({
         auto_descriptions = {
             {
                 format = "base_retreat_auto_description",
-                parameters = { 25 }
+                parameters = { 60 }
             }
         }
     },
