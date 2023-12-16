@@ -904,11 +904,11 @@ cgm._try_play_card_at_index_from_location = function(self, index, location, skip
     play_type = play_type or "auto"
     if not enigma.can_play_from_location(location) then
         enigma:warning("Cannot play cards from "..tostring(location))
-        return
+        return false, "invalid_card_location"
     end
     if self.local_data.active_channel then
         enigma:info("Cannot play card, currently channeling")
-        return
+        return false, "currently_channeling"
     end
     local card = self.local_data[location][index]
     if not card then
@@ -917,12 +917,12 @@ cgm._try_play_card_at_index_from_location = function(self, index, location, skip
         else
             enigma:warning("Tried to automatically play card at index "..tostring(index).." in "..tostring(location)..", but that does not exist")
         end
-        return
+        return false, "invalid_card"
     end
 
     if card.unplayable and play_type == "manual" then
         enigma:info("Cannot play unplayable card manually")
-        return
+        return false, "card_unplayable"
     end
 
     if not card.condition_met then
@@ -931,14 +931,14 @@ cgm._try_play_card_at_index_from_location = function(self, index, location, skip
         else
             enigma:debug("Attempted to automatically play "..card.name.." but condition not met")
         end
-        return
+        return false, "card_condition_not_met"
     end
 
     if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(card.cost) then
         if play_type == "manual" then
             enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
         end
-        return
+        return false, "not_enough_warpstone"
     end
 
     if play_type ~= "auto" and card.channel and card.channel > 0 then
@@ -960,7 +960,7 @@ cgm.try_play_card_from_hand = function(self, card_index, skip_warpstone_cost, pl
         if play_type == "auto" then
             enigma:warning("Attempted to auto play a card when not in a game")
         end
-        return
+        return false, "not_in_game"
     end
     if not self.local_data.hand[card_index] then
         if play_type == "manual" then 
@@ -968,7 +968,7 @@ cgm.try_play_card_from_hand = function(self, card_index, skip_warpstone_cost, pl
         else
             enigma:warning("Tried to automatically play card at index "..tostring(card_index).." from the hand, but that does not exist")
         end
-        return
+        return false, "invalid_card"
     end
 
     return self:_try_play_card_at_index_from_location(card_index, enigma.CARD_LOCATION.hand, skip_warpstone_cost, play_type)
@@ -977,14 +977,15 @@ end
 cgm.try_play_card_from_draw_pile = function(self, card_index, skip_warpstone_cost)
     if not self:is_in_game() then
         enigma:warning("Attempted to auto play a card from the draw pile when not in a game")
-        return
+        return false, "not_in_game"
     end
     if type(card_index) ~= "number" then
         enigma:echo("Attempted to play card from draw pile using non-number index: " .. tostring(card_index))
-        return
+        return false, "invalid_card"
     end
     if not self.local_data.draw_pile[card_index] then
         enigma:echo("Attempted to play card "..card_index.." from draw pile, but draw pile does not have a card at that index")
+        return false, "invalid_card"
     end
 
     return self:_try_play_card_at_index_from_location(card_index, enigma.CARD_LOCATION.draw_pile, skip_warpstone_cost, "auto")
@@ -994,16 +995,17 @@ cgm.try_play_card = function(self, card, skip_warpstone_cost, play_type)
     play_type = play_type or "auto"
     if not card then
         enigma:warning("Tried to play nil card")
-        return
+        return false, "invalid_card"
     end
     if not self:is_in_game() then
         if play_type == "auto" then
             enigma:warning("Attempted to auto play a card when not in a game")
         end
-        return
+        return false, "not_in_game"
     end
     if not enigma.can_play_from_location(card.location) then
         enigma:warning("Attempted to play a card from the "..tostring(card.location)..". This is not allowed")
+        return false, "invalid_card_location"
     end
     local pile = self.local_data[card.location]
     local index = pile and get_card_index_in_pile(pile, card)
