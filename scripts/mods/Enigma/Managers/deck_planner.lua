@@ -624,16 +624,18 @@ end, "deck_planner_init")
 ------------
 -- Events --
 ------------
-enigma:register_mod_event_callback("on_user_joined", function(player)
-    dpm.player_data[player.peer_id] = {}
-    dpm:notify_players_of_deck_validity(player.peer_id)
-    dpm:update_all_players_equipped_decks_valid()
-end)
+dpm.on_user_joined = function(self, player)
+    self.player_data[player.peer_id] = {}
+    self:notify_players_of_deck_validity(player.peer_id)
+    self:update_all_players_equipped_decks_valid()
+end
+enigma:register_mod_event_callback("on_user_joined", dpm, "on_user_joined")
 
-enigma:register_mod_event_callback("on_user_left", function(player)
+dpm.on_user_left = function(self, player)
     dpm.player_data[player.peer_id] = nil
     dpm:update_all_players_equipped_decks_valid()
-end)
+end
+enigma:register_mod_event_callback("on_user_left", dpm, "on_user_left")
 
 ----------
 -- RPCs --
