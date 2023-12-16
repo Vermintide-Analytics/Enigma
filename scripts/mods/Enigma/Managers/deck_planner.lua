@@ -616,7 +616,7 @@ end
 
 -- Hooks
 enigma:hook(GameModeManager, "evaluate_end_zone_activation_conditions", function(func, self)
-    if enigma:in_keep() and not enigma.managers.deck_planner.all_players_equipped_decks_valid then
+    if enigma:in_keep() and not dpm.all_players_equipped_decks_valid then
         return false
     end
     return func(self)
@@ -654,7 +654,7 @@ enigma:register_mod_event_callback("on_user_left", dpm, "on_user_left")
 ----------
 enigma:network_register(net.sync_deck_validity, function(sender, valid)
     dpm.player_data[sender].valid = valid
-    enigma.managers.deck_planner:update_all_players_equipped_decks_valid()
+    dpm:update_all_players_equipped_decks_valid()
 end)
 
 

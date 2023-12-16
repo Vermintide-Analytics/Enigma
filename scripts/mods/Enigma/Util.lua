@@ -48,7 +48,7 @@ enigma.level_key = function(self)
 end
 enigma.in_inn = function(self)
     local level_key = Managers.state and Managers.state.game_mode:game_mode_key()
-    return level_key:find("inn_level")
+    return level_key and level_key:find("inn")
 end
 enigma.in_morris_hub = function(self)
     local level_key = Managers.state and Managers.state.game_mode:game_mode_key()
