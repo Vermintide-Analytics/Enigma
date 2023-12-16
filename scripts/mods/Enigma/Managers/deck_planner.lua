@@ -276,6 +276,18 @@ dpm.rename_deck = function(self, name, skip_save)
         enigma:warning("A deck by that name already exists")
         return
     end
+
+    local save_equipped_decks = false
+    for career,deck_name in pairs(self.equipped_decks[self.editing_deck.game_mode]) do
+        if deck_name == self.editing_deck.name then
+            save_equipped_decks = true
+            self.equipped_decks[self.editing_deck.game_mode][career] = name
+        end
+    end
+    if save_equipped_decks then
+        self:save_equipped_decks()
+    end
+
     self.decks[name] = self.editing_deck
     self.decks[self.editing_deck.name] = nil
     self.editing_deck.name = name
