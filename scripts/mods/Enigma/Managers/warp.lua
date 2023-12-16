@@ -67,11 +67,13 @@ wm.can_pay_cost = function(self, cost)
     return self.warpstone >= floor
 end
 
-wm.pay_cost = function(self, cost)
+wm.pay_cost = function(self, cost, reason)
     local floor = math.floor(cost)
     if not self:can_pay_cost(floor) then
         return false
     end
+    reason = reason or "unknown"
+    enigma:info("Paying warpstone cost "..tostring(floor).." for reason: "..tostring(reason))
     self.warpstone = self.warpstone - floor
     if floor ~= 0 then
         on_warpstone_amount_changed()

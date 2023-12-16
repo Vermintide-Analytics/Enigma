@@ -160,7 +160,9 @@ local handle_local_card_played = function(card, index, location, skip_warpstone_
         return
     end
     if not skip_warpstone_cost then
-        enigma.managers.warp:pay_cost(card.cost)
+        enigma.managers.warp:pay_cost(card.cost, "playing "..tostring(card.id))
+    else
+        enigma:info("Skipping warpstone cost for playing "..tostring(card.id))
     end
     
     enigma:info(format_playing_card(card))
