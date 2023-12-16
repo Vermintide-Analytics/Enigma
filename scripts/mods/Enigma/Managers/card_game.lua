@@ -152,6 +152,36 @@ local invoke_card_event_callbacks_for_all_piles = function(data, func_name, ...)
     invoke_card_event_callbacks(data.discard_pile, func_name, ...)
 end
 
+local hand_local_card_drawn = function(free)
+    if not free then
+        cgm.local_data.available_card_draws = cgm.local_data.available_card_draws - 1
+    end
+
+    local card = table.remove(cgm.local_data.draw_pile)
+    enigma:info(format_drawing_card(card))
+    if cgm.is_server and card.on_draw_server then
+        card:on_draw_server()
+    end
+    if card.on_draw_local then
+        card:on_draw_local()
+    end
+    table.insert(cgm.local_data.hand, card)
+    card.location = enigma.CARD_LOCATION.hand
+    if cgm.is_server and card.on_location_changed_server then
+        card:on_location_changed_server(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
+    end
+    if card.on_location_changed_local then
+        card:on_location_changed_local(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
+    end
+    if cgm.is_server then
+        invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_drawn_server", card)
+    end
+    invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_drawn_local", card)
+
+    enigma:network_send(net.event_card_drawn, "others")
+    return true
+end
+
 local handle_local_card_played = function(card, index, location, skip_warpstone_cost, play_type)
     if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(card.cost) then
         if play_type == "manual" then
@@ -398,7 +428,7 @@ cgm.start_game = function(self)
 
     enigma.managers.warp:start_game()
 
-    self:_draw_card_for_free()
+    self:try_draw_card(true)
 end
 
 cgm.end_game = function(self)
@@ -797,7 +827,14 @@ enigma:network_register(net.event_card_drawn, function(peer_id)
     end
     invoke_card_event_callbacks_for_all_piles(peer_data, "on_any_card_drawn_remote", card)
 end)
-cgm._draw_card_for_free = function(self)
+cgm.try_draw_card = function(self, free)
+    if not self:is_in_game() then
+        return false, "Not in a game"
+    end
+    if not free and self.local_data.available_card_draws < 1 then
+        enigma.managers.ui.time_since_available_draw_action_invalid = 0
+        return false, "Not enough available card draws"
+    end
     if #self.local_data.draw_pile < 1 then
         enigma.managers.ui.time_since_draw_pile_action_invalid = 0
         return false, "Draw pile is empty"
@@ -806,43 +843,8 @@ cgm._draw_card_for_free = function(self)
         enigma.managers.ui.time_since_hand_size_action_invalid = 0
         return false, "Hand is full"
     end
-    local card = table.remove(self.local_data.draw_pile)
-    enigma:info(format_drawing_card(card))
-    if cgm.is_server and card.on_draw_server then
-        card:on_draw_server()
-    end
-    if card.on_draw_local then
-        card:on_draw_local()
-    end
-    table.insert(self.local_data.hand, card)
-    card.location = enigma.CARD_LOCATION.hand
-    if self.is_server and card.on_location_changed_server then
-        card:on_location_changed_server(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
-    end
-    if card.on_location_changed_local then
-        card:on_location_changed_local(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
-    end
-    if cgm.is_server then
-        invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_drawn_server", card)
-    end
-    invoke_card_event_callbacks_for_all_piles(cgm.local_data, "on_any_card_drawn_local", card)
-
-    enigma:network_send(net.event_card_drawn, "others")
+    hand_local_card_drawn(free)
     return true
-end
-cgm.try_draw_card = function(self)
-    if not self:is_in_game() then
-        return false, "Not in a game"
-    end
-    if self.local_data.available_card_draws < 1 then
-        enigma.managers.ui.time_since_available_draw_action_invalid = 0
-        return false, "Not enough available card draws"
-    end
-    local success, fail_reason = self:_draw_card_for_free()
-    if success then
-        self.local_data.available_card_draws = self.local_data.available_card_draws - 1
-    end
-    return success, fail_reason
 end
 
 
