@@ -350,6 +350,11 @@ local add_described_keyword_widget = function(widget_defs, card_scenegraph_id, i
 				},
 				{
 					pass_type = "text",
+					text_id = "title",
+					style_id = "title_shadow"
+				},
+				{
+					pass_type = "text",
 					text_id = "details",
 					style_id = "details"
 				},
@@ -378,6 +383,26 @@ local add_described_keyword_widget = function(widget_defs, card_scenegraph_id, i
 					0,
 					0,
 					0
+				}
+			},
+			title_shadow = {
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				font_size = sizes.card_details_font_size,
+				allow_fractions = true,
+				localize = false,
+				word_wrap = true,
+				area_size = {
+					sizes.card_inner_width,
+					0
+				},
+				dynamic_font_size_word_wrap = true,
+				font_type = CARD_DETAILS_FONT,
+				text_color = Colors.get_color_table_with_alpha("black", 255),
+				offset = {
+					1,
+					-1,
+					-1
 				}
 			},
 			details = {
@@ -783,7 +808,12 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 					pass_type = "text",
 					text_id = "keywords",
 					style_id = "keywords"
-				}
+				},
+				{
+					pass_type = "text",
+					text_id = "keywords",
+					style_id = "keywords_shadow"
+				},
 			}
 		},
 		content = {
@@ -803,6 +833,21 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 					0,
 					0,
 					0
+				}
+			},
+			keywords_shadow = {
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				font_size = sizes.card_details_font_size,
+				allow_fractions = true,
+				word_wrap = true,
+				dynamic_font_size_word_wrap = true,
+				font_type = CARD_DETAILS_FONT,
+				text_color = Colors.get_color_table_with_alpha("black", 255),
+				offset = {
+					1,
+					-1,
+					-1
 				}
 			},
 		}
@@ -1087,6 +1132,7 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 		local keyword_details_widget = widgets[widget_name]
 
 		local title_style = keyword_details_widget.style.title
+		local title_shadow_style = keyword_details_widget.style.title_shadow
 		local text_style = keyword_details_widget.style.details
 
 		local total_lines = (described_keyword_line_counts[i] or 1)
@@ -1101,6 +1147,12 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 		title_style.offset[2] = (required_height - title_height - pretty_margin)/2
 		title_style._dynamic_wraped_text = ""
 		title_style.font_size = sizes.card_details_font_size
+		title_shadow_style.area_size[1] = title_style.area_size[1]
+		title_shadow_style.area_size[2] = title_height
+		title_shadow_style.offset[2] = title_style.offset[2] - 1
+		title_shadow_style._dynamic_wraped_text = ""
+		title_shadow_style.font_size = sizes.card_details_font_size
+		
 		
 		text_style.area_size[1] = sizes.card_inner_width - pretty_margin*2
 		text_style.area_size[2] = description_height
@@ -1121,8 +1173,6 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 		end
 		local widget_name = card_node_id.."_keyword_details_"..described_keyword_index
 		local keyword_details_widget = widgets[widget_name]
-		local title_style = keyword_details_widget.style.title
-		local text_style = keyword_details_widget.style.details
 		local content = keyword_details_widget.content
 
 		content.title = enigma:localize("retain")
@@ -1136,8 +1186,6 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 		end
 		local widget_name = card_node_id.."_keyword_details_"..described_keyword_index
 		local keyword_details_widget = widgets[widget_name]
-		local title_style = keyword_details_widget.style.title
-		local text_style = keyword_details_widget.style.details
 		local content = keyword_details_widget.content
 
 		content.title = enigma:localize("auto")
@@ -1151,8 +1199,6 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 		end
 		local widget_name = card_node_id.."_keyword_details_"..described_keyword_index
 		local keyword_details_widget = widgets[widget_name]
-		local title_style = keyword_details_widget.style.title
-		local text_style = keyword_details_widget.style.details
 		local content = keyword_details_widget.content
 
 		content.title = enigma:localize("condition")
@@ -1163,6 +1209,8 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 
 	additional_keywords_widget.style.keywords._dynamic_wraped_text = ""
 	additional_keywords_widget.style.keywords.font_size = sizes.card_details_font_size
+	additional_keywords_widget.style.keywords_shadow._dynamic_wraped_text = ""
+	additional_keywords_widget.style.keywords_shadow.font_size = sizes.card_details_font_size
 	if any_simple_keywords then
 		local keywords = {}
 		if card.channel then
