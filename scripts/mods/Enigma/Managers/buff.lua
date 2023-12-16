@@ -411,7 +411,7 @@ end
 enigma:register_mod_event_callback("update", bm, "update")
 
 -- Debug
-enigma:command("buff_self", "", function(stat, value)
+enigma:command("enigma_buff_self", "", function(stat, value)
     local local_player_unit = enigma:local_player_unit()
     if not local_player_unit then
         return
@@ -419,12 +419,12 @@ enigma:command("buff_self", "", function(stat, value)
     bm:update_stat(local_player_unit, stat, value)
 end)
 
-enigma:command("dump_buffs", "", function()
+enigma:command("enigma_dump_buffs", "", function()
     local buff_extension = ScriptUnit.extension(enigma:local_player_unit(), "buff_system")
     enigma:dump(buff_extension._stat_buffs, "STAT BUFFS", 3)
 end)
 
-enigma:command("dump_network_constants", "", function()
+enigma:command("enigma_dump_network_constants", "", function()
     for k,v in pairs(NetworkConstants) do
         if type(v) == "table" then
             enigma:dump(v, "NetworkConstants."..k, 1)

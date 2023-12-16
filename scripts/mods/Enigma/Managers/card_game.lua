@@ -777,11 +777,9 @@ enigma:network_register(net.event_card_drawn, function(peer_id)
 end)
 cgm._draw_card_for_free = function(self)
     if #self.local_data.draw_pile < 1 then
-        enigma:echo("Cannot draw a card, draw pile is empty")
         return false, "Draw pile is empty"
     end
     if #self.local_data.hand > 4 then
-        enigma:echo("Cannot draw a card, hand is full")
         return false, "Hand is full"
     end
     local card = table.remove(self.local_data.draw_pile)
@@ -924,9 +922,7 @@ end
 cgm.try_play_card_from_hand = function(self, card_index, skip_warpstone_cost, play_type)
     play_type = play_type or "auto"
     if not self:is_in_game() then
-        if play_type == "manual" then
-            enigma:echo("Cannot play a card, not in a game right now.")
-        else
+        if play_type == "auto" then
             enigma:warning("Attempted to auto play a card when not in a game")
         end
         return
@@ -965,9 +961,7 @@ cgm.try_play_card = function(self, card, skip_warpstone_cost, play_type)
         return
     end
     if not self:is_in_game() then
-        if play_type == "manual" then
-            enigma:echo("Cannot play a card, not in a game right now.")
-        else
+        if play_type == "auto" then
             enigma:warning("Attempted to auto play a card when not in a game")
         end
         return
@@ -1315,6 +1309,7 @@ end
 enigma.managers.hook:hook_safe("Enigma", BulldozerPlayer, "set_player_unit", bulldozer_player_set_player_unit, "card_game_start")
 enigma.managers.hook:hook_safe("Enigma", RemotePlayer, "set_player_unit", remote_player_set_player_unit, "card_game_start")
 
+-- Hooks for disabling active channel
 reg_hook_safe(PlayerUnitHealthExtension, "add_damage", function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
     if not cgm:is_in_game() then
         return
@@ -1392,6 +1387,8 @@ end, "enigma_card_game_set_catapulted")
 reg_hook_safe(GenericStatusExtension, "set_in_vortex", function(self, in_vortex, vortex_unit)
     hand_channel_cancelling_status_change(self.unit, in_vortex)
 end, "enigma_card_game_set_in_vortex")
+
+
 
 
 enigma:network_register(net.sync_player_accumulated_stagger, function(peer_id, trash, elite, special, boss)
