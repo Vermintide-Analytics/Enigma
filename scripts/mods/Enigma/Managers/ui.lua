@@ -13,7 +13,7 @@ local uim = {
 			false,
 			false,
 			false
-		}
+		},
 	},
 	card_mode_ui_data = {
 		hand_indexes_just_removed = {
@@ -23,7 +23,12 @@ local uim = {
 			false,
 			false
 		}
-	}
+	},
+	
+	time_since_draw_pile_action_invalid = 100,
+	time_since_available_draw_action_invalid = 100,
+	time_since_warpstone_cost_action_invalid = 100,
+	time_since_hand_size_action_invalid = 100,
 }
 enigma.managers.ui = uim
 
@@ -145,7 +150,14 @@ enigma:hook(IngameUI, "setup_views", function(func, self, ingame_ui_context)
     return result
 end)
 
-
+-- Events
+uim.update = function(self, dt)
+	self.time_since_draw_pile_action_invalid = self.time_since_draw_pile_action_invalid + dt
+	self.time_since_available_draw_action_invalid = self.time_since_available_draw_action_invalid + dt
+	self.time_since_warpstone_cost_action_invalid = self.time_since_warpstone_cost_action_invalid + dt
+	self.time_since_hand_size_action_invalid = self.time_since_hand_size_action_invalid + dt
+end
+enigma:register_mod_event_callback("update", uim, "update")
 
 -- DEBUG
 local function draw_border(gui, pos, size, color, border)

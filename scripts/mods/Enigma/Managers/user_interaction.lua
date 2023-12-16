@@ -6,10 +6,6 @@ local uim = {
 }
 enigma.managers.user_interaction = uim
 
-uim.try_draw_card = function(self)
-    enigma.managers.game:draw_card()
-end
-
 -- Keybind callbacks
 local forbid_keybinds = function()
     return enigma.text_input_focused or Managers.chat and Managers.chat:chat_is_focused()
@@ -17,12 +13,7 @@ end
 
 enigma.draw_card_hotkey_pressed = function()
     if forbid_keybinds() then return end
-    local success, fail_reason = enigma.managers.game:try_draw_card()
-    if not success then
-        enigma:echo("Could not draw card because: "..tostring(fail_reason))
-    else
-        enigma:echo("Successfully drew a card")
-    end
+    enigma.managers.game:try_draw_card()
 end
 
 enigma.card_mode_key_pressed = function(down)

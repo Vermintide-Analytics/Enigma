@@ -137,7 +137,9 @@ end
 
 local handle_local_card_played = function(card, index, location, skip_warpstone_cost, play_type)
     if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(card.cost) then
-        enigma:echo("Not enough warpstone to play ["..card.name.."]")
+        if play_type == "manual" then
+            enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
+        end
         return
     end
     if not skip_warpstone_cost then
@@ -777,9 +779,11 @@ enigma:network_register(net.event_card_drawn, function(peer_id)
 end)
 cgm._draw_card_for_free = function(self)
     if #self.local_data.draw_pile < 1 then
+        enigma.managers.ui.time_since_draw_pile_action_invalid = 0
         return false, "Draw pile is empty"
     end
     if #self.local_data.hand > 4 then
+        enigma.managers.ui.time_since_hand_size_action_invalid = 0
         return false, "Hand is full"
     end
     local card = table.remove(self.local_data.draw_pile)
@@ -811,6 +815,7 @@ cgm.try_draw_card = function(self)
         return false, "Not in a game"
     end
     if self.local_data.available_card_draws < 1 then
+        enigma.managers.ui.time_since_available_draw_action_invalid = 0
         return false, "Not enough available card draws"
     end
     local success, fail_reason = self:_draw_card_for_free()
@@ -883,7 +888,11 @@ cgm._try_play_card_at_index_from_location = function(self, index, location, skip
     end
     local card = self.local_data[location][index]
     if not card then
-        enigma:echo("Attempted to play card at index "..tostring(index).." from "..location.." which only contains "..#self.local_data[location].. " cards")
+        if play_type == "manual" then 
+            enigma.managers.ui.time_since_hand_size_action_invalid = 0
+        else
+            enigma:warning("Tried to automatically play card at index "..tostring(index).." in "..tostring(location)..", but that does not exist")
+        end
         return
     end
 
@@ -902,7 +911,9 @@ cgm._try_play_card_at_index_from_location = function(self, index, location, skip
     end
 
     if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(card.cost) then
-        enigma:echo("Not enough warpstone to play ["..card.name.."]")
+        if play_type == "manual" then
+            enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
+        end
         return
     end
 
@@ -927,12 +938,13 @@ cgm.try_play_card_from_hand = function(self, card_index, skip_warpstone_cost, pl
         end
         return
     end
-    if type(card_index) ~= "number" then
-        enigma:echo("Attempted to play card from hand using non-number index: " .. tostring(card_index))
-        return
-    end
     if not self.local_data.hand[card_index] then
-        enigma:echo("Attempted to play card "..card_index.." from hand, but hand does not have a card at that index")
+        if play_type == "manual" then 
+            enigma.managers.ui.time_since_hand_size_action_invalid = 0
+        else
+            enigma:warning("Tried to automatically play card at index "..tostring(card_index).." from the hand, but that does not exist")
+        end
+        return
     end
 
     return self:_try_play_card_at_index_from_location(card_index, enigma.CARD_LOCATION.hand, skip_warpstone_cost, play_type)

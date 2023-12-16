@@ -23,6 +23,8 @@ local mod_event_callbacks = {
 enigma.register_mod_event_callback = function(self, event, executor, callback)
     if mod_event_callbacks[event] then
         table.insert(mod_event_callbacks[event], { executor = executor, callback = callback})
+    else
+        enigma:warning("Tried registering mod event callback for "..tostring(event)..", but the given table does not contain a function by the name \""..tostring(callback).."\"")
     end
 end
 enigma.unregister_mod_event_callback = function(self, event, executor, callback)

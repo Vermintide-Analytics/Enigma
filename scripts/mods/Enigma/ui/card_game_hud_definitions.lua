@@ -249,7 +249,8 @@ local widgets = {
 				texture_size = {
 					COLUMN_WIDTH,
 					COLUMN_WIDTH
-				}
+				},
+				color = Colors.get_color_table_with_alpha("white", 255),
 			},
 			text = {
 				vertical_alignment = "top",
@@ -258,6 +259,13 @@ local widgets = {
 				font_type = "hell_shark",
 				text_color = Colors.get_color_table_with_alpha("white", 255),
 			},
+			default_color = Colors.get_color_table_with_alpha("white", 255),
+			error_color = {
+				255,
+				255,
+				0,
+				0
+			}
 		}
 	},
 	discard_pile_column = {
@@ -371,7 +379,8 @@ local widgets = {
 				texture_size = {
 					COLUMN_WIDTH,
 					COLUMN_WIDTH
-				}
+				},
+				color = Colors.get_color_table_with_alpha("white", 255),
 			},
 			text = {
 				vertical_alignment = "top",
@@ -385,6 +394,19 @@ local widgets = {
 					0
 				}
 			},
+			default_icon_color = Colors.get_color_table_with_alpha("white", 255),
+			default_text_color = {
+				255,
+				0,
+				255,
+				0
+			},
+			error_color = {
+				255,
+				255,
+				0,
+				0
+			}
 		}
 	},
 	card_draw_bar = {
@@ -460,7 +482,8 @@ local widgets = {
 				texture_size = {
 					COLUMN_WIDTH,
 					COLUMN_WIDTH
-				}
+				},
+				color = Colors.get_color_table_with_alpha("white", 255),
 			},
 			text = {
 				vertical_alignment = "top",
@@ -469,6 +492,13 @@ local widgets = {
 				font_type = "hell_shark",
 				text_color = Colors.get_color_table_with_alpha("white", 255),
 			},
+			default_color = Colors.get_color_table_with_alpha("white", 255),
+			error_color = {
+				255,
+				255,
+				0,
+				0
+			}
 		}
 	},
 	hand_panel = {
@@ -492,6 +522,18 @@ local widgets = {
 					0
 				}
 			},
+			default_color = {
+				80,
+				0,
+				0,
+				0
+			},
+			error_color = {
+				160,
+				255,
+				0,
+				0
+			}
 		}
 	},
 	channel_bar = {

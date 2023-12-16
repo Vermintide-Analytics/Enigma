@@ -6,6 +6,7 @@ local ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
 local DO_RELOAD = true
 EnigmaCardGameHud = class(EnigmaCardGameHud)
 
+local FLASH_DURATION = 0.75
 local CHANNEL_BAR_FADE_DURATION = 3
 
 local enigma = get_mod("Enigma")
@@ -27,6 +28,64 @@ EnigmaCardGameHud.init = function(self, parent, ingame_ui_context)
 	self:create_ui_elements()
 end
 
+local set_color_table = function(color_table, color)
+	for i=1,4 do
+		color_table[i] = color[i]
+	end
+end
+local lerp_color_table = function(color_table, color_1, color_2, t)
+	for i=1,4 do
+		color_table[i] = math.lerp(color_1[i], color_2[i], t)
+	end
+end
+
+EnigmaCardGameHud.update_draw_pile_color = function(self)
+	local ui_manager = enigma.managers.ui
+	local style = self.draw_pile_widget.style
+	if ui_manager.time_since_draw_pile_action_invalid < FLASH_DURATION then
+		local fade_time = ui_manager.time_since_draw_pile_action_invalid / FLASH_DURATION
+		lerp_color_table(style.text.text_color, style.error_color, style.default_color, fade_time)
+		lerp_color_table(style.icon.color, style.error_color, style.default_color, fade_time)
+	else
+		set_color_table(style.text.text_color, style.default_color)
+		set_color_table(style.icon.color, style.default_color)
+	end
+end
+EnigmaCardGameHud.update_warpstone_color = function(self)
+	local ui_manager = enigma.managers.ui
+	local style = self.warpstone_widget.style
+	if ui_manager.time_since_warpstone_cost_action_invalid < FLASH_DURATION then
+		local fade_time = ui_manager.time_since_warpstone_cost_action_invalid / FLASH_DURATION
+		lerp_color_table(style.text.text_color, style.error_color, style.default_text_color, fade_time)
+		lerp_color_table(style.icon.color, style.error_color, style.default_icon_color, fade_time)
+	else
+		set_color_table(style.text.text_color, style.default_text_color)
+		set_color_table(style.icon.color, style.default_icon_color)
+	end
+end
+EnigmaCardGameHud.update_card_draw_color = function(self)
+	local ui_manager = enigma.managers.ui
+	local style = self.card_draw_widget.style
+	if ui_manager.time_since_available_draw_action_invalid < FLASH_DURATION then
+		local fade_time = ui_manager.time_since_available_draw_action_invalid / FLASH_DURATION
+		lerp_color_table(style.text.text_color, style.error_color, style.default_color, fade_time)
+		lerp_color_table(style.icon.color, style.error_color, style.default_color, fade_time)
+	else
+		set_color_table(style.text.text_color, style.default_color)
+		set_color_table(style.icon.color, style.default_color)
+	end
+end
+EnigmaCardGameHud.update_hand_panel_color = function(self)
+	local ui_manager = enigma.managers.ui
+	local style = self.hand_panel_widget.style
+	if ui_manager.time_since_hand_size_action_invalid < FLASH_DURATION then
+		local fade_time = ui_manager.time_since_hand_size_action_invalid / FLASH_DURATION
+		lerp_color_table(style.background.color, style.error_color, style.default_color, fade_time)
+	else
+		set_color_table(style.background.color, style.default_color)
+	end
+end
+
 EnigmaCardGameHud.create_ui_elements = function (self)
 	DO_RELOAD = false
 	self.ui_scenegraph = UISceneGraph.init_scenegraph(definitions.scenegraph_definition)
@@ -38,7 +97,8 @@ EnigmaCardGameHud.create_ui_elements = function (self)
 	self.card_draw_widget = self._widgets_by_name.card_draw_column
 	self.channel_bar_widget = self._widgets_by_name.channel_bar
 	self.channel_bar_inner_widget = self._widgets_by_name.channel_bar_inner
-
+	self.hand_panel_widget = self._widgets_by_name.hand_panel
+	
 	self.warp_dust_bar_node = self.ui_scenegraph.warp_dust_bar
 	self.warp_dust_bar_node_inner = self.ui_scenegraph.warp_dust_bar_inner
 	self.card_draw_bar_node = self.ui_scenegraph.card_draw_bar
@@ -91,8 +151,17 @@ EnigmaCardGameHud.update = function (self, dt, t)
 	self.card_draw_widget.content.text = card_draws_ipart
 	self.card_draw_bar_node_inner.size[2] = self.card_draw_bar_node.size[2] * card_draws_fpart
 
+	-- Handle UI responsiveness flashing
+	self:update_draw_pile_color()
+	self:update_warpstone_color()
+	self:update_card_draw_color()
+	self:update_hand_panel_color()
+
+
 	-- Hand display
 	ui_common.update_hand_display(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, CARD_WIDTH, PRETTY_MARGIN, enigma.managers.ui.hud_data, "dirty_hud_ui")
+
+
 
 	-- Channel Bar
 	local active_channel = game_data.active_channel
