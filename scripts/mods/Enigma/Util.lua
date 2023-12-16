@@ -161,6 +161,65 @@ enigma.get_level_progress = function(self)
     return nil
 end
 
+enigma.get_units_in_sphere = function(self, center, radius, unit_type)
+    unit_type = unit_type or "all"
+    local results = {}
+    enigma:info("Getting units in sphere. radius="..tostring(radius)..", center="..tostring(center))
+    if unit_type == "all" or unit_type == "ai" then
+        AiUtils.broadphase_query(center, radius, results)
+        enigma:info("ai units in radius: "..tostring(#results))
+    end
+    if unit_type == "all" or unit_type == "player" then
+        local side = Managers.state.side:get_side_from_name("heroes")
+        local other_player_positions = side.PLAYER_AND_BOT_POSITIONS
+    
+        for i = 1, #other_player_positions do
+            local other_player_position = other_player_positions[i]
+            local radius_squared = math.pow(radius, 2)
+            local distance_squared = Vector3.distance_squared(center, other_player_position)
+    
+            if distance_squared <= radius_squared then
+                table.insert(results, side.PLAYER_AND_BOT_UNITS[i])
+                local breed = Unit.get_data(side.PLAYER_AND_BOT_UNITS[i], "breed")
+                enigma:info("player unit in radius: "..tostring(breed and breed.name or "unknown career"))
+            end
+        end
+    end
+    return results
+end
+
+enigma.get_ai_units_in_sphere = function(self, center, radius)
+    return enigma:get_units_in_sphere(center, radius, "ai")
+end
+enigma.get_player_and_bot_units_in_sphere = function(self, center, radius)
+    return enigma:get_units_in_sphere(center, radius, "player")
+end
+enigma.get_ai_units_around_unit = function(self, unit, radius)
+    local center = Unit.world_position(unit, 0)
+    return enigma:get_ai_units_in_sphere(center, radius)
+end
+enigma.get_player_and_bot_units_around_unit = function(self, unit, radius)
+    local center = Unit.world_position(unit, 0)
+    return enigma:get_player_and_bot_units_in_sphere(center, radius)
+end
+
+enigma._hit_enemy = function(self, hit_unit, attacker_unit, hit_zone_name, hit_position, attack_direction, damage_source, power_level, damage_profile, target_index, boost_curve_multiplier, is_critical_strike, can_damage, can_stagger, blocking, shield_breaking_hit, backstab_multiplier, first_hit, total_hits)
+    local hit_ragdoll_actor = nil
+    DamageUtils.server_apply_hit(Managers.time:time("game"), attacker_unit, hit_unit, hit_zone_name, hit_position, attack_direction, hit_ragdoll_actor, damage_source, power_level, damage_profile, target_index, boost_curve_multiplier, is_critical_strike, can_damage, can_stagger, blocking, shield_breaking_hit, backstab_multiplier, first_hit, total_hits)
+end
+enigma.hit_enemy = function(hit_unit, attacking_player_unit, hit_zone_name, damage_profile, power_multiplier, is_critical_strike, break_shields)
+    power_multiplier = power_multiplier or 1
+    hit_zone_name = hit_zone_name or "full"
+    damage_profile = damage_profile or DamageProfileTemplates.default
+    local career_ext = ScriptUnit.extension(attacking_player_unit, "career_system")
+    local power_level = career_ext and career_ext:get_career_power_level() or 0
+    power_level = power_level * power_multiplier
+    local hit_position = Unit.world_position(hit_unit, 0)
+    local attacker_breed = career_ext._breed and career_ext._breed.name or "debug"
+
+    enigma:_hit_enemy(hit_unit, attacking_player_unit, hit_zone_name, hit_position, Vector3.zero(), attacker_breed, power_level, damage_profile, 0, power_multiplier, is_critical_strike, true, true, false, break_shields, 1, false, 0)
+end
+
 -- File IO
 enigma.save = function(self, file_name, data, callback)
     return Managers.save:auto_save(file_name, data, callback, true)

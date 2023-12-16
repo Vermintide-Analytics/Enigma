@@ -153,7 +153,7 @@ return {
         en = "Cyclone Strike"
     },
     base_cyclone_strike_description = {
-        en = "Strike all nearby enemies with a light attack headshot"
+        en = "Strike all nearby enemies with an instantaneous sweep"
     },
     
 

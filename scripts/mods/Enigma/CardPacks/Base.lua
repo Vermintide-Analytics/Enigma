@@ -238,9 +238,12 @@ pack_handle.register_attack_cards({
         rarity = RARE,
         cost = 0,
         texture = "enigma_base_cyclone_strike",
-        on_play_local = function(card)
-            -- TODO implement card
-            enigma:echo(card.name.." "..enigma:localize("not_yet_implemented"))
+        on_play_server = function(card)
+            local us = card.context.unit
+            local nearby_ai_units = enigma:get_ai_units_around_unit(us, 15)
+            for _,unit in ipairs(nearby_ai_units) do
+                enigma.hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_slashing_linesman, 5)
+            end
         end,
         description_lines = {
             {
