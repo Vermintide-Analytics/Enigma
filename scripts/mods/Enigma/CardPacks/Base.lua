@@ -240,7 +240,7 @@ pack_handle.register_attack_cards({
         texture = "enigma_base_cyclone_strike",
         on_play_server = function(card)
             local us = card.context.unit
-            local nearby_ai_units = enigma:get_ai_units_around_unit(us, 15)
+            local nearby_ai_units = enigma:get_ai_units_around_unit(us, 6)
             for _,unit in ipairs(nearby_ai_units) do
                 enigma.hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_slashing_linesman, 5)
             end
