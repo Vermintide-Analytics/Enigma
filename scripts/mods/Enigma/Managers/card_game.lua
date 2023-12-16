@@ -1152,10 +1152,13 @@ enigma:network_register(net.event_new_card_shuffled_into_draw_pile, function(pee
     table.insert(peer_data.draw_pile, index, card)
 end)
 cgm.shuffle_new_card_into_draw_pile = function(self, card_id)
+    if not self:is_in_game() then
+        return false, "not_in_game"
+    end
     local template = enigma.managers.card_template:get_card_from_id(card_id)
     if not template then
         enigma:echo("Could not add card to draw pile, card not defined. ("..card_id..")")
-        return
+        return false, "invalid_card_id"
     end
     local draw_pile_size = #self.local_data.draw_pile
     local index = math.floor(enigma:random_range_int(1, draw_pile_size + 1))
@@ -1199,6 +1202,12 @@ enigma:network_register(net.event_card_shuffled_into_draw_pile, function(peer_id
     table.insert(peer_data.draw_pile, destination_index, card)
 end)
 cgm.shuffle_card_into_draw_pile = function(self, card)
+    if not card then
+        return false, "invalid_card"
+    end
+    if not self:is_in_game() then
+        return false, "not_in_game"
+    end
     remove_card_from_pile(self.local_data[card.location], card)
     if cgm.is_server and card.on_shuffle_into_draw_pile_server then
         card:on_shuffle_into_draw_pile_server(self.local_data)
@@ -1223,7 +1232,6 @@ cgm.shuffle_card_into_draw_pile = function(self, card)
         card:on_location_changed_local(original_pile, enigma.CARD_LOCATION.draw_pile)
     end
     enigma:network_send(net.event_card_shuffled_into_draw_pile, "others", original_pile, original_pile_index, index)
-    enigma:info("Shuffled card ["..card.id.."] into draw pile")
     return true
 end
 
