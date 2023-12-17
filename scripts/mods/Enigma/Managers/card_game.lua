@@ -881,27 +881,7 @@ enigma:network_register(net.event_card_drawn, function(peer_id)
     if not peer_data then
         return
     end
-    
-    local card = table.remove(peer_data.draw_pile)
-    enigma:info(format_drawing_card(card, peer_id))
-    if cgm.is_server and card.on_draw_server then
-        card:on_draw_server()
-    end
-    if card.on_draw_remote then
-        card:on_draw_remote()
-    end
-    table.insert(peer_data.hand, card)
-    card.location = enigma.CARD_LOCATION.hand
-    if cgm.is_server and card.on_location_changed_server then
-        card:on_location_changed_server(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
-    end
-    if card.on_location_changed_remote then
-        card:on_location_changed_remote(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
-    end
-    if cgm.is_server then
-        invoke_card_event_callbacks_for_all_piles(peer_data, "on_any_card_drawn_server", card)
-    end
-    invoke_card_event_callbacks_for_all_piles(peer_data, "on_any_card_drawn_remote", card)
+    handle_card_drawn("remote", peer_data)
 end)
 cgm.draw_card = function(self, free)
     if not self:is_in_game() then
@@ -1161,7 +1141,7 @@ local handle_shuffle_card_into_draw_pile = function(context, data, location, ind
 
     add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, new_index)
     if cgm.is_server and card.on_location_changed_server then
-        card:on_location_changed_server(location, enigma.CARD_LOCATION.hand)
+        card:on_location_changed_server(location, enigma.CARD_LOCATION.draw_pile)
     end
     local on_location_changed_func_name = "on_location_changed_"..context
     if card[on_location_changed_func_name] then
