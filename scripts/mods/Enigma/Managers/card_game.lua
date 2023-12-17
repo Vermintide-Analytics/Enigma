@@ -460,7 +460,7 @@ cgm.start_game = function(self)
 
     enigma.managers.warp:start_game()
 
-    self:try_draw_card(true)
+    self:draw_card(true)
 end
 
 cgm.end_game = function(self)
@@ -859,7 +859,7 @@ enigma:network_register(net.event_card_drawn, function(peer_id)
     end
     invoke_card_event_callbacks_for_all_piles(peer_data, "on_any_card_drawn_remote", card)
 end)
-cgm.try_draw_card = function(self, free)
+cgm.draw_card = function(self, free)
     if not self:is_in_game() then
         return false, "not_in_game"
     end
@@ -932,7 +932,7 @@ enigma:network_register(net.event_card_played, function(peer_id, index, location
         end
     end
 end)
-cgm._try_play_card_at_index_from_location = function(self, index, location, skip_warpstone_cost, play_type)
+cgm._play_card_at_index_from_location = function(self, index, location, skip_warpstone_cost, play_type)
     play_type = play_type or "auto"
     if not enigma.can_play_from_location(location) then
         enigma:warning("Cannot play cards from "..tostring(location))
@@ -986,7 +986,7 @@ cgm._try_play_card_at_index_from_location = function(self, index, location, skip
     return handle_local_card_played(card, index, location, skip_warpstone_cost)
 end
 
-cgm.try_play_card_from_hand = function(self, card_index, skip_warpstone_cost, play_type)
+cgm.play_card_from_hand = function(self, card_index, skip_warpstone_cost, play_type)
     play_type = play_type or "auto"
     if not self:is_in_game() then
         if play_type == "auto" then
@@ -1003,10 +1003,10 @@ cgm.try_play_card_from_hand = function(self, card_index, skip_warpstone_cost, pl
         return false, "invalid_card"
     end
 
-    return self:_try_play_card_at_index_from_location(card_index, enigma.CARD_LOCATION.hand, skip_warpstone_cost, play_type)
+    return self:_play_card_at_index_from_location(card_index, enigma.CARD_LOCATION.hand, skip_warpstone_cost, play_type)
 end
 
-cgm.try_play_card_from_draw_pile = function(self, card_index, skip_warpstone_cost)
+cgm.play_card_from_draw_pile = function(self, card_index, skip_warpstone_cost)
     if not self:is_in_game() then
         enigma:warning("Attempted to auto play a card from the draw pile when not in a game")
         return false, "not_in_game"
@@ -1020,10 +1020,10 @@ cgm.try_play_card_from_draw_pile = function(self, card_index, skip_warpstone_cos
         return false, "invalid_card"
     end
 
-    return self:_try_play_card_at_index_from_location(card_index, enigma.CARD_LOCATION.draw_pile, skip_warpstone_cost, "auto")
+    return self:_play_card_at_index_from_location(card_index, enigma.CARD_LOCATION.draw_pile, skip_warpstone_cost, "auto")
 end
 
-cgm.try_play_card = function(self, card, skip_warpstone_cost, play_type)
+cgm.play_card = function(self, card, skip_warpstone_cost, play_type)
     play_type = play_type or "auto"
     if not card then
         enigma:warning("Tried to play nil card")
@@ -1041,7 +1041,7 @@ cgm.try_play_card = function(self, card, skip_warpstone_cost, play_type)
     end
     local pile = self.local_data[card.location]
     local index = pile and get_card_index_in_pile(pile, card)
-    return self:_try_play_card_at_index_from_location(index, card.location, skip_warpstone_cost, play_type)
+    return self:_play_card_at_index_from_location(index, card.location, skip_warpstone_cost, play_type)
 end
 
 enigma:network_register(net.event_card_discarded, function(peer_id, index, location, discard_type)
@@ -1072,7 +1072,7 @@ enigma:network_register(net.event_card_discarded, function(peer_id, index, locat
         card:on_location_changed_remote(location, enigma.CARD_LOCATION.discard_pile)
     end
 end)
-cgm.try_discard_card_from_hand = function(self, index, discard_type)
+cgm.discard_card_from_hand = function(self, index, discard_type)
     if not self:is_in_game() then
         if discard_type == "auto" then
             enigma:warning("Attempted to auto discard a card when not in a game")
@@ -1090,7 +1090,7 @@ cgm.try_discard_card_from_hand = function(self, index, discard_type)
     end
     handle_local_card_discarded(card, discard_type)
 end
-cgm.try_discard_card_from_draw_pile = function(self, index, discard_type)
+cgm.discard_card_from_draw_pile = function(self, index, discard_type)
     if not self:is_in_game() then
         if discard_type == "auto" then
             enigma:warning("Attempted to auto discard a card when not in a game")
@@ -1108,7 +1108,7 @@ cgm.try_discard_card_from_draw_pile = function(self, index, discard_type)
     end
     handle_local_card_discarded(card, discard_type)
 end
-cgm.try_discard_card = function(self, card, discard_type)
+cgm.discard_card = function(self, card, discard_type)
     discard_type = discard_type or "auto"
     if not card then
         enigma:warning("Tried to discard nil card")

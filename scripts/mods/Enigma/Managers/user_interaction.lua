@@ -13,7 +13,7 @@ end
 
 enigma.draw_card_hotkey_pressed = function()
     if forbid_keybinds() then return end
-    enigma.managers.game:try_draw_card()
+    enigma.managers.game:draw_card()
 end
 
 enigma.card_mode_key_pressed = function(down)
@@ -45,14 +45,14 @@ for i=1,5 do
         if not enigma.card_mode then
             return
         end
-        enigma.managers.game:try_play_card_from_hand(i, false, "manual")
+        enigma.managers.game:play_card_from_hand(i, false, "manual")
         if uim.hide_card_mode_on_card_play then
             enigma.card_mode = false
         end
     end
     enigma[quick_hotkey_func_name] = function()
         if forbid_keybinds() then return end
-        enigma.managers.game:try_play_card_from_hand(i, false, "manual")
+        enigma.managers.game:play_card_from_hand(i, false, "manual")
         if uim.hide_card_mode_on_card_play then
             enigma.card_mode = false
         end

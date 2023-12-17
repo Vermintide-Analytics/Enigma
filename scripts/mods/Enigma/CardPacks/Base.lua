@@ -303,7 +303,7 @@ pack_handle.register_ability_cards({
                 end
                 if disabled_unit == card.context.unit then
                     card.disabler_unit = disabler
-                    game:try_play_card(card)
+                    game:play_card(card)
                 end
             end
         },
@@ -336,7 +336,7 @@ pack_handle.register_ability_cards({
                 end
                 if disabled_unit == card.context.unit then
                     card.disabler_unit = disabler
-                    game:try_play_card(card)
+                    game:play_card(card)
                 end
             end
         },
@@ -423,14 +423,14 @@ pack_handle.register_ability_cards({
                 return -- If no other cards in hand... nothing happens! Too bad!
             end
             local card_index = enigma:random_range_int(1, hand_size)
-            game:try_play_card_from_hand(card_index, true)
+            game:play_card_from_hand(card_index, true)
         end,
         update_local = function(card, dt)
             if card:is_in_hand() then
                 card.time_until_auto_play_chance = card.time_until_auto_play_chance - dt
                 if card.time_until_auto_play_chance <= 0 then
                     if enigma:test_chance(card.auto_play_chance) then
-                        game:try_play_card(card)
+                        game:play_card(card)
                     end
                     card.time_until_auto_play_chance = card.time_until_auto_play_chance + card.auto_play_chance_interval
                 end
@@ -467,7 +467,7 @@ pack_handle.register_ability_cards({
                 if damaged_unit ~= card.context.unit or damage_amount < 60 then
                     return
                 end
-                game:try_play_card(card)
+                game:play_card(card)
             end
         },
         description_lines = {
@@ -864,7 +864,7 @@ pack_handle.register_chaos_cards({
                 local previous_int_seconds = card.remaining_infection_duration_int
                 card.remaining_infection_duration_int = math.ceil(card.remaining_infection_duration)
                 if card.remaining_infection_duration <= 0 then
-                    local played = game:try_play_card(card)
+                    local played = game:play_card(card)
                     if not played then
                         card.remaining_infection_duration = 1 -- If we couldn't play the card for some reason, try again in 1 second
                     end
