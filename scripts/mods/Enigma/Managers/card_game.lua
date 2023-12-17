@@ -17,6 +17,23 @@ local net = {
     sync_player_accumulated_stagger = "sync_player_accumulated_stagger",
 }
 
+local cgm = {
+    local_data = {},
+    peer_data = {},
+
+    data_by_unit = {},
+
+    level_progress_card_draw = {
+        adventure = 15,
+        deus = 9
+    }
+}
+cgm.local_data = nil -- Initialize as table then set to null to shut up the Lua diagnostics complaining about accessing fields from nil
+enigma.managers.game = cgm
+
+-------------
+-- LOGGING --
+-------------
 local format_card_event_log = function(card, event, remote_peer_id)
     local context = remote_peer_id ~= enigma:local_peer_id() and "Peer: "..tostring(remote_peer_id) or "local"
     return "["..context.."] "..event.." "..card.id
@@ -34,20 +51,10 @@ local format_shuffling_card_into_draw_pile = function(card, remote_peer_id)
     return format_card_event_log(card, "SHUFFLING INTO DRAW PILE", remote_peer_id)
 end
 
-local cgm = {
-    local_data = {},
-    peer_data = {},
 
-    data_by_unit = {},
-
-    level_progress_card_draw = {
-        adventure = 15,
-        deus = 9
-    }
-}
-cgm.local_data = nil -- Initialize as table then set to null to shut up the Lua diagnostics complaining about accessing fields from nil
-enigma.managers.game = cgm
-
+---------------------------
+-- DIFFICULTY ADJUSTMENT --
+---------------------------
 local chaos_card_difficulty_weight = {
     [enigma.CARD_RARITY.common] = 3,
     [enigma.CARD_RARITY.rare] = 5,
@@ -117,6 +124,10 @@ local add_chaos_cards_based_on_added_difficulty = function(card_ids)
     enigma:info("TOTAL CHAOS CARDS ADDED: "..tostring(added_cards))
 end
 
+
+----------------
+-- LOCAL UTIL --
+----------------
 local get_card_index_in_pile = function(pile, card)
     local ind
     for i,v in ipairs(pile) do
@@ -176,160 +187,6 @@ local invoke_card_event_callbacks_for_all_piles = function(data, func_name, ...)
     invoke_card_event_callbacks(data.hand, func_name, ...)
     invoke_card_event_callbacks(data.discard_pile, func_name, ...)
 end
-
-local handle_card_drawn = function(context, data)
-    local card = table.remove(data.draw_pile)
-    enigma:info(format_drawing_card(card, data.peer_id))
-    if cgm.is_server and card.on_draw_server then
-        card:on_draw_server()
-    end
-    local on_draw_func_name = "on_draw_"..context
-    if card[on_draw_func_name] then
-        card[on_draw_func_name](card)
-    end
-    add_card_to_pile(data, enigma.CARD_LOCATION.hand, card)
-    if cgm.is_server then
-        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_drawn_server", card)
-    end
-    local on_any_card_drawn_func_name = "on_any_card_drawn_"..context
-    invoke_card_event_callbacks_for_all_piles(data, on_any_card_drawn_func_name, card)
-    if cgm.is_server and card.on_location_changed_server then
-        card:on_location_changed_server(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
-    end
-    local on_location_changed_func_name = "on_location_changed_"..context
-    if card[on_location_changed_func_name] then
-        card[on_location_changed_func_name](card, enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
-    end
-end
-local handle_local_card_drawn = function(free)
-    if not free then
-        cgm.local_data.available_card_draws = cgm.local_data.available_card_draws - 1
-    end
-    handle_card_drawn("local", cgm.local_data)
-
-    enigma:network_send(net.event_card_drawn, "others")
-    return true
-end
-
-local handle_card_played = function(context, data, location, index, play_type)
-    local card = data[location][index]
-    if not card then
-        enigma:warning("handle_card_played could not find card in "..tostring(location).." at index "..tostring(index))
-        return false
-    end
-
-    enigma:info(format_playing_card(card, data.peer_id))
-
-    local can_expend_charge = card.charges and card.charges > 1
-    if not can_expend_charge then
-        remove_card_from_pile(data, card.location, card)
-    end
-
-    if cgm.is_server and card.on_play_server then
-        card:on_play_server(play_type)
-    end
-    local on_play_func_name = "on_play_"..context
-    if card[on_play_func_name] then
-        card[on_play_func_name](card, play_type)
-    end
-    if cgm.is_server then
-        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_played_server", card)
-    end
-    local any_card_played_func = "on_any_card_played_"..context
-    invoke_card_event_callbacks_for_all_piles(data, any_card_played_func, card)
-
-    card.times_played = card.times_played + 1
-    if card.duration then
-        table.insert(card.active_durations, 1, card.duration)
-    end
-
-    if can_expend_charge then
-        card.charges = card.charges - 1
-        card:set_dirty()
-    else
-        local destination_pile = enigma.CARD_LOCATION.discard_pile
-        if card.ephemeral then
-            destination_pile = enigma.CARD_LOCATION.out_of_play_pile
-        end
-
-        if card.infinite and not card.ephemeral then
-            add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, card, 1) -- Put at bottom of draw pile
-        else
-            add_card_to_pile(data, destination_pile, card)
-        end
-        if cgm.is_server and card.on_location_changed_server then
-            card:on_location_changed_server(location, destination_pile)
-        end
-        local on_location_changed_func_name = "on_location_changed_"..context
-        if card[on_location_changed_func_name] then
-            card[on_location_changed_func_name](card, location, destination_pile)
-        end
-    end
-
-    return not can_expend_charge
-end
-local handle_local_card_played = function(card, location, index, skip_warpstone_cost, play_type)
-    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(card.cost) then
-        if play_type == "manual" then
-            enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
-        end
-        return
-    end
-    if not skip_warpstone_cost then
-        enigma.managers.warp:pay_cost(card.cost, "playing "..tostring(card.id))
-    else
-        enigma:info("Skipping warpstone cost for playing "..tostring(card.id))
-    end
-    
-    local moved = handle_card_played("local", cgm.local_data, location, index, play_type)
-    if location == enigma.CARD_LOCATION.hand and moved then
-        enigma.managers.ui.hud_data.hand_indexes_just_removed[index] = true
-        enigma.managers.ui.card_mode_ui_data.hand_indexes_just_removed[index] = true
-    end
-
-    enigma:network_send(net.event_card_played, "others", location, index, play_type)
-    return true
-end
-
-local handle_card_discarded = function(context, data, location, index, discard_type)
-    local card = data[location][index]
-
-    enigma:info(format_discarding_card(card, data.peer_id))
-
-    remove_card_from_pile(data, location, card)
-    if cgm.is_server and card.on_discard_server then
-        card:on_discard_server(data, discard_type)
-    end
-    local on_discard_func_name = "on_discard_"..context
-    if card[on_discard_func_name] then
-        card[on_discard_func_name](card, data, discard_type)
-    end
-    if cgm.is_server then
-        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_discarded_server", card)
-    end
-    local on_any_card_discarded_func_name = "on_any_card_discarded_"..context
-    invoke_card_event_callbacks_for_all_piles(data, on_any_card_discarded_func_name, card)
-
-    local destination_pile = enigma.CARD_LOCATION.discard_pile
-    add_card_to_pile(data, destination_pile, card)
-    if cgm.is_server and card.on_location_changed_server then
-        card:on_location_changed_server(location, destination_pile)
-    end
-    local on_location_changed_func_name = "on_location_changed_"..context
-    if card[on_location_changed_func_name] then
-        card[on_location_changed_func_name](card, location, destination_pile)
-    end
-end
-local handle_local_card_discarded = function(card, discard_type)
-    local location, index = get_card_location(card)
-
-    handle_card_discarded("local", cgm.local_data, location, index, discard_type)
-    
-    enigma:network_send(net.event_card_discarded, "others", location, index, discard_type)
-    return true
-end
-
-cgm.game_state = nil
 
 enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_name, card_ids_in_deck)
     local peer_data = {
@@ -524,6 +381,473 @@ cgm.end_game = function(self)
     enigma.managers.event:remove_all_card_event_callbacks()
 end
 
+----------
+-- DRAW --
+----------
+local handle_card_drawn = function(context, data)
+    local card = table.remove(data.draw_pile)
+    enigma:info(format_drawing_card(card, data.peer_id))
+    if cgm.is_server and card.on_draw_server then
+        card:on_draw_server()
+    end
+    local on_draw_func_name = "on_draw_"..context
+    if card[on_draw_func_name] then
+        card[on_draw_func_name](card)
+    end
+    add_card_to_pile(data, enigma.CARD_LOCATION.hand, card)
+    if cgm.is_server then
+        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_drawn_server", card)
+    end
+    local on_any_card_drawn_func_name = "on_any_card_drawn_"..context
+    invoke_card_event_callbacks_for_all_piles(data, on_any_card_drawn_func_name, card)
+    if cgm.is_server and card.on_location_changed_server then
+        card:on_location_changed_server(enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
+    end
+    local on_location_changed_func_name = "on_location_changed_"..context
+    if card[on_location_changed_func_name] then
+        card[on_location_changed_func_name](card, enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
+    end
+end
+local handle_local_card_drawn = function(free)
+    if not free then
+        cgm.local_data.available_card_draws = cgm.local_data.available_card_draws - 1
+    end
+    handle_card_drawn("local", cgm.local_data)
+
+    enigma:network_send(net.event_card_drawn, "others")
+    return true
+end
+enigma:network_register(net.event_card_drawn, function(peer_id)
+    local peer_data = cgm.peer_data[peer_id]
+    if not peer_data then
+        return
+    end
+    handle_card_drawn("remote", peer_data)
+end)
+cgm.draw_card = function(self, free)
+    if not self:is_in_game() then
+        return false, "not_in_game"
+    end
+    if not free and self.local_data.available_card_draws < 1 then
+        enigma.managers.ui.time_since_available_draw_action_invalid = 0
+        return false, "not_enough_card_draw"
+    end
+    if #self.local_data.draw_pile < 1 then
+        enigma.managers.ui.time_since_draw_pile_action_invalid = 0
+        return false, "draw_pile_empty"
+    end
+    if #self.local_data.hand > 4 then
+        enigma.managers.ui.time_since_hand_size_action_invalid = 0
+        return false, "hand_full"
+    end
+    handle_local_card_drawn(free)
+    return true
+end
+
+
+----------
+-- PLAY --
+----------
+local handle_card_played = function(context, data, location, index, play_type)
+    local card = data[location][index]
+    if not card then
+        enigma:warning("handle_card_played could not find card in "..tostring(location).." at index "..tostring(index))
+        return false
+    end
+
+    enigma:info(format_playing_card(card, data.peer_id))
+
+    local can_expend_charge = card.charges and card.charges > 1
+    if not can_expend_charge then
+        remove_card_from_pile(data, card.location, card)
+    end
+
+    if cgm.is_server and card.on_play_server then
+        card:on_play_server(play_type)
+    end
+    local on_play_func_name = "on_play_"..context
+    if card[on_play_func_name] then
+        card[on_play_func_name](card, play_type)
+    end
+    if cgm.is_server then
+        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_played_server", card)
+    end
+    local any_card_played_func = "on_any_card_played_"..context
+    invoke_card_event_callbacks_for_all_piles(data, any_card_played_func, card)
+
+    card.times_played = card.times_played + 1
+    if card.duration then
+        table.insert(card.active_durations, 1, card.duration)
+    end
+
+    if can_expend_charge then
+        card.charges = card.charges - 1
+        card:set_dirty()
+    else
+        local destination_pile = enigma.CARD_LOCATION.discard_pile
+        if card.ephemeral then
+            destination_pile = enigma.CARD_LOCATION.out_of_play_pile
+        end
+
+        if card.infinite and not card.ephemeral then
+            add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, card, 1) -- Put at bottom of draw pile
+        else
+            add_card_to_pile(data, destination_pile, card)
+        end
+        if cgm.is_server and card.on_location_changed_server then
+            card:on_location_changed_server(location, destination_pile)
+        end
+        local on_location_changed_func_name = "on_location_changed_"..context
+        if card[on_location_changed_func_name] then
+            card[on_location_changed_func_name](card, location, destination_pile)
+        end
+    end
+
+    return not can_expend_charge
+end
+local handle_local_card_played = function(card, location, index, skip_warpstone_cost, play_type)
+    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(card.cost) then
+        if play_type == "manual" then
+            enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
+        end
+        return
+    end
+    if not skip_warpstone_cost then
+        enigma.managers.warp:pay_cost(card.cost, "playing "..tostring(card.id))
+    else
+        enigma:info("Skipping warpstone cost for playing "..tostring(card.id))
+    end
+    
+    local moved = handle_card_played("local", cgm.local_data, location, index, play_type)
+    if location == enigma.CARD_LOCATION.hand and moved then
+        enigma.managers.ui.hud_data.hand_indexes_just_removed[index] = true
+        enigma.managers.ui.card_mode_ui_data.hand_indexes_just_removed[index] = true
+    end
+
+    enigma:network_send(net.event_card_played, "others", location, index, play_type)
+    return true
+end
+enigma:network_register(net.event_card_played, function(peer_id, location, index, play_type)
+    local peer_data = cgm.peer_data[peer_id]
+    if not peer_data then
+        return
+    end
+
+    handle_card_played("remote", peer_data, location, index, play_type)
+end)
+cgm._play_card_at_index_from_location = function(self, location, index, skip_warpstone_cost, play_type)
+    play_type = play_type or "auto"
+    if not enigma.can_play_from_location(location) then
+        enigma:warning("Cannot play cards from "..tostring(location))
+        return false, "invalid_card_location"
+    end
+    if self.local_data.active_channel then
+        enigma:info("Cannot play card, currently channeling")
+        return false, "currently_channeling"
+    end
+    local card = self.local_data[location][index]
+    if not card then
+        if play_type == "manual" then 
+            enigma.managers.ui.time_since_hand_size_action_invalid = 0
+        else
+            enigma:warning("Tried to automatically play card at index "..tostring(index).." in "..tostring(location)..", but that does not exist")
+        end
+        return false, "invalid_card"
+    end
+
+    if card.unplayable and play_type == "manual" then
+        enigma:info("Cannot play unplayable card manually")
+        return false, "card_unplayable"
+    end
+
+    if not card.condition_met then
+        if play_type == "manual" then
+            enigma:info("Could not play "..card.name..", condition not met")
+        else
+            enigma:debug("Attempted to automatically play "..card.name.." but condition not met")
+        end
+        return false, "card_condition_not_met"
+    end
+
+    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(card.cost) then
+        if play_type == "manual" then
+            enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
+        end
+        return false, "not_enough_warpstone"
+    end
+
+    if play_type ~= "auto" and card.channel and card.channel > 0 then
+        self.local_data.active_channel = {
+            card = card,
+            total_duration = card.channel,
+            remaining_duration = card.channel,
+            play_type = play_type,
+            skip_warpstone_cost = skip_warpstone_cost
+        }
+        return
+    end
+    return handle_local_card_played(card, location, index, skip_warpstone_cost)
+end
+
+cgm.play_card_from_hand = function(self, card_index, skip_warpstone_cost, play_type)
+    play_type = play_type or "auto"
+    if not self:is_in_game() then
+        if play_type == "auto" then
+            enigma:warning("Attempted to auto play a card when not in a game")
+        end
+        return false, "not_in_game"
+    end
+    if not self.local_data.hand[card_index] then
+        if play_type == "manual" then 
+            enigma.managers.ui.time_since_hand_size_action_invalid = 0
+        else
+            enigma:warning("Tried to automatically play card at index "..tostring(card_index).." from the hand, but that does not exist")
+        end
+        return false, "invalid_card"
+    end
+
+    return self:_play_card_at_index_from_location(enigma.CARD_LOCATION.hand, card_index, skip_warpstone_cost, play_type)
+end
+
+cgm.play_card_from_draw_pile = function(self, card_index, skip_warpstone_cost)
+    if not self:is_in_game() then
+        enigma:warning("Attempted to auto play a card from the draw pile when not in a game")
+        return false, "not_in_game"
+    end
+    if type(card_index) ~= "number" then
+        enigma:echo("Attempted to play card from draw pile using non-number index: " .. tostring(card_index))
+        return false, "invalid_card"
+    end
+    if not self.local_data.draw_pile[card_index] then
+        enigma:echo("Attempted to play card "..card_index.." from draw pile, but draw pile does not have a card at that index")
+        return false, "invalid_card"
+    end
+
+    return self:_play_card_at_index_from_location(enigma.CARD_LOCATION.draw_pile, card_index, skip_warpstone_cost, "auto")
+end
+
+cgm.play_card = function(self, card, skip_warpstone_cost, play_type)
+    play_type = play_type or "auto"
+    if not card then
+        enigma:warning("Tried to play nil card")
+        return false, "invalid_card"
+    end
+    if not self:is_in_game() then
+        if play_type == "auto" then
+            enigma:warning("Attempted to auto play a card when not in a game")
+        end
+        return false, "not_in_game"
+    end
+    if not enigma.can_play_from_location(card.location) then
+        enigma:warning("Attempted to play a card from the "..tostring(card.location)..". This is not allowed")
+        return false, "invalid_card_location"
+    end
+    local location, index = get_card_location(card)
+    return self:_play_card_at_index_from_location(location, index, skip_warpstone_cost, play_type)
+end
+
+
+-------------
+-- DISCARD --
+-------------
+local handle_card_discarded = function(context, data, location, index, discard_type)
+    local card = data[location][index]
+
+    enigma:info(format_discarding_card(card, data.peer_id))
+
+    remove_card_from_pile(data, location, card)
+    if cgm.is_server and card.on_discard_server then
+        card:on_discard_server(data, discard_type)
+    end
+    local on_discard_func_name = "on_discard_"..context
+    if card[on_discard_func_name] then
+        card[on_discard_func_name](card, data, discard_type)
+    end
+    if cgm.is_server then
+        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_discarded_server", card)
+    end
+    local on_any_card_discarded_func_name = "on_any_card_discarded_"..context
+    invoke_card_event_callbacks_for_all_piles(data, on_any_card_discarded_func_name, card)
+
+    local destination_pile = enigma.CARD_LOCATION.discard_pile
+    add_card_to_pile(data, destination_pile, card)
+    if cgm.is_server and card.on_location_changed_server then
+        card:on_location_changed_server(location, destination_pile)
+    end
+    local on_location_changed_func_name = "on_location_changed_"..context
+    if card[on_location_changed_func_name] then
+        card[on_location_changed_func_name](card, location, destination_pile)
+    end
+end
+local handle_local_card_discarded = function(card, discard_type)
+    local location, index = get_card_location(card)
+
+    handle_card_discarded("local", cgm.local_data, location, index, discard_type)
+    
+    enigma:network_send(net.event_card_discarded, "others", location, index, discard_type)
+    return true
+end
+enigma:network_register(net.event_card_discarded, function(peer_id, location, index, discard_type)
+    local peer_data = cgm.peer_data[peer_id]
+    if not peer_data then
+        return
+    end
+
+    handle_card_discarded("remote", peer_data, location, index, discard_type)
+end)
+cgm.discard_card_from_hand = function(self, index, discard_type)
+    if not self:is_in_game() then
+        if discard_type == "auto" then
+            enigma:warning("Attempted to auto discard a card when not in a game")
+        end
+        return false, "not_in_game"
+    end
+    discard_type = discard_type or "auto"
+    local location = enigma.CARD_LOCATION.hand
+    local card = self.local_data[location][index]
+    if not card then
+        if discard_type == "auto" then
+            enigma:info("Attempted to discard card at index "..tostring(index).." from "..location.." which only contains "..#self.local_data[location][index].. " cards")
+        end
+        return false, "invalid_card"
+    end
+    handle_local_card_discarded(card, discard_type)
+end
+cgm.discard_card_from_draw_pile = function(self, index, discard_type)
+    if not self:is_in_game() then
+        if discard_type == "auto" then
+            enigma:warning("Attempted to auto discard a card when not in a game")
+        end
+        return false, "not_in_game"
+    end
+    discard_type = discard_type or "auto"
+    local location = enigma.CARD_LOCATION.draw_pile
+    local card = self.local_data[location][index]
+    if not card then
+        if discard_type == "auto" then
+            enigma:info("Attempted to discard card at index "..tostring(index).." from "..location.." which only contains "..#self.local_data[location][index].. " cards")
+        end
+        return false, "invalid_card"
+    end
+    handle_local_card_discarded(card, discard_type)
+end
+cgm.discard_card = function(self, card, discard_type)
+    discard_type = discard_type or "auto"
+    if not card then
+        enigma:warning("Tried to discard nil card")
+        return false, "invalid_card"
+    end
+    if not self:is_in_game() then
+        if discard_type == "auto" then
+            enigma:warning("Attempted to auto discard a card when not in a game")
+        end
+        return false, "not_in_game"
+    end
+    if not enigma.can_discard_from_location(card.location) then
+        enigma:warning("Attempted to discard a card from the "..tostring(card.location)..". This is not allowed")
+        return false, "invalid_card_location"
+    end
+    handle_local_card_discarded(card, discard_type)
+    return true
+end
+
+
+----------------------------
+-- SHUFFLE INTO DRAW PILE --
+----------------------------
+local handle_shuffle_new_card_into_draw_pile = function(context, data, card_id, index)
+    local template = enigma.managers.card_template:get_card_from_id(card_id)
+    if not template then
+        enigma:warning("Could not add card to draw pile, card not defined. ("..card_id..")")
+        return false, "invalid_card_id"
+    end
+    local card = template:instance(data)
+    enigma:info(format_shuffling_card_into_draw_pile(card, data.peer_id))
+    add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, card, index)
+    if cgm.is_server and card.on_shuffle_into_draw_pile_server then
+        card:on_shuffle_into_draw_pile_server(data)
+    end
+    local on_shuffle_into_draw_pile_func_name = "on_shuffle_into_draw_pile_"..context
+    if card[on_shuffle_into_draw_pile_func_name] then
+        card[on_shuffle_into_draw_pile_func_name](card, data)
+    end
+end
+local handle_local_shuffle_new_card_into_draw_pile = function(card_id)
+    local draw_pile_size = #cgm.local_data.draw_pile
+    local index = math.floor(enigma:random_range_int(1, draw_pile_size + 1))
+    handle_shuffle_new_card_into_draw_pile("local", cgm.local_data, card_id, index)
+
+    enigma:network_send(net.event_new_card_shuffled_into_draw_pile, "others", card_id, index) 
+end
+enigma:network_register(net.event_new_card_shuffled_into_draw_pile, function(peer_id, card_id, index)
+    local peer_data = cgm.peer_data[peer_id]
+    if not peer_data then
+        return
+    end
+    handle_shuffle_new_card_into_draw_pile("remote", peer_data, card_id, index)
+end)
+cgm.shuffle_new_card_into_draw_pile = function(self, card_id)
+    if not self:is_in_game() then
+        return false, "not_in_game"
+    end
+    handle_local_shuffle_new_card_into_draw_pile(card_id)
+    return true
+end
+
+local handle_shuffle_card_into_draw_pile = function(context, data, location, index, new_index)
+    local card = data[location][index]
+    enigma:info(format_shuffling_card_into_draw_pile(card, data.peer_id))
+
+    remove_card_from_pile(data, card.location, card)
+    if cgm.is_server and card.on_shuffle_into_draw_pile_server then
+        card:on_shuffle_into_draw_pile_server(data)
+    end
+    local on_shuffle_into_draw_pile_func_name = "on_shuffle_into_draw_pile_"..context
+    if card[on_shuffle_into_draw_pile_func_name] then
+        card[on_shuffle_into_draw_pile_func_name](card, data)
+    end
+
+    add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, card)
+    if cgm.is_server and card.on_location_changed_server then
+        card:on_location_changed_server(location, enigma.CARD_LOCATION.draw_pile)
+    end
+    local on_location_changed_func_name = "on_location_changed_"..context
+    if card[on_location_changed_func_name] then
+        card[on_location_changed_func_name](card, location, enigma.CARD_LOCATION.draw_pile)
+    end
+end
+local handle_local_shuffle_card_into_draw_pile = function(card)
+    local location, index = get_card_location(card)
+
+    local draw_pile_size = #cgm.local_data.draw_pile
+    local new_index = math.floor(enigma:random_range_int(1, draw_pile_size + 1))
+
+    handle_shuffle_card_into_draw_pile("local", cgm.local_data, location, index, new_index)
+
+    enigma:network_send(net.event_card_shuffled_into_draw_pile, "others", location, index, new_index)
+end
+enigma:network_register(net.event_card_shuffled_into_draw_pile, function(peer_id, location, index, new_index)
+    local peer_data = cgm.peer_data[peer_id]
+    if not peer_data then
+        return
+    end
+    handle_shuffle_card_into_draw_pile("remote", peer_data, location, index, new_index)
+end)
+cgm.shuffle_card_into_draw_pile = function(self, card)
+    if not card then
+        return false, "invalid_card"
+    end
+    if not self:is_in_game() then
+        return false, "not_in_game"
+    end
+    handle_local_shuffle_card_into_draw_pile(card)
+    
+    return true
+end
+
+------------
+-- UPDATE --
+------------
 enigma:network_register(net.notify_card_condition_met_changed, function(peer_id, pile, index, satisfied)
     if peer_id ~= cgm.server_peer_id then
         enigma:warning("Only the server is allowed to tell us when a card condition met changes")
@@ -876,306 +1200,7 @@ cgm.update = function(self, dt)
     end
 end
 
-enigma:network_register(net.event_card_drawn, function(peer_id)
-    local peer_data = cgm.peer_data[peer_id]
-    if not peer_data then
-        return
-    end
-    handle_card_drawn("remote", peer_data)
-end)
-cgm.draw_card = function(self, free)
-    if not self:is_in_game() then
-        return false, "not_in_game"
-    end
-    if not free and self.local_data.available_card_draws < 1 then
-        enigma.managers.ui.time_since_available_draw_action_invalid = 0
-        return false, "not_enough_card_draw"
-    end
-    if #self.local_data.draw_pile < 1 then
-        enigma.managers.ui.time_since_draw_pile_action_invalid = 0
-        return false, "draw_pile_empty"
-    end
-    if #self.local_data.hand > 4 then
-        enigma.managers.ui.time_since_hand_size_action_invalid = 0
-        return false, "hand_full"
-    end
-    handle_local_card_drawn(free)
-    return true
-end
 
-
-enigma:network_register(net.event_card_played, function(peer_id, location, index, play_type)
-    local peer_data = cgm.peer_data[peer_id]
-    if not peer_data then
-        return
-    end
-
-    handle_card_played("remote", peer_data, location, index, play_type)
-end)
-cgm._play_card_at_index_from_location = function(self, location, index, skip_warpstone_cost, play_type)
-    play_type = play_type or "auto"
-    if not enigma.can_play_from_location(location) then
-        enigma:warning("Cannot play cards from "..tostring(location))
-        return false, "invalid_card_location"
-    end
-    if self.local_data.active_channel then
-        enigma:info("Cannot play card, currently channeling")
-        return false, "currently_channeling"
-    end
-    local card = self.local_data[location][index]
-    if not card then
-        if play_type == "manual" then 
-            enigma.managers.ui.time_since_hand_size_action_invalid = 0
-        else
-            enigma:warning("Tried to automatically play card at index "..tostring(index).." in "..tostring(location)..", but that does not exist")
-        end
-        return false, "invalid_card"
-    end
-
-    if card.unplayable and play_type == "manual" then
-        enigma:info("Cannot play unplayable card manually")
-        return false, "card_unplayable"
-    end
-
-    if not card.condition_met then
-        if play_type == "manual" then
-            enigma:info("Could not play "..card.name..", condition not met")
-        else
-            enigma:debug("Attempted to automatically play "..card.name.." but condition not met")
-        end
-        return false, "card_condition_not_met"
-    end
-
-    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(card.cost) then
-        if play_type == "manual" then
-            enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
-        end
-        return false, "not_enough_warpstone"
-    end
-
-    if play_type ~= "auto" and card.channel and card.channel > 0 then
-        self.local_data.active_channel = {
-            card = card,
-            total_duration = card.channel,
-            remaining_duration = card.channel,
-            play_type = play_type,
-            skip_warpstone_cost = skip_warpstone_cost
-        }
-        return
-    end
-    return handle_local_card_played(card, location, index, skip_warpstone_cost)
-end
-
-cgm.play_card_from_hand = function(self, card_index, skip_warpstone_cost, play_type)
-    play_type = play_type or "auto"
-    if not self:is_in_game() then
-        if play_type == "auto" then
-            enigma:warning("Attempted to auto play a card when not in a game")
-        end
-        return false, "not_in_game"
-    end
-    if not self.local_data.hand[card_index] then
-        if play_type == "manual" then 
-            enigma.managers.ui.time_since_hand_size_action_invalid = 0
-        else
-            enigma:warning("Tried to automatically play card at index "..tostring(card_index).." from the hand, but that does not exist")
-        end
-        return false, "invalid_card"
-    end
-
-    return self:_play_card_at_index_from_location(enigma.CARD_LOCATION.hand, card_index, skip_warpstone_cost, play_type)
-end
-
-cgm.play_card_from_draw_pile = function(self, card_index, skip_warpstone_cost)
-    if not self:is_in_game() then
-        enigma:warning("Attempted to auto play a card from the draw pile when not in a game")
-        return false, "not_in_game"
-    end
-    if type(card_index) ~= "number" then
-        enigma:echo("Attempted to play card from draw pile using non-number index: " .. tostring(card_index))
-        return false, "invalid_card"
-    end
-    if not self.local_data.draw_pile[card_index] then
-        enigma:echo("Attempted to play card "..card_index.." from draw pile, but draw pile does not have a card at that index")
-        return false, "invalid_card"
-    end
-
-    return self:_play_card_at_index_from_location(enigma.CARD_LOCATION.draw_pile, card_index, skip_warpstone_cost, "auto")
-end
-
-cgm.play_card = function(self, card, skip_warpstone_cost, play_type)
-    play_type = play_type or "auto"
-    if not card then
-        enigma:warning("Tried to play nil card")
-        return false, "invalid_card"
-    end
-    if not self:is_in_game() then
-        if play_type == "auto" then
-            enigma:warning("Attempted to auto play a card when not in a game")
-        end
-        return false, "not_in_game"
-    end
-    if not enigma.can_play_from_location(card.location) then
-        enigma:warning("Attempted to play a card from the "..tostring(card.location)..". This is not allowed")
-        return false, "invalid_card_location"
-    end
-    local location, index = get_card_location(card)
-    return self:_play_card_at_index_from_location(location, index, skip_warpstone_cost, play_type)
-end
-
-enigma:network_register(net.event_card_discarded, function(peer_id, location, index, discard_type)
-    local peer_data = cgm.peer_data[peer_id]
-    if not peer_data then
-        return
-    end
-
-    handle_card_discarded("remote", peer_data, location, index, discard_type)
-end)
-cgm.discard_card_from_hand = function(self, index, discard_type)
-    if not self:is_in_game() then
-        if discard_type == "auto" then
-            enigma:warning("Attempted to auto discard a card when not in a game")
-        end
-        return false, "not_in_game"
-    end
-    discard_type = discard_type or "auto"
-    local location = enigma.CARD_LOCATION.hand
-    local card = self.local_data[location][index]
-    if not card then
-        if discard_type == "auto" then
-            enigma:info("Attempted to discard card at index "..tostring(index).." from "..location.." which only contains "..#self.local_data[location][index].. " cards")
-        end
-        return false, "invalid_card"
-    end
-    handle_local_card_discarded(card, discard_type)
-end
-cgm.discard_card_from_draw_pile = function(self, index, discard_type)
-    if not self:is_in_game() then
-        if discard_type == "auto" then
-            enigma:warning("Attempted to auto discard a card when not in a game")
-        end
-        return false, "not_in_game"
-    end
-    discard_type = discard_type or "auto"
-    local location = enigma.CARD_LOCATION.draw_pile
-    local card = self.local_data[location][index]
-    if not card then
-        if discard_type == "auto" then
-            enigma:info("Attempted to discard card at index "..tostring(index).." from "..location.." which only contains "..#self.local_data[location][index].. " cards")
-        end
-        return false, "invalid_card"
-    end
-    handle_local_card_discarded(card, discard_type)
-end
-cgm.discard_card = function(self, card, discard_type)
-    discard_type = discard_type or "auto"
-    if not card then
-        enigma:warning("Tried to discard nil card")
-        return false, "invalid_card"
-    end
-    if not self:is_in_game() then
-        if discard_type == "auto" then
-            enigma:warning("Attempted to auto discard a card when not in a game")
-        end
-        return false, "not_in_game"
-    end
-    if not enigma.can_discard_from_location(card.location) then
-        enigma:warning("Attempted to discard a card from the "..tostring(card.location)..". This is not allowed")
-        return false, "invalid_card_location"
-    end
-    handle_local_card_discarded(card, discard_type)
-    return true
-end
-
-local handle_shuffle_new_card_into_draw_pile = function(context, data, card_id, index)
-    local template = enigma.managers.card_template:get_card_from_id(card_id)
-    if not template then
-        enigma:warning("Could not add card to draw pile, card not defined. ("..card_id..")")
-        return false, "invalid_card_id"
-    end
-    local card = template:instance(data)
-    enigma:info(format_shuffling_card_into_draw_pile(card, data.peer_id))
-    add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, card, index)
-    if cgm.is_server and card.on_shuffle_into_draw_pile_server then
-        card:on_shuffle_into_draw_pile_server(data)
-    end
-    local on_shuffle_into_draw_pile_func_name = "on_shuffle_into_draw_pile_"..context
-    if card[on_shuffle_into_draw_pile_func_name] then
-        card[on_shuffle_into_draw_pile_func_name](card, data)
-    end
-end
-local handle_local_shuffle_new_card_into_draw_pile = function(card_id)
-    local draw_pile_size = #cgm.local_data.draw_pile
-    local index = math.floor(enigma:random_range_int(1, draw_pile_size + 1))
-    handle_shuffle_new_card_into_draw_pile("local", cgm.local_data, card_id, index)
-
-    enigma:network_send(net.event_new_card_shuffled_into_draw_pile, "others", card_id, index) 
-end
-enigma:network_register(net.event_new_card_shuffled_into_draw_pile, function(peer_id, card_id, index)
-    local peer_data = cgm.peer_data[peer_id]
-    if not peer_data then
-        return
-    end
-    handle_shuffle_new_card_into_draw_pile("remote", peer_data, card_id, index)
-end)
-cgm.shuffle_new_card_into_draw_pile = function(self, card_id)
-    if not self:is_in_game() then
-        return false, "not_in_game"
-    end
-    handle_local_shuffle_new_card_into_draw_pile(card_id)
-    return true
-end
-
-local handle_shuffle_card_into_draw_pile = function(context, data, location, index, new_index)
-    local card = data[location][index]
-    enigma:info(format_shuffling_card_into_draw_pile(card))
-
-    remove_card_from_pile(data, card.location, card)
-    if cgm.is_server and card.on_shuffle_into_draw_pile_server then
-        card:on_shuffle_into_draw_pile_server(data)
-    end
-    local on_shuffle_into_draw_pile_func_name = "on_shuffle_into_draw_pile_"..context
-    if card[on_shuffle_into_draw_pile_func_name] then
-        card[on_shuffle_into_draw_pile_func_name](card, data)
-    end
-
-    add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, new_index)
-    if cgm.is_server and card.on_location_changed_server then
-        card:on_location_changed_server(location, enigma.CARD_LOCATION.draw_pile)
-    end
-    local on_location_changed_func_name = "on_location_changed_"..context
-    if card[on_location_changed_func_name] then
-        card[on_location_changed_func_name](card, location, enigma.CARD_LOCATION.draw_pile)
-    end
-end
-local handle_local_shuffle_card_into_draw_pile = function(card)
-    local location, index = get_card_location(card)
-
-    local draw_pile_size = #cgm.local_data.draw_pile
-    local new_index = math.floor(enigma:random_range_int(1, draw_pile_size + 1))
-
-    handle_shuffle_card_into_draw_pile("local", cgm.local_data, location, index, new_index)
-
-    enigma:network_send(net.event_card_shuffled_into_draw_pile, "others", location, index, new_index)
-end
-enigma:network_register(net.event_card_shuffled_into_draw_pile, function(peer_id, location, index, new_index)
-    local peer_data = cgm.peer_data[peer_id]
-    if not peer_data then
-        return
-    end
-    handle_shuffle_card_into_draw_pile("remote", peer_data, location, index, new_index)
-end)
-cgm.shuffle_card_into_draw_pile = function(self, card)
-    if not card then
-        return false, "invalid_card"
-    end
-    if not self:is_in_game() then
-        return false, "not_in_game"
-    end
-    handle_local_shuffle_card_into_draw_pile(card)
-    
-    return true
-end
 
 cgm.change_card_cost = function(self, card, new_cost)
     if type(card) ~= "table" then
