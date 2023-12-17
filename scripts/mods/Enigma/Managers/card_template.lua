@@ -40,13 +40,6 @@ local add_card_instance_functions = function(inst)
         end
         enigma.managers.game:sync_card_property(card, property, card[property])
     end
-    inst.rpc_all = function(card, func_name, ...)
-        if not func_name then
-            enigma:warning("Cannot invoke card rpc: "..tostring(func_name))
-            return
-        end
-        enigma.managers.game:_invoke_card_rpc("all", card, func_name, ...)
-    end
     inst.rpc_others = function(card, func_name, ...)
         if not func_name then
             enigma:warning("Cannot invoke card rpc: "..tostring(func_name))
