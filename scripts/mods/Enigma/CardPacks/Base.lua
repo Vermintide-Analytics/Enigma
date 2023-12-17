@@ -840,15 +840,10 @@ pack_handle.register_chaos_cards({
             end
             local selected_peer_id = peer_ids[enigma:random_range_int(1, #peer_ids)]
             card.infected_peer = selected_peer_id
-            card:sync_property("infected_peer")
+            card:rpc_peer(selected_peer_id, "become_infected")
         end,
-        on_property_synced = function(card, property, value)
-            if property == "infected_peer" then
-                if value == game.local_data.peer_id then
-                    -- We have been infected!
-                    game:shuffle_new_card_into_draw_pile(card.id)
-                end
-            end
+        become_infected = function(card)
+            game:shuffle_new_card_into_draw_pile(card.id)
         end,
         on_location_changed_local = function(card, old, new)
             if new == enigma.CARD_LOCATION.hand then

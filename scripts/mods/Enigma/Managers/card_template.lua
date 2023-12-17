@@ -32,6 +32,57 @@ local refresh_card_detail_localization = function(card)
     end
 end
 
+local add_card_instance_functions = function(inst)
+    inst.sync_property = function(card, property)
+        if not property then
+            enigma:warning("Cannot sync card property: "..tostring(property))
+            return
+        end
+        enigma.managers.game:sync_card_property(card, property, card[property])
+    end
+    inst.rpc_all = function(card, func_name, ...)
+        if not func_name then
+            enigma:warning("Cannot invoke card rpc: "..tostring(func_name))
+            return
+        end
+        enigma.managers.game:_invoke_card_rpc("all", card, func_name, ...)
+    end
+    inst.rpc_others = function(card, func_name, ...)
+        if not func_name then
+            enigma:warning("Cannot invoke card rpc: "..tostring(func_name))
+            return
+        end
+        enigma.managers.game:_invoke_card_rpc("others", card, func_name, ...)
+    end
+    inst.rpc_peer = function(card, peer_id, func_name, ...)
+        if not peer_id then
+            enigma:warning("Cannot invoke card rpc with no recipient: "..tostring(func_name))
+        end
+        if not func_name then
+            enigma:warning("Cannot invoke card rpc: "..tostring(func_name))
+            return
+        end
+        enigma.managers.game:_invoke_card_rpc(peer_id, card, func_name, ...)
+    end
+    inst.is_in_draw_pile = function(self)
+        return self.location == enigma.CARD_LOCATION.draw_pile
+    end
+    inst.is_in_hand = function(self)
+        return self.location == enigma.CARD_LOCATION.hand
+    end
+    inst.is_in_discard_pile = function(self)
+        return self.location == enigma.CARD_LOCATION.discard_pile
+    end
+    inst.is_out_of_play = function(self)
+        return self.location == enigma.CARD_LOCATION.out_of_play_pile
+    end
+    inst.set_dirty = function(self)
+        refresh_card_detail_localization(self)
+        self.dirty_hud_ui = true
+        self.dirty_card_mode_ui = true
+    end
+end
+
 local set_common_card_properties = function(template, type, pack, id)
     local mod = get_mod(template.mod_id)
     template.name = mod:localize(template.name)
@@ -104,40 +155,21 @@ local template_template = {
     condition_descriptions = {},
 
 
-    instance = function(self)
+    instance = function(self, context)
         local inst = table.deep_copy(self, 100)
         trim_template_properties(inst)
         inst.mod = get_mod(inst.mod_id)
+        if not context then
+            enigma:warning("Card instanced without a context, this is not allowed")
+            return nil
+        end
+        inst.context = context
         inst.times_played = 0
         if self.duration then
             inst.active_durations = {}
         end
-        inst.sync_property = function(card, property)
-            if not property then
-                enigma:warning("Cannot sync card property: "..tostring(property))
-                return
-            end
-            enigma.managers.game:sync_card_property(card, property, card[property])
-        end
+        add_card_instance_functions(inst)
         return inst
-    end,
-
-    is_in_draw_pile = function(self)
-        return self.location == enigma.CARD_LOCATION.draw_pile
-    end,
-    is_in_hand = function(self)
-        return self.location == enigma.CARD_LOCATION.hand
-    end,
-    is_in_discard_pile = function(self)
-        return self.location == enigma.CARD_LOCATION.discard_pile
-    end,
-    is_out_of_play = function(self)
-        return self.location == enigma.CARD_LOCATION.out_of_play_pile
-    end,
-    set_dirty = function(self)
-        refresh_card_detail_localization(self)
-        self.dirty_hud_ui = true
-        self.dirty_card_mode_ui = true
     end,
 }
 
