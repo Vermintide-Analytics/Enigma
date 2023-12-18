@@ -82,7 +82,6 @@ enigma.game_mode = function(self)
     elseif level_key == "morris_hub" or level_key == "dlc_morris_map" then
         game_mode_key = "deus"
     end
-    enigma:info("Game mode: "..tostring(game_mode_key or Managers.state and Managers.state.game_mode and Managers.state.game_mode:game_mode_key()))
     return game_mode_key or Managers.state and Managers.state.game_mode and Managers.state.game_mode:game_mode_key()
 end
 enigma.is_game_mode_supported = function(self, game_mode_key)
@@ -107,15 +106,22 @@ enigma.player_and_bot_units = function(self)
     local side = Managers.state and Managers.state.side and Managers.state.side:get_side_from_name("heroes")
 	return side and side.PLAYER_AND_BOT_UNITS
 end
-enigma.force_damage = function(self, unit, damage, damager)
+enigma.force_damage = function(self, unit, damage, damager, damage_source)
+    if not enigma:is_server() then
+        enigma:warning("Only the server can damage")
+        return false
+    end
     damager = damager or unit
-    local health_ext = ScriptUnit.extension(unit, "health_system")
-    
+    damage_source = damage_source or "life_tap"
+
     local breed = Unit.get_data(unit, "breed")
     local breed_name = breed and breed.name
     enigma:info("DAMAGING "..tostring(breed_name).." for "..tostring(damage))
 
-    health_ext:add_damage(damager, damage, "full", "forced", nil, Vector3.up())
+    -- attacked_unit, attacker_unit, original_damage_amount, hit_zone_name, damage_type, hit_position, damage_direction,
+    -- damage_source, hit_ragdoll_actor, source_attacker_unit, buff_attack_type, hit_react_type, is_critical_strike,
+    -- added_dot, first_hit, total_hits, backstab_multiplier, skip_buffs
+    DamageUtils.add_damage_network(unit, damager, damage, "full", "forced", Unit.world_position(unit, 0), Vector3.up(), damage_source, nil, damager, "n/a", "light", false, false, false, 1, 1, true)
 end
 enigma.heal = function(self, unit, heal, healer, heal_type)
     if not enigma:is_server() then
