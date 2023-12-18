@@ -1,6 +1,6 @@
 local definitions = local_require("scripts/mods/Enigma/ui/card_mode_ui_definitions")
 local CARD_WIDTH = definitions.card_width
-local PRETTY_MARGIN = 10
+local PRETTY_MARGIN = 16
 local ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
 local DO_RELOAD = true
 EnigmaCardModeUI = class(EnigmaCardModeUI)

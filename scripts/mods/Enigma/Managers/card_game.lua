@@ -1028,6 +1028,12 @@ cgm._update_remote_card_active_durations = function(self, dt)
     end
 end
 
+local set_card_condition_met = function(card, condition_met)
+    if card.condition_met ~= condition_met then
+        card:set_dirty()
+    end
+    card.condition_met = condition_met
+end
 cgm._evaluate_local_card_conditions = function(self)
     if self.is_server then
         for _,card in ipairs(self.local_data.hand) do
@@ -1038,12 +1044,12 @@ cgm._evaluate_local_card_conditions = function(self)
         end
     end
     for _,card in ipairs(self.local_data.hand) do
-        card.condition_local_met = (not card.condition_local) or card:condition_local()
-        card.condition_met = card.condition_server_met and card.condition_local_met
+        card.condition_local_met = (not card.condition_local) or card:condition_local() or false
+        set_card_condition_met(card, card.condition_local_met and card.condition_server_met)
     end
     for _,card in ipairs(self.local_data.draw_pile) do
         card.condition_local_met = (not card.condition_local) or card:condition_local() or false
-        card.condition_met = card.condition_server_met and card.condition_local_met
+        set_card_condition_met(card, card.condition_local_met and card.condition_server_met)
     end
 end
 cgm._evaluate_local_card_autos = function(self)
@@ -1201,7 +1207,13 @@ cgm.update = function(self, dt)
 end
 
 
-
+local set_card_can_pay_warpstone = function(card, cost)
+    local can_pay = enigma.managers.warp:can_pay_cost(cost)
+    if card.can_pay_warpstone ~= can_pay then
+        card:set_dirty()
+    end
+    card.can_pay_warpstone = can_pay
+end
 cgm.change_card_cost = function(self, card, new_cost)
     if type(card) ~= "table" then
         enigma:warning("Could not change card cost, invalid card")
@@ -1220,15 +1232,15 @@ cgm.change_card_cost = function(self, card, new_cost)
         return
     end
     card.cost = new_cost
-    card.can_pay_warpstone = enigma.managers.warp:can_pay_cost(card.cost)
+    set_card_can_pay_warpstone(card, card.cost)
 end
 
 cgm.on_warpstone_amount_changed = function(self)
     for _,card in ipairs(self.local_data.hand) do
-        card.can_pay_warpstone = enigma.managers.warp:can_pay_cost(card.cost)
+        set_card_can_pay_warpstone(card, card.cost)
     end
     for _,card in ipairs(self.local_data.draw_pile) do
-        card.can_pay_warpstone = enigma.managers.warp:can_pay_cost(card.cost)
+        set_card_can_pay_warpstone(card, card.cost)
     end
 end
 

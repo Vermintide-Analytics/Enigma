@@ -6,6 +6,9 @@ local DEFAULT_CARD_HEIGHT = 828
 local DEFAULT_CARD_FRAME_THICKNESS = 4
 local DEFAULT_PRETTY_MARGIN = 6
 
+local DEFAULT_CARD_GLOW_WIDTH = DEFAULT_CARD_WIDTH + 80
+local DEFAULT_CARD_GLOW_HEIGHT = DEFAULT_CARD_HEIGHT + 80
+
 local DEFAULT_CARD_NAME_BOX_WIDTH = 226
 local DEFAULT_CARD_NAME_BOX_HEIGHT = 86
 
@@ -149,6 +152,22 @@ local add_card_scenegraph_nodes = function(scenegraph_defs, parent_id, card_scen
 			0,
 			0,
 			1
+		}
+	}
+
+	local card_glow_scenegraph_id = card_scenegraph_id.."_glow"
+	scenegraph_defs[card_glow_scenegraph_id] = {
+		parent = card_scenegraph_id,
+		vertical_alignment = "center",
+		horizontal_alignment = "center",
+		size = {
+			sizes.card_glow_width,
+			sizes.card_glow_height
+		},
+		position = {
+			0,
+			0,
+			0
 		}
 	}
 
@@ -487,6 +506,45 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 					0
 				},
 			},
+		}
+	}
+
+	local card_glow_widget_name = card_scenegraph_id.."_glow"
+	widget_defs[card_glow_widget_name] = {
+		scenegraph_id = card_glow_widget_name,
+		element = {
+			passes = {
+				{
+					pass_type = "texture",
+					texture_id = "glow",
+					style_id = "glow"
+				}
+			}
+		},
+		content ={
+			glow = "enigma_card_card_glow",
+			visible = false
+		},
+		style = {
+			glow = {
+				texture_size = {
+					sizes.card_glow_width,
+					sizes.card_glow_height
+				},
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				offset = {
+					0,
+					0,
+					-1
+				},
+				color = {
+					255,
+					30,
+					255,
+					0
+				}
+			}
 		}
 	}
 
@@ -861,6 +919,8 @@ local calculate_card_sizes = function(card_width)
 	local sizes = {
 		card_width = card_width,
 		card_height = card_height,
+		card_glow_width = DEFAULT_CARD_GLOW_WIDTH * scaling_from_default,
+		card_glow_height = DEFAULT_CARD_GLOW_HEIGHT * scaling_from_default,
 		scaling_from_default = scaling_from_default,
 		card_frame_thickness = card_frame_thickness,
 		pretty_margin = DEFAULT_PRETTY_MARGIN * scaling_from_default,
@@ -890,12 +950,14 @@ ui_common.add_card_display = function(scenegraph_defs, widget_defs, scenegraph_p
 	add_card_widgets(widget_defs, card_scenegraph_id, sizes)
 end
 
-local set_widgets_visibility = function(widgets, card_node_id, visible, has_duration)
+local set_widgets_visibility = function(widgets, card_node_id, visible, has_duration, glow)
 	visible = not not visible
 	has_duration = not not has_duration
+	glow = not not glow
 	
 	widgets[card_node_id].content.visible = visible
 	
+	local card_glow_node_id = card_node_id.."_glow"
 	local card_name_node_id = card_node_id.."_name"
 	local card_image_node_id = card_node_id.."_image"
 	local card_pack_node_id = card_node_id.."_pack"
@@ -904,6 +966,8 @@ local set_widgets_visibility = function(widgets, card_node_id, visible, has_dura
 	
 	local card_widget = widgets[card_node_id]
 	card_widget.content.visible = visible
+	local card_glow_widget = widgets[card_glow_node_id]
+	card_glow_widget.content.visible = visible and glow
 	local card_name_widget = widgets[card_name_node_id]
 	card_name_widget.content.visible = visible
 	local card_cost_widget = widgets[card_cost_node_id]
@@ -928,7 +992,7 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 	local sizes = calculate_card_sizes(card_width)
 	local pretty_margin = sizes.pretty_margin
 
-	set_widgets_visibility(widgets, card_node_id, card, card and card.duration)
+	set_widgets_visibility(widgets, card_node_id, card, card and card.duration, card and card.condition_met and card.can_pay_warpstone)
 	if not card then
 		return
 	end
