@@ -992,7 +992,7 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 	local sizes = calculate_card_sizes(card_width)
 	local pretty_margin = sizes.pretty_margin
 
-	set_widgets_visibility(widgets, card_node_id, card, card and card.duration, card and card.condition_met and card.can_pay_warpstone)
+	set_widgets_visibility(widgets, card_node_id, card, card and card.duration, card and not card.unplayable and card.condition_met and card.can_pay_warpstone)
 	if not card then
 		return
 	end
