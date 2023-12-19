@@ -51,6 +51,9 @@ local format_shuffling_card_into_draw_pile = function(card, remote_peer_id)
     return format_card_event_log(card, "SHUFFLING INTO DRAW PILE", remote_peer_id)
 end
 
+local format_location = function(peer_id, location, index)
+    return tostring(peer_id).."."..tostring(location).."["..tostring(index).."]"
+end
 
 ---------------------------
 -- DIFFICULTY ADJUSTMENT --
@@ -246,7 +249,7 @@ end)
 cgm.init_game = function(self, deck_name, card_templates, is_server)
     enigma:echo("Initializing Enigma game")
     self.is_server = is_server
-    self.game_state = "loading"
+    self.game_state = "initializing"
 
     local card_ids = {}
     for _,template in ipairs(card_templates) do
@@ -318,13 +321,15 @@ cgm.init_game = function(self, deck_name, card_templates, is_server)
 end
 
 cgm.start_game = function(self)
-    if self.game_state ~= "loading" then
+    if self.game_state ~= "initializing" then
         enigma:echo("Enigma attempted to start a game before initializing it")
         return
     end
     enigma:echo("Starting Enigma game")
     self.game_state = "in_progress"
     self.game_mode = enigma:game_mode()
+    
+    enigma.managers.warp:start_game()
 
     for _,card in ipairs(self.local_data.draw_pile) do
         if card.on_game_start_local then
@@ -358,14 +363,14 @@ cgm.start_game = function(self)
 
         self.broadcast_level_progress_interval = 5
         self.time_until_broadcast_level_progress = self.broadcast_level_progress_interval
+        self.last_broadcast_level_progress = 0
     end
-
-    enigma.managers.warp:start_game()
 
     self:draw_card(true)
 end
 
 cgm.end_game = function(self)
+    enigma:info("Ending Enigma game")
     self.game_state = nil
     self.local_data = nil
     self.peer_data = {}
@@ -407,22 +412,28 @@ local handle_card_drawn = function(context, data)
     if card[on_location_changed_func_name] then
         card[on_location_changed_func_name](card, enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
     end
+    return card
 end
 local handle_local_card_drawn = function(free)
     if not free then
         cgm.local_data.available_card_draws = cgm.local_data.available_card_draws - 1
     end
-    handle_card_drawn("local", cgm.local_data)
+    local drawn_card = handle_card_drawn("local", cgm.local_data)
 
-    enigma:network_send(net.event_card_drawn, "others")
+    enigma:network_send(net.event_card_drawn, "others", drawn_card.id)
     return true
 end
-enigma:network_register(net.event_card_drawn, function(peer_id)
+enigma:network_register(net.event_card_drawn, function(peer_id, expected_card_id)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
+        enigma:warning(tostring(peer_id).." TOLD US OF A CARD DRAW EVENT, BUT WE DON'T HAVE DATA FOR THAT PEER")
         return
     end
-    handle_card_drawn("remote", peer_data)
+    local drawn_card = handle_card_drawn("remote", peer_data)
+    if not drawn_card or not drawn_card.id == expected_card_id then
+        enigma:warning("Unexpected card drawn from draw pile when syncing draw from "..tostring(peer_id))
+        return
+    end
 end)
 cgm.draw_card = function(self, free)
     if not self:is_in_game() then
@@ -448,12 +459,8 @@ end
 ----------
 -- PLAY --
 ----------
-local handle_card_played = function(context, data, location, index, play_type)
-    local card = data[location][index]
-    if not card then
-        enigma:warning("handle_card_played could not find card in "..tostring(location).." at index "..tostring(index))
-        return false
-    end
+local handle_card_played = function(context, data, card, play_type)
+    local location = card.location
 
     enigma:info(format_playing_card(card, data.peer_id))
 
@@ -518,22 +525,31 @@ local handle_local_card_played = function(card, location, index, skip_warpstone_
         enigma:info("Skipping warpstone cost for playing "..tostring(card.id))
     end
     
-    local moved = handle_card_played("local", cgm.local_data, location, index, play_type)
+    local moved = handle_card_played("local", cgm.local_data, card, play_type)
     if location == enigma.CARD_LOCATION.hand and moved then
         enigma.managers.ui.hud_data.hand_indexes_just_removed[index] = true
         enigma.managers.ui.card_mode_ui_data.hand_indexes_just_removed[index] = true
     end
 
-    enigma:network_send(net.event_card_played, "others", location, index, play_type)
+    enigma:network_send(net.event_card_played, "others", location, index, card.id, play_type)
     return true
 end
-enigma:network_register(net.event_card_played, function(peer_id, location, index, play_type)
+enigma:network_register(net.event_card_played, function(peer_id, location, index, expected_card_id, play_type)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
+        enigma:warning(tostring(peer_id).." TOLD US OF A CARD PLAYED EVENT, BUT WE DON'T HAVE DATA FOR THAT PEER")
         return
     end
-
-    handle_card_played("remote", peer_data, location, index, play_type)
+    local card = peer_data[location][index]
+    if not card then
+        enigma:warning("Could not find a card to be played at "..format_location(peer_id, location, index))
+        return
+    end
+    if card.id ~= expected_card_id then
+        enigma:warning("Unexpected card found at "..format_location(peer_id, location, index).." when attempting to play")
+        return
+    end
+    handle_card_played("remote", peer_data, card, play_type)
 end)
 cgm._play_card_at_index_from_location = function(self, location, index, skip_warpstone_cost, play_type)
     play_type = play_type or "auto"
@@ -650,8 +666,8 @@ end
 -------------
 -- DISCARD --
 -------------
-local handle_card_discarded = function(context, data, location, index, discard_type)
-    local card = data[location][index]
+local handle_card_discarded = function(context, data, card, discard_type)
+    local location = card.location
 
     enigma:info(format_discarding_card(card, data.peer_id))
 
@@ -682,18 +698,27 @@ end
 local handle_local_card_discarded = function(card, discard_type)
     local location, index = get_card_location(card)
 
-    handle_card_discarded("local", cgm.local_data, location, index, discard_type)
+    handle_card_discarded("local", cgm.local_data, card, discard_type)
     
-    enigma:network_send(net.event_card_discarded, "others", location, index, discard_type)
+    enigma:network_send(net.event_card_discarded, "others", location, index, card.id, discard_type)
     return true
 end
-enigma:network_register(net.event_card_discarded, function(peer_id, location, index, discard_type)
+enigma:network_register(net.event_card_discarded, function(peer_id, location, index, expected_card_id, discard_type)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
+        enigma:warning(tostring(peer_id).." TOLD US OF A CARD DISCARDED EVENT, BUT WE DON'T HAVE DATA FOR THAT PEER")
         return
     end
-
-    handle_card_discarded("remote", peer_data, location, index, discard_type)
+    local card = peer_data[location][index]
+    if not card then
+        enigma:warning("Could not find a card to be discarded at "..format_location(peer_id, location, index))
+        return
+    end
+    if card.id ~= expected_card_id then
+        enigma:warning("Unexpected card found at "..format_location(peer_id, location, index).." when attempting to discard")
+        return
+    end
+    handle_card_discarded("remote", peer_data, card, discard_type)
 end)
 cgm.discard_card_from_hand = function(self, index, discard_type)
     if not self:is_in_game() then
@@ -782,6 +807,7 @@ end
 enigma:network_register(net.event_new_card_shuffled_into_draw_pile, function(peer_id, card_id, index)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
+        enigma:warning(tostring(peer_id).." TOLD US OF A NEW CARD SHUFFLED INTO DRAW PILE EVENT, BUT WE DON'T HAVE DATA FOR THAT PEER")
         return
     end
     handle_shuffle_new_card_into_draw_pile("remote", peer_data, card_id, index)
@@ -794,8 +820,8 @@ cgm.shuffle_new_card_into_draw_pile = function(self, card_id)
     return true
 end
 
-local handle_shuffle_card_into_draw_pile = function(context, data, location, index, new_index)
-    local card = data[location][index]
+local handle_shuffle_card_into_draw_pile = function(context, data, card, new_index)
+    local location = card.location
     enigma:info(format_shuffling_card_into_draw_pile(card, data.peer_id))
 
     remove_card_from_pile(data, card.location, card)
@@ -822,16 +848,26 @@ local handle_local_shuffle_card_into_draw_pile = function(card)
     local draw_pile_size = #cgm.local_data.draw_pile
     local new_index = math.floor(enigma:random_range_int(1, draw_pile_size + 1))
 
-    handle_shuffle_card_into_draw_pile("local", cgm.local_data, location, index, new_index)
+    handle_shuffle_card_into_draw_pile("local", cgm.local_data, card, new_index)
 
-    enigma:network_send(net.event_card_shuffled_into_draw_pile, "others", location, index, new_index)
+    enigma:network_send(net.event_card_shuffled_into_draw_pile, "others", location, index, card.id, new_index)
 end
-enigma:network_register(net.event_card_shuffled_into_draw_pile, function(peer_id, location, index, new_index)
+enigma:network_register(net.event_card_shuffled_into_draw_pile, function(peer_id, location, index, expected_card_id, new_index)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
+        enigma:warning(tostring(peer_id).." TOLD US OF A CARD SHUFFLED INTO DRAW PILE EVENT, BUT WE DON'T HAVE DATA FOR THAT PEER")
         return
     end
-    handle_shuffle_card_into_draw_pile("remote", peer_data, location, index, new_index)
+    local card = peer_data[location][index]
+    if not card then
+        enigma:warning("Could not find a card to be shuffled into draw pile at "..format_location(peer_id, location, index))
+        return
+    end
+    if card.id ~= expected_card_id then
+        enigma:warning("Unexpected card found at "..format_location(peer_id, location, index).." when attempting to shuffle into draw pile")
+        return
+    end
+    handle_shuffle_card_into_draw_pile("remote", peer_data, card, new_index)
 end)
 cgm.shuffle_card_into_draw_pile = function(self, card)
     if not card then
@@ -1111,13 +1147,12 @@ cgm._update_accumulated_staggers = function(self, dt)
         self.local_data.accumulated_stagger["elite"] = 0
         self.local_data.accumulated_stagger["special"] = 0
         self.local_data.accumulated_stagger["boss"] = 0
-    end
-    for peer_id,peer_data in pairs(self.peer_data) do
-        if sync then
-            local trash = peer_data.accumulated_stagger["trash"]
-            local elite = peer_data.accumulated_stagger["elite"]
-            local special = peer_data.accumulated_stagger["special"]
-            local boss = peer_data.accumulated_stagger["boss"]
+
+        for peer_id,peer_data in pairs(self.peer_data) do
+            trash = peer_data.accumulated_stagger["trash"]
+            elite = peer_data.accumulated_stagger["elite"]
+            special = peer_data.accumulated_stagger["special"]
+            boss = peer_data.accumulated_stagger["boss"]
             enigma:network_send(net.sync_player_accumulated_stagger, peer_id, trash, elite, special, boss)
             peer_data.accumulated_stagger["trash"] = 0
             peer_data.accumulated_stagger["elite"] = 0
@@ -1126,6 +1161,30 @@ cgm._update_accumulated_staggers = function(self, dt)
         end
     end
 end
+cgm._update_pacing_intensity = function(self, dt)
+    self.time_until_broadcast_pacing_intensity = self.time_until_broadcast_pacing_intensity - dt
+    if self.time_until_broadcast_pacing_intensity <= 0 then
+        local previous_pacing_intensity = self.pacing_intensity
+        self.pacing_intensity = self.pacing.total_intensity
+        if self.pacing_intensity ~= previous_pacing_intensity then
+            self:_update_card_draw_gain_rate()
+            enigma:network_send(net.broadcast_pacing_intensity, "others", self.pacing_intensity)
+        end
+        self.time_until_broadcast_pacing_intensity = self.broadcast_pacing_intensity_interval
+    end
+end
+cgm._update_level_progress = function(self, dt)
+    self.time_until_broadcast_level_progress = self.time_until_broadcast_level_progress - dt
+    if self.time_until_broadcast_level_progress <= 0 then
+        local progress = enigma:get_level_progress() or 0
+        if progress > self.last_broadcast_level_progress then
+            self.last_broadcast_level_progress = progress
+            enigma:network_send(net.sync_level_progress, "all", progress)
+        end
+        self.time_until_broadcast_level_progress = self.broadcast_level_progress_interval
+    end
+end
+
 local card_draw_gain_lut = {
     {
         threshold = 50,
@@ -1180,21 +1239,8 @@ cgm.update = function(self, dt)
             self:_evaluate_remote_card_autos()
 
             self:_update_accumulated_staggers(dt)
-
-            self.time_until_broadcast_pacing_intensity = self.time_until_broadcast_pacing_intensity - dt
-            if self.time_until_broadcast_pacing_intensity <= 0 then
-                self.pacing_intensity = self.pacing.total_intensity
-                self:_update_card_draw_gain_rate()
-                enigma:network_send(net.broadcast_pacing_intensity, "others", self.pacing_intensity)
-                self.time_until_broadcast_pacing_intensity = self.broadcast_pacing_intensity_interval
-            end
-
-            self.time_until_broadcast_level_progress = self.time_until_broadcast_level_progress - dt
-            if self.time_until_broadcast_level_progress <= 0 then
-                local progress = enigma:get_level_progress() or 0
-                enigma:network_send(net.sync_level_progress, "all", progress)
-                self.time_until_broadcast_level_progress = self.broadcast_level_progress_interval
-            end
+            self:_update_pacing_intensity(dt)
+            self:_update_level_progress(dt)
         end
 
         self.local_data.available_card_draws = self.local_data.available_card_draws + (self.local_data._card_draw_gain_rate * dt)
@@ -1202,7 +1248,7 @@ cgm.update = function(self, dt)
         self.local_data.deferred_card_draws = self.local_data.deferred_card_draws - pull_from_deferred
         self.local_data.available_card_draws = self.local_data.available_card_draws + pull_from_deferred
 
-    elseif self.game_state == "loading" then
+    elseif self.game_state == "initializing" then
     end
 end
 
@@ -1249,7 +1295,7 @@ cgm.is_in_game = function(self)
 end
 
 cgm.start_game_if_all_ready = function(self)
-    if self.game_state ~= "loading" then
+    if self.game_state ~= "initializing" then
         return
     end
     if not (self.local_data and self.local_data.ready) then
@@ -1272,7 +1318,7 @@ enigma:network_register(net.sync_players_and_units_set, function(peer_id, ready)
     cgm:start_game_if_all_ready()
 end)
 cgm.check_players_and_units_all_set = function(self)
-    if self.game_state ~= "loading" then
+    if self.game_state ~= "initializing" then
         return
     end
     enigma:echo("Checking if players and units are all set at game start")
@@ -1330,6 +1376,7 @@ cgm.sync_card_property = function(self, card, property, value)
     end
     local location, index = get_card_location(card)
     local card_owner_peer_id = card.context.peer_id
+    enigma:info("Sending sync_card_property to others. ["..tostring(card.id).."]."..tostring(property).."="..tostring(value))
     enigma:network_send(net.sync_card_property, "others", card_owner_peer_id, location, index, property, value)
 end
 enigma:network_register(net.invoke_card_rpc, function(sender, card_owner_peer_id, location, index, func_name, ...)
@@ -1373,6 +1420,7 @@ cgm._invoke_card_rpc = function(self, recipient, card, func_name, ...)
     end
     local location, index = get_card_location(card)
     local card_owner_peer_id = card.context.peer_id
+    enigma:info("Sending invoke_card_rpc to "..tostring(recipient)..". ["..tostring(card.id).."]."..tostring(func_name))
     enigma:network_send(net.invoke_card_rpc, recipient, card_owner_peer_id, location, index, func_name, ...)
 end
 cgm.active_channel = function(self)
@@ -1392,11 +1440,12 @@ end
 
 local bulldozer_player_set_player_unit = function(self, unit)
     if cgm.local_data then
+        enigma:info("Assigning player and unit FOR LOCAL")
         cgm.server_peer_id = Managers.mechanism:server_peer_id()
         cgm.local_data.player = self
         cgm.local_data.unit = self.player_unit
         cgm.data_by_unit[self.player_unit] = cgm.local_data
-        if cgm.game_state == "loading" then
+        if cgm.game_state == "initializing" then
             cgm:check_players_and_units_all_set()
         end
     end
@@ -1405,10 +1454,11 @@ local remote_player_set_player_unit = function(self, unit)
     local peer_id = self.peer_id
     local peer_data = cgm.peer_data[peer_id]
     if peer_data then
+        enigma:info("Assigning player and unit FOR PEER: "..tostring(peer_id))
         peer_data.player = self
         peer_data.unit = self.player_unit
         cgm.data_by_unit[self.player_unit] = peer_data
-        if cgm.game_state == "loading" then
+        if cgm.game_state == "initializing" then
             cgm:check_players_and_units_all_set()
         end
     end
@@ -1528,7 +1578,9 @@ cgm.on_game_state_changed = function(self, status, state_name)
     if state_name == "StateLoading" and status == "enter" and Managers.level_transition_handler then
         if enigma:traveling_to_inn() or enigma:traveling_to_morris_hub() or enigma:traveling_to_morris_map() then
             self:end_game()
-        else
+        end
+    elseif state_name == "StateIngame" and status == "enter" and Managers.level_transition_handler then
+        if not enigma:in_keep() and not enigma:in_morris_map() then
             local game_init_data = enigma.managers.deck_planner.game_init_data
             self:init_game(game_init_data.deck_name, game_init_data.cards, game_init_data.is_server)
         end

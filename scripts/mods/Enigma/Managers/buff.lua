@@ -126,7 +126,7 @@ bm.update_stat = function(self, unit, stat, difference)
         local index = self.unit_stat_buff_indexes[unit] and self.unit_stat_buff_indexes[unit][stat]
         local buff_extension = self.unit_buff_extensions[unit]
         if not unit or not stat or not buff_extension then
-            enigma:echo("Could not update stat")
+            enigma:echo("Could not update stat... buff: "..tostring(unit).." | stat: "..tostring(stat).." | buff_extension: "..tostring(buff_extension))
             return
         end
         if not index then
@@ -154,6 +154,9 @@ bm.update_stat = function(self, unit, stat, difference)
 end
 
 bm.surge_stat = function(self, unit, stat, difference, duration)
+    if not self.unit_stat_surges[unit] then
+        enigma:warning("Cannot surge stat")
+    end
     self:update_stat(unit, stat, difference)
     table.insert(self.unit_stat_surges[unit], {
         stat = stat,
@@ -286,15 +289,16 @@ enigma:hook_disable(BuffExtension, "_add_stat_buff")
 enigma:hook(BuffExtension, "extensions_ready", function(func, self, world, unit)
     local breed = Unit.get_data(unit, "breed")
 	if breed and breed.is_player and breed.is_hero then
+        enigma:info("BuffExtension.extensions_ready called for "..tostring(breed.name))
         if enigma:is_server() or unit == enigma:local_player_unit() then
-            enigma:info("Adding buff data for ("..tostring(breed and breed.name)..")")
-            bm.unit_stat_buff_indexes[self._unit] = {}
-            bm.unit_custom_buffs[self._unit] = table.shallow_copy(custom_buff_definitions)
-            bm.unit_stat_surges[self._unit] = {}
+            enigma:echo("Adding buff data fo "..tostring(unit).." ("..tostring(breed and breed.name)..")")
+            bm.unit_stat_buff_indexes[unit] = {}
+            bm.unit_custom_buffs[unit] = table.shallow_copy(custom_buff_definitions)
+            bm.unit_stat_surges[unit] = {}
+            bm.unit_buff_extensions[unit] = self
             enigma:hook_enable(BuffExtension, "_add_stat_buff")
             self:add_buff(ENIGMA_UMBRELLA_BUFF)
             enigma:hook_disable(BuffExtension, "_add_stat_buff")
-            bm.unit_buff_extensions[unit] = self
         end
     end
     return func(self, world, unit)
@@ -380,11 +384,11 @@ end, "enigma_buff")
 -- Events
 bm.on_game_state_changed = function(self, status, state_name)
     if state_name == "StateLoading" and status == "enter" then
+        enigma:info("Resetting stat buff data for all units")
         self.unit_stat_buff_indexes = {}
         self.unit_buff_extensions = {}
         self.unit_custom_buffs = {}
         self.unit_stat_surges = {}
-        self._internal.assassin_immunity_tokens = {}
 	end
 end
 enigma:register_mod_event_callback("on_game_state_changed", bm, "on_game_state_changed")
