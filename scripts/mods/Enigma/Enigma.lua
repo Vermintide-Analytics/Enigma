@@ -76,10 +76,6 @@ enigma:hook(IngameHud, "_setup_component_definitions", function(func, self, hud_
     return func(self, hud_component_list_path)
 end)
 
-enigma:command("warpstone_toggle", "test", function()
-    enigma.show_warpstone = not enigma.show_warpstone
-end)
-
 enigma:command("enigma_dump", "dump some Enigma info to the console", function(manager)
     if not manager then
         enigma.managers.mod:dump()
