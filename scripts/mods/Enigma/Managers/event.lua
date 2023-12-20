@@ -36,9 +36,7 @@ local em = {
     events = {}
 }
 for _,evt in pairs(enigma.EVENTS) do
-    em.events[evt] = {
-        callbacks = {}
-    }
+    em.events[evt] = {}
 end
 enigma.managers.event = em
 

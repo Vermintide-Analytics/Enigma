@@ -291,7 +291,7 @@ enigma:hook(BuffExtension, "extensions_ready", function(func, self, world, unit)
 	if breed and breed.is_player and breed.is_hero then
         enigma:info("BuffExtension.extensions_ready called for "..tostring(breed.name))
         if enigma:is_server() or unit == enigma:local_player_unit() then
-            enigma:echo("Adding buff data fo "..tostring(unit).." ("..tostring(breed and breed.name)..")")
+            enigma:echo("Adding buff data for "..tostring(unit).." ("..tostring(breed and breed.name)..")")
             bm.unit_stat_buff_indexes[unit] = {}
             bm.unit_custom_buffs[unit] = table.shallow_copy(custom_buff_definitions)
             bm.unit_stat_surges[unit] = {}

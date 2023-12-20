@@ -191,61 +191,6 @@ local invoke_card_event_callbacks_for_all_piles = function(data, func_name, ...)
     invoke_card_event_callbacks(data.discard_pile, func_name, ...)
 end
 
-enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_name, card_ids_in_deck)
-    local peer_data = {
-        deck_name = deck_name,
-        draw_pile = {},
-        hand = {},
-        discard_pile = {},
-        out_of_play_pile = {},
-
-        active_duration_cards = {},
-
-        peer_id = peer_id,
-    }
-
-    if cgm.is_server then
-        peer_data.accumulated_stagger = {
-            trash = 0,
-            elite = 0,
-            special = 0,
-            boss = 0
-        }
-    end
-
-    local missing_packs = {}
-    local card_manager = enigma.managers.card_template
-    for _,card_id in ipairs(card_ids_in_deck) do
-        local card_template = card_manager:get_card_from_id(card_id)
-        if not card_template then
-            table.insert(peer_data.draw_pile, card_id)
-            local missing_pack = card_manager:get_pack_id_from_card_id(card_id)
-            if missing_pack then
-                table.insert(missing_packs, missing_pack)
-            end
-        end
-        local card = card_template:instance(peer_data)
-        if card.condition_local and not card.condition_server then
-            card.condition_server_met = true
-        end
-        if card.auto_condition_local and not card.auto_condition_server then
-            card.auto_condition_server_met = true
-        end
-        card.owner = peer_id
-        card.original_owner = card.owner
-        table.insert(peer_data.draw_pile, card)
-        if cgm.is_server then
-            enigma.managers.event:_add_card_server_event_callbacks(card)
-        end
-        enigma.managers.event:_add_card_remote_event_callbacks(card)
-    end
-    if #missing_packs > 0 then
-        local pack_list = table.concat(missing_packs, ", ")
-        enigma:chat_whisper(peer_id, "A player is missing the following card packs, and some cards may not work properly: (".. pack_list..")")
-    end
-
-    cgm.peer_data[peer_id] = peer_data
-end)
 cgm.init_game = function(self, deck_name, card_templates, is_server)
     enigma:echo("Initializing Enigma game")
     self.is_server = is_server
@@ -260,6 +205,7 @@ cgm.init_game = function(self, deck_name, card_templates, is_server)
     
     local local_data = {
         deck_name = deck_name,
+        deck_card_ids = card_ids,
         draw_pile = {},
         hand = {},
         discard_pile = {},
@@ -315,14 +261,114 @@ cgm.init_game = function(self, deck_name, card_templates, is_server)
     end
 
     self.local_data = local_data
-    enigma:network_send(net.sync_card_game_init_data, "others", deck_name, card_ids)
+    enigma:register_mod_event_callback("update", self, "_init_update")
+end
 
-    enigma:register_mod_event_callback("update", self, "update")
+enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_name, card_ids_in_deck)
+    local peer_data = {
+        deck_name = deck_name,
+        draw_pile = {},
+        hand = {},
+        discard_pile = {},
+        out_of_play_pile = {},
+
+        active_duration_cards = {},
+
+        peer_id = peer_id,
+    }
+
+    if cgm.is_server then
+        peer_data.accumulated_stagger = {
+            trash = 0,
+            elite = 0,
+            special = 0,
+            boss = 0
+        }
+    end
+
+    local missing_packs = {}
+    local card_manager = enigma.managers.card_template
+    for _,card_id in ipairs(card_ids_in_deck) do
+        local card_template = card_manager:get_card_from_id(card_id)
+        if not card_template then
+            table.insert(peer_data.draw_pile, card_id)
+            local missing_pack = card_manager:get_pack_id_from_card_id(card_id)
+            if missing_pack then
+                table.insert(missing_packs, missing_pack)
+            end
+        end
+        local card = card_template:instance(peer_data)
+        if card.condition_local and not card.condition_server then
+            card.condition_server_met = true
+        end
+        if card.auto_condition_local and not card.auto_condition_server then
+            card.auto_condition_server_met = true
+        end
+        card.owner = peer_id
+        card.original_owner = card.owner
+        table.insert(peer_data.draw_pile, card)
+        if cgm.is_server then
+            enigma.managers.event:_add_card_server_event_callbacks(card)
+        end
+        enigma.managers.event:_add_card_remote_event_callbacks(card)
+    end
+    if #missing_packs > 0 then
+        local pack_list = table.concat(missing_packs, ", ")
+        enigma:chat_whisper(peer_id, "A player is missing the following card packs, and some cards may not work properly: (".. pack_list..")")
+    end
+
+    cgm.peer_data[peer_id] = peer_data
+
+    if cgm.game_state == "syncing" then
+        if cgm.expecting_sync_from_peers[peer_id] then
+            cgm.expecting_sync_from_peers[peer_id] = false
+            enigma:info("Received initialization sync from peer: "..tostring(peer_id))
+        elseif cgm.expecting_sync_from_peers[peer_id] == false then
+            enigma:warning("Received DUPLICATE initialization sync from peer: "..tostring(peer_id))
+        end
+        local any_left_to_sync = false
+        for _,expecting_sync in pairs(cgm.expecting_sync_from_peers) do
+            any_left_to_sync = any_left_to_sync or expecting_sync
+        end
+        if not any_left_to_sync then
+            cgm:start_game()
+        end
+    end
+end)
+cgm._init_update = function(self, dt)
+    if self.game_state ~= "initializing" then
+        enigma:unregister_mod_event_callback("update", self, "_init_update")
+        return
+    end
+
+    if Managers.matchmaking and Managers.matchmaking:are_all_players_spawned() then
+        enigma:info("Syncing Enigma game")
+        self.game_state = "syncing"
+        self.expecting_sync_from_peers = {}
+        local peers = Managers.matchmaking.lobby:members():get_members()
+        local num_others_not_yet_synced = 0
+        for i = 1, #peers do
+            if peers[i] ~= enigma:local_peer_id() and not self.peer_data[peers[i]] then
+                enigma:info(" - "..tostring(peers[i]))
+                num_others_not_yet_synced = num_others_not_yet_synced + 1
+                self.expecting_sync_from_peers[peers[i]] = true
+            end
+        end
+        
+        if num_others_not_yet_synced > 0 then
+            enigma:info("Expecting syncs from the above "..tostring(num_others_not_yet_synced).." more peers:")
+            enigma:info("ALL PLAYERS HAVE SPAWNED: Attempting to send RPC sync_card_game_init_data")
+            enigma:network_send(net.sync_card_game_init_data, "others", self.local_data.deck_name, self.local_data.deck_card_ids)
+        else
+            enigma:info("ALL PLAYERS HAVE SPAWNED: Since there are no other players, starting Enigma now")
+            self:start_game()
+        end
+    end
 end
 
 cgm.start_game = function(self)
-    if self.game_state ~= "initializing" then
-        enigma:echo("Enigma attempted to start a game before initializing it")
+    if self.game_state ~= "syncing" then
+        enigma:echo("Enigma attempted to start a game before initialization and syncing with other players")
         return
     end
     enigma:echo("Starting Enigma game")
@@ -331,6 +377,22 @@ cgm.start_game = function(self)
     
     enigma.managers.warp:start_game()
 
+    self.server_peer_id = Managers.mechanism:server_peer_id()
+    local player_manager = Managers.player
+    local peers = Managers.matchmaking.lobby:members():get_members()
+    for i,peer_id in ipairs(peers) do
+        local player = player_manager:player_from_peer_id(peer_id)
+        if peer_id == enigma:local_peer_id() then
+            self.local_data.player = player
+            self.local_data.unit = player.player_unit
+            self.data_by_unit[player.player_unit] = self.local_data
+        else
+            local peer_data = self.peer_data[peer_id]
+            peer_data[peer_id].player = player
+            peer_data[peer_id].unit = player.player_unit
+            self.data_by_unit[player.player_unit] = peer_data[peer_id]
+        end
+    end
     for _,card in ipairs(self.local_data.draw_pile) do
         if card.on_game_start_local then
             if self.is_server and card.on_game_start_server then
@@ -367,6 +429,7 @@ cgm.start_game = function(self)
     end
 
     self:draw_card(true)
+    enigma:register_mod_event_callback("update", self, "update")
 end
 
 cgm.end_game = function(self)
@@ -1294,48 +1357,48 @@ cgm.is_in_game = function(self)
     return self.game_state == "in_progress"
 end
 
-cgm.start_game_if_all_ready = function(self)
-    if self.game_state ~= "initializing" then
-        return
-    end
-    if not (self.local_data and self.local_data.ready) then
-        return
-    end
-    for _,peer_data in pairs(self.peer_data) do
-        if not peer_data.ready then
-            return
-        end
-    end
-    self:start_game()
-end
+-- cgm.start_game_if_all_ready = function(self)
+--     if self.game_state ~= "initializing" then
+--         return
+--     end
+--     if not (self.local_data and self.local_data.ready) then
+--         return
+--     end
+--     for _,peer_data in pairs(self.peer_data) do
+--         if not peer_data.ready then
+--             return
+--         end
+--     end
+--     self:start_game()
+-- end
 
-enigma:network_register(net.sync_players_and_units_set, function(peer_id, ready)
-    local peer_data = cgm.peer_data[peer_id]
-    if not peer_data then
-        return
-    end
-    peer_data.ready = ready
-    cgm:start_game_if_all_ready()
-end)
-cgm.check_players_and_units_all_set = function(self)
-    if self.game_state ~= "initializing" then
-        return
-    end
-    enigma:echo("Checking if players and units are all set at game start")
-    if not cgm.local_data.player then
-        return
-    end
-    for peer_id,peer_data in pairs(self.peer_data) do
-        if not peer_data.player then
-            enigma:echo("Peer data for "..peer_id.." not yet set, not starting game")
-            return
-        end
-    end
-    self.local_data.ready = true
-    enigma:network_send(net.sync_players_and_units_set, "others", true)
-    cgm:start_game_if_all_ready()
-    return true
-end
+-- enigma:network_register(net.sync_players_and_units_set, function(peer_id, ready)
+--     local peer_data = cgm.peer_data[peer_id]
+--     if not peer_data then
+--         return
+--     end
+--     peer_data.ready = ready
+--     cgm:start_game_if_all_ready()
+-- end)
+-- cgm.check_players_and_units_all_set = function(self)
+--     if self.game_state ~= "initializing" then
+--         return
+--     end
+--     enigma:echo("Checking if players and units are all set at game start")
+--     if not cgm.local_data.player then
+--         return
+--     end
+--     for peer_id,peer_data in pairs(self.peer_data) do
+--         if not peer_data.player then
+--             enigma:echo("Peer data for "..peer_id.." not yet set, not starting game")
+--             return
+--         end
+--     end
+--     self.local_data.ready = true
+--     enigma:network_send(net.sync_players_and_units_set, "others", true)
+--     cgm:start_game_if_all_ready()
+--     return true
+-- end
 
 -- Utilities
 enigma:network_register(net.sync_card_property, function(sender, card_owner_peer_id, location, index, property, value)
@@ -1438,33 +1501,33 @@ local reg_hook_safe = function(obj, func_name, func, hook_id)
     enigma.managers.hook:hook_safe("Enigma", obj, func_name, func, hook_id)
 end
 
-local bulldozer_player_set_player_unit = function(self, unit)
-    if cgm.local_data then
-        enigma:info("Assigning player and unit FOR LOCAL")
-        cgm.server_peer_id = Managers.mechanism:server_peer_id()
-        cgm.local_data.player = self
-        cgm.local_data.unit = self.player_unit
-        cgm.data_by_unit[self.player_unit] = cgm.local_data
-        if cgm.game_state == "initializing" then
-            cgm:check_players_and_units_all_set()
-        end
-    end
-end
-local remote_player_set_player_unit = function(self, unit)
-    local peer_id = self.peer_id
-    local peer_data = cgm.peer_data[peer_id]
-    if peer_data then
-        enigma:info("Assigning player and unit FOR PEER: "..tostring(peer_id))
-        peer_data.player = self
-        peer_data.unit = self.player_unit
-        cgm.data_by_unit[self.player_unit] = peer_data
-        if cgm.game_state == "initializing" then
-            cgm:check_players_and_units_all_set()
-        end
-    end
-end
-enigma.managers.hook:hook_safe("Enigma", BulldozerPlayer, "set_player_unit", bulldozer_player_set_player_unit, "card_game_start")
-enigma.managers.hook:hook_safe("Enigma", RemotePlayer, "set_player_unit", remote_player_set_player_unit, "card_game_start")
+-- local bulldozer_player_set_player_unit = function(self, unit)
+--     if cgm.local_data then
+--         enigma:info("Assigning player and unit FOR LOCAL")
+--         cgm.server_peer_id = Managers.mechanism:server_peer_id()
+--         cgm.local_data.player = self
+--         cgm.local_data.unit = self.player_unit
+--         cgm.data_by_unit[self.player_unit] = cgm.local_data
+--         if cgm.game_state == "initializing" then
+--             cgm:check_players_and_units_all_set()
+--         end
+--     end
+-- end
+-- local remote_player_set_player_unit = function(self, unit)
+--     local peer_id = self.peer_id
+--     local peer_data = cgm.peer_data[peer_id]
+--     if peer_data then
+--         enigma:info("Assigning player and unit FOR PEER: "..tostring(peer_id))
+--         peer_data.player = self
+--         peer_data.unit = self.player_unit
+--         cgm.data_by_unit[self.player_unit] = peer_data
+--         if cgm.game_state == "initializing" then
+--             cgm:check_players_and_units_all_set()
+--         end
+--     end
+-- end
+-- enigma.managers.hook:hook_safe("Enigma", BulldozerPlayer, "set_player_unit", bulldozer_player_set_player_unit, "card_game_start")
+-- enigma.managers.hook:hook_safe("Enigma", RemotePlayer, "set_player_unit", remote_player_set_player_unit, "card_game_start")
 
 -- Hooks for disabling active channel
 reg_hook_safe(PlayerUnitHealthExtension, "add_damage", function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
@@ -1576,7 +1639,7 @@ end)
 -- Events
 cgm.on_game_state_changed = function(self, status, state_name)
     if state_name == "StateLoading" and status == "enter" and Managers.level_transition_handler then
-        if enigma:traveling_to_inn() or enigma:traveling_to_morris_hub() or enigma:traveling_to_morris_map() then
+        if self:is_in_game() and (enigma:traveling_to_inn() or enigma:traveling_to_morris_hub() or enigma:traveling_to_morris_map()) then
             self:end_game()
         end
     elseif state_name == "StateIngame" and status == "enter" and Managers.level_transition_handler then

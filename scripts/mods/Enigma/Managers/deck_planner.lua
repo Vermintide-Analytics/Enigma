@@ -134,6 +134,9 @@ dpm.update_all_players_equipped_decks_valid = function(self)
     return all_valid
 end
 dpm.notify_players_of_deck_validity = function(self, recipient)
+    if not enigma:in_keep() then
+        return
+    end
     recipient = recipient or "all"
     enigma:network_send(net.sync_deck_validity, recipient, self:is_equipped_deck_valid())
 end
@@ -653,6 +656,12 @@ enigma:register_mod_event_callback("on_user_left", dpm, "on_user_left")
 -- RPCs --
 ----------
 enigma:network_register(net.sync_deck_validity, function(sender, valid)
+    if not enigma:in_keep() then
+        return
+    end
+    if not dpm.player_data[sender] then
+        dpm.player_data[sender] = {}
+    end
     dpm.player_data[sender].valid = valid
     dpm:update_all_players_equipped_decks_valid()
 end)
