@@ -732,7 +732,7 @@ cgm._play_card_at_index_from_location = function(self, location, index, skip_war
         enigma:wwise_event("channel_start")
         return
     end
-    return handle_local_card_played(card, location, index, skip_warpstone_cost)
+    return handle_local_card_played(card, location, index, skip_warpstone_cost, play_type)
 end
 
 cgm.play_card_from_hand = function(self, card_index, skip_warpstone_cost, play_type)
