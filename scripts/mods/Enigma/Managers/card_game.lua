@@ -265,6 +265,25 @@ cgm.init_game = function(self, deck_name, card_templates, is_server)
     end
 
     self.local_data = local_data
+
+    self.statistics = {
+        earned_card_draw = {
+            passive = 0,
+            level_progress = 0,
+            debug = 0,
+            other = 0
+        },
+        cards_drawn = 0,
+        cards_played = {
+            manual = 0,
+            auto = 0
+        },
+        cards_discarded = {
+            manual = 0,
+            auto = 0
+        }
+    }
+
     enigma:register_mod_event_callback("update", self, "_init_update")
 end
 
@@ -468,6 +487,7 @@ end
 
 cgm.end_game = function(self)
     enigma:info("Ending Enigma game")
+    enigma:dump(self.statistics, "ENIGMA END-OF-GAME STATISTICS", 5)
     self.game_state = nil
     self.local_data = nil
     self.peer_data = {}
@@ -482,6 +502,7 @@ cgm.end_game = function(self)
     enigma.managers.warp:end_game()
     enigma.managers.event:remove_all_card_event_callbacks()
 end
+
 
 ----------
 -- DRAW --
@@ -519,6 +540,8 @@ local handle_local_card_drawn = function(free)
 
     enigma:wwise_event("draw_card")
     enigma:network_send(net.event_card_drawn, "others", drawn_card.id)
+
+    cgm.statistics.cards_drawn = cgm.statistics.cards_drawn + 1
     return true
 end
 enigma:network_register(net.event_card_drawn, function(peer_id, expected_card_id)
@@ -551,6 +574,12 @@ cgm.draw_card = function(self, free)
     end
     handle_local_card_drawn(free)
     return true
+end
+
+cgm.add_card_draw = function(self, gain, source)
+    source = source or "other"
+    self.local_data.available_card_draws = self.local_data.available_card_draws + gain
+    self.statistics.earned_card_draw[source] = self.statistics.earned_card_draw[source] + gain
 end
 
 
@@ -631,6 +660,7 @@ local handle_local_card_played = function(card, location, index, skip_warpstone_
 
     enigma:wwise_event("play_card")
     enigma:network_send(net.event_card_played, "others", location, index, card.id, play_type)
+    cgm.statistics.cards_played[play_type] = cgm.statistics.cards_played[play_type] + 1
     return true
 end
 enigma:network_register(net.event_card_played, function(peer_id, location, index, expected_card_id, play_type)
@@ -801,6 +831,7 @@ local handle_local_card_discarded = function(card, discard_type)
     handle_card_discarded("local", cgm.local_data, card, discard_type)
     
     enigma:network_send(net.event_card_discarded, "others", location, index, card.id, discard_type)
+    cgm.statistics.cards_discarded[discard_type] = cgm.statistics.cards_discarded[discard_type] + 1
     return true
 end
 enigma:network_register(net.event_card_discarded, function(peer_id, location, index, expected_card_id, discard_type)
@@ -1396,10 +1427,10 @@ cgm.update = function(self, dt)
             self:_update_level_progress(dt)
         end
 
-        self.local_data.available_card_draws = self.local_data.available_card_draws + (self.local_data._card_draw_gain_rate * dt)
+        self:add_card_draw(self.local_data._card_draw_gain_rate * dt, "passive")
         local pull_from_deferred = self.local_data.deferred_card_draws * dt * 0.5
         self.local_data.deferred_card_draws = self.local_data.deferred_card_draws - pull_from_deferred
-        self.local_data.available_card_draws = self.local_data.available_card_draws + pull_from_deferred
+        self:add_card_draw(pull_from_deferred, "level_progress")
 
     elseif self.game_state == "initializing" then
     end
@@ -1680,5 +1711,5 @@ end
 
 enigma:command("gain_draw", "", function(num)
     num = num or 1
-    cgm.local_data.available_card_draws = cgm.local_data.available_card_draws + num
+    cgm:add_card_draw(num, "debug")
 end)

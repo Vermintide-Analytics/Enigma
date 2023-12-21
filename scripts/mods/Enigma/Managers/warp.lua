@@ -32,10 +32,24 @@ wm.start_game = function(self, game_mode)
     self.game_mode = game_mode
     self.warpstone = enigma.mega_resource_start and 99 or 0
     self.warp_dust = 0.0
+
+    self.statistics = {
+        earned_warp_dust = {
+            passive = 0,
+            damage_dealt = 0,
+            damage_taken = 0,
+            stagger = 0,
+            level_progress = 0,
+            debug = 0,
+            other = 0
+        }
+    }
+
     enigma:register_mod_event_callback("update", self, "update")
 end
 
 wm.end_game = function(self)
+    enigma:dump(self.statistics, "ENIGMA WARP DUST STATISTICS", 5)
     enigma:unregister_mod_event_callback("update", self, "update")
 end
 
@@ -49,7 +63,7 @@ local condense_warpstone = function(warpstone, warp_dust)
     return warpstone, warp_dust
 end
 
-wm.add_warp_dust = function(self, amount, raw)
+wm.add_warp_dust = function(self, amount, source, raw)
     if not raw then
         local local_unit = enigma.managers.game.local_data and enigma.managers.game.local_data.unit
         if local_unit then
@@ -61,6 +75,7 @@ wm.add_warp_dust = function(self, amount, raw)
     end
 
     self.warp_dust = self.warp_dust + amount
+    self.statistics.earned_warp_dust[source] = self.statistics.earned_warp_dust[source] + amount
     local previouos_warpstone_amount = self.warpstone
     self.warpstone, self.warp_dust = condense_warpstone(self.warpstone, self.warp_dust)
     if self.warpstone ~= previouos_warpstone_amount then
@@ -90,7 +105,7 @@ end
 wm._process_accumulated_stagger = function(self, trash, elite, special, boss)
     local gain_lut = self.warp_dust_per_stagger_seconds
     local gain = trash * gain_lut.trash + elite * gain_lut.elite + special * gain_lut.special + boss * gain_lut.boss
-    self:add_warp_dust(gain)
+    self:add_warp_dust(gain, "stagger")
     -- if gain > 0 then
     --     enigma:info("Added "..gain.." warp dust from recently staggered enemies")
     -- end
@@ -103,12 +118,11 @@ end
 
 wm.update = function(self, dt)
     local gain = dt * self.warp_dust_per_second
+    self:add_warp_dust(gain, "passive")
 
     local pull_from_deferred = self.deferred_warp_dust * dt * 0.5
     self.deferred_warp_dust = self.deferred_warp_dust - pull_from_deferred
-    gain = gain + pull_from_deferred
-
-    self:add_warp_dust(gain)
+    self:add_warp_dust(pull_from_deferred, "level_progress")
 end
 
 wm.get_warp_dust_per_warpstone = function(self)
@@ -128,7 +142,7 @@ local handle_damage_dealt = function(self, attacker_unit, damage_amount, hit_zon
     local self_unit = enigma.managers.game.local_data and enigma.managers.game.local_data.unit
     if attacker_unit == self_unit or source_attacker_unit == self_unit then
         local gain = damage_amount * wm.warp_dust_per_damage_dealt
-        wm:add_warp_dust(gain)
+        wm:add_warp_dust(gain, "damage_dealt")
         -- enigma:info("Added "..gain.." warp dust from DEALING damage")
     end
 end
@@ -138,7 +152,7 @@ reg_hook_safe(RatOgreHealthExtension, "add_damage", handle_damage_dealt, "enigma
 local handle_damage_taken = function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, ...)
     if self.unit == (enigma.managers.game.local_data and enigma.managers.game.local_data.unit) and damage_type ~= "temporary_health_degen" then
         local gain = damage_amount * wm.warp_dust_per_damage_taken
-        wm:add_warp_dust(gain)
+        wm:add_warp_dust(gain, "damage_taken")
         -- enigma:info("Added "..gain.." warp dust from RECEIVING damage")
     end
 end
