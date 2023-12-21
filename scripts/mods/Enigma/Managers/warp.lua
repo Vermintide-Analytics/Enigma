@@ -6,15 +6,20 @@ local MAX_WARPSTONE = 5
 local wm = {
     warpstone = 0,
     warp_dust = 0.0,
+    deferred_warp_dust = 0.0,
 
     warp_dust_per_second = 3.0,
-    warp_dust_per_damage_dealt = 0.1,
-    warp_dust_per_damage_taken = 3.0,
+    warp_dust_per_damage_dealt = 0.14,
+    warp_dust_per_damage_taken = 2.0,
     warp_dust_per_stagger_seconds = {
-        trash = 2.0,
+        trash = 1.5,
         elite = 5.0,
         special = 5.0,
-        boss = 15.0
+        boss = 20.0
+    },
+    warp_dust_per_level_progress = {
+        adventure = 5000,
+        deus = 3000
     }
 }
 enigma.managers.warp = wm
@@ -23,7 +28,8 @@ local on_warpstone_amount_changed = function()
     enigma.managers.game:on_warpstone_amount_changed()
 end
 
-wm.start_game = function(self)
+wm.start_game = function(self, game_mode)
+    self.game_mode = game_mode
     self.warpstone = enigma.mega_resource_start and 99 or 0
     self.warp_dust = 0.0
     enigma:register_mod_event_callback("update", self, "update")
@@ -90,8 +96,18 @@ wm._process_accumulated_stagger = function(self, trash, elite, special, boss)
     -- end
 end
 
+wm._handle_level_progress_gained = function(self, new_progress)
+    local gain = new_progress * self.warp_dust_per_level_progress[self.game_mode]
+    self.deferred_warp_dust = self.deferred_warp_dust + gain
+end
+
 wm.update = function(self, dt)
     local gain = dt * self.warp_dust_per_second
+
+    local pull_from_deferred = self.deferred_warp_dust * dt * 0.5
+    self.deferred_warp_dust = self.deferred_warp_dust - pull_from_deferred
+    gain = gain + pull_from_deferred
+
     self:add_warp_dust(gain)
 end
 

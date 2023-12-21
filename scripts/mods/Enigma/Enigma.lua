@@ -2,6 +2,8 @@ local enigma = get_mod("Enigma")
 
 enigma.VERSION = "IN DEV"
 
+Wwise.load_bank("wwise/mods/Enigma/Enigma")
+
 enigma.managers = {}
 
 enigma.random_seed = 12345 -- The same password I have on my luggage

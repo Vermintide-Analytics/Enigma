@@ -1,0 +1,7 @@
+
+events = [
+	"channel_end"
+	"channel_start"
+	"draw_card"
+	"play_card"
+]

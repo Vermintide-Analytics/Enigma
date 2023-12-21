@@ -1,0 +1,55 @@
+
+aux_buses = [
+]
+banks = {
+	Enigma = {
+		events = [
+			"channel_end"
+			"channel_start"
+			"draw_card"
+			"play_card"
+		]
+	}
+}
+buses = [
+	"Master Audio Bus"
+]
+events = {
+	channel_end = {
+		attenuation_max = 0
+		duration_max = 0
+		duration_min = 0
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	channel_start = {
+		attenuation_max = 0
+		duration_max = 5.153
+		duration_min = 5.153
+		duration_type = "Loop"
+		loop_count = 0
+		positioning = "2D"
+	}
+	draw_card = {
+		attenuation_max = 0
+		duration_max = 0.595
+		duration_min = 0.595
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	play_card = {
+		attenuation_max = 0
+		duration_max = 0.179
+		duration_min = 0.179
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+}
+parameters = [
+]
+state_groups = {
+}
+switch_groups = {
+}
+triggers = [
+]

@@ -1,0 +1,9 @@
+
+win32 = {
+	banks = [
+		"wwise/mods/Enigma/Enigma"
+	]
+	metadata = "wwise/mods/Enigma/project"
+	streams = [
+	]
+}

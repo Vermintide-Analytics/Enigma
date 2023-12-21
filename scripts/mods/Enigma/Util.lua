@@ -255,6 +255,24 @@ enigma.hit_enemy = function(hit_unit, attacking_player_unit, hit_zone_name, dama
     enigma:_hit_enemy(hit_unit, attacking_player_unit, hit_zone_name, hit_position, Vector3.zero(), attacker_breed, power_level, damage_profile, 0, power_multiplier, is_critical_strike, true, true, false, break_shields, 1, false, 0)
 end
 
+enigma.wwise_event = function(self, event_name)
+    if not event_name then
+        return
+    end
+    local world = Managers.world and (
+		Managers.world:has_world("level_world") and Managers.world:world("level_world") or
+		Managers.world:has_world("loading_world") and Managers.world:world("loading_world") or
+		Managers.world:has_world("top_ingame_view") and Managers.world:world("top_ingame_view"))
+	if not world then
+		return
+	end
+	local wwise_world = Wwise.wwise_world(world)
+	if not wwise_world then
+		return
+	end
+    WwiseWorld.trigger_event(wwise_world, event_name)
+end
+
 -- File IO
 enigma.save = function(self, file_name, data, callback)
     return Managers.save:auto_save(file_name, data, callback, true)

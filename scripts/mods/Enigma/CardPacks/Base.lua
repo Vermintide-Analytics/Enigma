@@ -264,9 +264,13 @@ pack_handle.register_ability_cards({
             enigma:force_damage(card.context.unit, 40)
 
             local players_and_bots = enigma:player_and_bot_units()
-            for _,unit in ipairs(players_and_bots) do
-                if unit ~= card.context.unit then
-                    enigma:heal(unit, 15, us)
+            if #players_and_bots > 1 then
+                local total_health_to_distribute = 60
+                local divided = total_health_to_distribute / (#players_and_bots - 1)
+                for _,unit in ipairs(players_and_bots) do
+                    if unit ~= card.context.unit then
+                        enigma:heal(unit, divided, us)
+                    end
                 end
             end
         end,
@@ -278,7 +282,7 @@ pack_handle.register_ability_cards({
             },
             {
                 format = "base_blood_transfusion_description",
-                parameters = { 15 }
+                parameters = { 60 }
             }
         }
     },
@@ -769,7 +773,7 @@ pack_handle.register_chaos_cards({
         rarity = LEGENDARY,
         cost = 3,
         texture = "enigma_base_silence",
-        on_location_changed_server = function(card, old, new)
+        on_location_changed_local = function(card, old, new)
             if new == enigma.CARD_LOCATION.hand then
                 buff:update_stat(card.context.unit, "cannot_use_career_skill", 1)
             elseif old == enigma.CARD_LOCATION.hand then
@@ -828,7 +832,7 @@ pack_handle.register_chaos_cards({
         cost = 0,
         texture = "enigma_base_virus",
         infection_duration = 60,
-        power_level_reduction = -0.1,
+        power_level_reduction = -0.15,
         on_play_local = function(card)
             -- Pick a random peer, set the infected_peer property and then sync it
             local peer_ids = {}
@@ -878,7 +882,7 @@ pack_handle.register_chaos_cards({
         retain_descriptions = {
             {
                 format = "description_power_level",
-                parameters = { -10 }
+                parameters = { -15 }
             }
         },
         auto_descriptions = {

@@ -19,3 +19,7 @@ texture = [
 	"textures/*"
 	"img/*"
 ]
+
+wwise_dep = [
+    "wwise/*"
+]

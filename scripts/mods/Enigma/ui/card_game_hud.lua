@@ -7,7 +7,7 @@ local DO_RELOAD = true
 EnigmaCardGameHud = class(EnigmaCardGameHud)
 
 local FLASH_DURATION = 0.75
-local CHANNEL_BAR_FADE_DURATION = 3
+local CHANNEL_BAR_FADE_DURATION = 2
 
 local enigma = get_mod("Enigma")
 
