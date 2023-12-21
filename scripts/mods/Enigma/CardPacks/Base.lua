@@ -306,8 +306,11 @@ pack_handle.register_ability_cards({
                     return
                 end
                 if disabled_unit == card.context.unit then
-                    card.disabler_unit = disabler
-                    game:play_card(card)
+                    local disabler_health = ScriptUnit.extension(disabler, "health_system")
+                    if not disabler_health:is_dead() then
+                        card.disabler_unit = disabler
+                        game:play_card(card)
+                    end
                 end
             end
         },
@@ -339,8 +342,11 @@ pack_handle.register_ability_cards({
                     return
                 end
                 if disabled_unit == card.context.unit then
-                    card.disabler_unit = disabler
-                    game:play_card(card)
+                    local disabler_health = ScriptUnit.extension(disabler, "health_system")
+                    if not disabler_health:is_dead() then
+                        card.disabler_unit = disabler
+                        game:play_card(card)
+                    end
                 end
             end
         },

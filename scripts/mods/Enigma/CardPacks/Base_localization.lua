@@ -174,7 +174,7 @@ return {
         en = "When you are disabled"
     },
     base_divine_insurance_description = {
-        en = "Cannot be disabled"
+        en = "Instantly execute your disabler whenever you are disabled"
     },
 
     base_dubious_insurance = {
@@ -184,7 +184,7 @@ return {
         en = "When you are disabled"
     },
     base_dubious_insurance_description = {
-        en = "Free yourself from being disabled"
+        en = "Instantly execute your disabler"
     },
 
     base_field_medicine = {
