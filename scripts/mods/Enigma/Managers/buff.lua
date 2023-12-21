@@ -301,29 +301,6 @@ enigma:hook(BuffExtension, "_add_stat_buff", function(func, self, sub_buff_templ
 end)
 enigma:hook_disable(BuffExtension, "_add_stat_buff")
 
--- enigma:hook(BuffExtension, "extensions_ready", function(func, self, world, unit)
---     local breed = Unit.get_data(unit, "breed")
--- 	if breed and breed.is_player and breed.is_hero then
---         enigma:info("BuffExtension.extensions_ready called for "..tostring(breed.name))
---         local is_server = enigma:is_server()
---         local local_player_unit = enigma:local_player_unit()
---         enigma:info("is_server: "..tostring(is_server))
---         enigma:info("unit             : "..tostring(unit))
---         enigma:info("local_player_unit: "..tostring(local_player_unit))
---         if enigma:is_server() or unit == enigma:local_player_unit() then
---             enigma:echo("Adding buff data for "..tostring(unit).." ("..tostring(breed and breed.name)..")")
---             bm.unit_stat_buff_indexes[unit] = {}
---             bm.unit_custom_buffs[unit] = table.shallow_copy(custom_buff_definitions)
---             bm.unit_stat_surges[unit] = {}
---             bm.unit_buff_extensions[unit] = self
---             enigma:hook_enable(BuffExtension, "_add_stat_buff")
---             self:add_buff(ENIGMA_UMBRELLA_BUFF)
---             enigma:hook_disable(BuffExtension, "_add_stat_buff")
---         end
---     end
---     return func(self, world, unit)
--- end)
-
 enigma:hook(DamageUtils, "apply_buffs_to_heal", function(func, healed_unit, healer_unit, heal_amount, heal_type, healed_units)
     local healed_unit_custom_buffs = bm.unit_custom_buffs[healed_unit]
     if healed_unit_custom_buffs and healed_unit_custom_buffs.temporary_healing_received then

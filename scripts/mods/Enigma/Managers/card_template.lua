@@ -166,76 +166,32 @@ local template_template = {
     end,
 }
 
-local create_card_template_handle = function(card_id)
-    return {
-        set_update = function(func, context)
-            ctm:add_update(card_id, func, context)
-        end,
-        set_on_draw = function(func, context)
-            ctm:add_on_draw(card_id, func, context)
-        end,
-        set_on_play = function(func, context)
-            ctm:add_on_play(card_id, func, context)
-        end,
-        add_description_line = function(format, default_params)
-            ctm:add_description_line(card_id, format, default_params)
-        end,
-        set_auto = function(condition_func, context)
-            ctm:add_auto(card_id, condition_func, context)
-        end,
-        add_auto_description = function(description)
-
-        end,
-        set_channel = function(duration)
-            ctm:add_channel(card_id, duration)
-        end,
-        set_condition = function(condition_func, description)
-            ctm:add_condition(card_id, condition_func, description)
-        end,
-        set_double_agent = function()
-            ctm:add_double_agent(card_id)
-        end,
-        set_ephemeral = function()
-            ctm:add_ephemeral(card_id)
-        end,
-        set_infinite = function()
-            ctm:add_infinite(card_id)
-        end,
-        set_unplayable = function()
-            ctm:add_unplayable(card_id)
-        end,
-        set_warp_hungry = function(duration)
-            ctm:add_warp_hungry(card_id, duration)
-        end
-    }
-end
-
 ctm.register_card = function(self, pack_id, card_id, card_type, card_def, additional_params)
     if type(card_id) ~= "string" then
         enigma:echo_bad_function_call("register_card", "id", {pack_id = pack_id, id = card_def.id, name = card_def.name, rarity = card_def.rarity, cost = card_def.cost})
-        return
+        return false
     end
     if type(card_def.name) ~= "string" then
         enigma:echo_bad_function_call("register_card", "name", {pack_id = pack_id, id = card_def.id,  name = card_def.name, rarity = card_def.rarity, cost = card_def.cost})
-        return
+        return false
     end
     if not enigma.validate_rarity(card_def.rarity) then
         enigma:echo_bad_function_call("register_card", "rarity", {pack_id = pack_id, id = card_def.id,  name = card_def.name, rarity = card_def.rarity, cost = card_def.cost})
-        return
+        return false
     end
     if type(card_def.cost) ~= "number" then
         enigma:echo_bad_function_call("register_card", "cost", {pack_id = pack_id, id = card_def.id,  name = card_def.name, rarity = card_def.rarity, cost = card_def.cost})
-        return
+        return false
     end
 
     local pack = enigma.managers.card_pack:get_pack_by_id(pack_id)
     if not pack then
         enigma:warning("Could not register card \""..tostring(pack_id).."/"..tostring(card_id).."\", could not determine associated card pack")
-        return
+        return false
     end
     if not card_def.mod_id then
         enigma:warning("Could not register card \""..tostring(pack_id).."/"..tostring(card_id).."\", could not determine associated mod")
-        return
+        return false
     end
 
     local new_template = table.shallow_copy(template_template)
@@ -246,7 +202,7 @@ ctm.register_card = function(self, pack_id, card_id, card_type, card_def, additi
     end
 
     self.card_templates[new_template.id] = new_template
-    return create_card_template_handle(new_template.id)
+    return true
 end
 
 ctm.register_passive_card = function(self, pack_id, card_id, card_def)
@@ -263,258 +219,6 @@ end
 
 ctm.register_chaos_card = function(self, pack_id, card_id, card_def)
     return self:register_card(pack_id, card_id, enigma.CARD_TYPE.chaos, card_def)
-end
-
-ctm.add_update = function(self, card_id, func, context)
-    if type(card_id) ~= "string" then
-        enigma:echo_bad_function_call("add_on_play", "card_id", {card_id = card_id, func = func})
-        return
-    end
-    if type(func) ~= "function" then
-        enigma:echo_bad_function_call("add_on_play", "func", {card_id = card_id, func = func})
-        return
-    end
-    local template = self.card_templates[card_id]
-    if not template then
-        enigma:echo("Enigma could not add update to card \""..card_id.."\". Must register it first")
-        return
-    end
-    context = context or "local"
-    if context:find("local") then
-        template.update_local = func
-    end
-    if context:find("server") then
-        template.update_server = func
-    end
-    if context:find("remote") then
-        template.update_remote = func
-    end
-end
-ctm.add_on_draw = function(self, card_id, func, context)
-    if type(card_id) ~= "string" then
-        enigma:echo_bad_function_call("add_on_draw", "card_id", {card_id = card_id, func = func})
-        return
-    end
-    if type(func) ~= "function" then
-        enigma:echo_bad_function_call("add_on_draw", "func", {card_id = card_id, func = func})
-        return
-    end
-    local template = self.card_templates[card_id]
-    if not template then
-        enigma:echo("Enigma could not add on_draw to card \""..card_id.."\". Must register it first")
-        return
-    end
-    context = context or "local"
-    if context:find("local") then
-        template.on_draw_local = func
-    end
-    if context:find("server") then
-        template.on_draw_server = func
-    end
-    if context:find("remote") then
-        template.on_draw_remote = func
-    end
-end
-ctm.add_on_play = function(self, card_id, func, context)
-    if type(card_id) ~= "string" then
-        enigma:echo_bad_function_call("add_on_play", "card_id", {card_id = card_id, func = func})
-        return
-    end
-    if type(func) ~= "function" then
-        enigma:echo_bad_function_call("add_on_play", "func", {card_id = card_id, func = func})
-        return
-    end
-    local template = self.card_templates[card_id]
-    if not template then
-        enigma:echo("Enigma could not add on_play to card \""..card_id.."\". Must register it first")
-        return
-    end
-    context = context or "local"
-    if context:find("local") then
-        template.on_play_local = func
-    end
-    if context:find("server") then
-        template.on_play_server = func
-    end
-    if context:find("remote") then
-        template.on_play_remote = func
-    end
-end
-ctm.add_description_line = function(self, card_id, format, default_params)
-    if type(format) ~= "string" then
-        enigma:echo_bad_function_call("add_description_line", "format", {format = format, default_params = default_params})
-        return
-    end
-    if type(default_params) ~= "table" then
-        enigma:echo_bad_function_call("add_description_line", "default_params", {format = format, default_params = default_params})
-        return
-    end
-    local template = self.card_templates[card_id]
-    if not template then
-        enigma:echo("Enigma could not add description line to card \""..card_id.."\". Must register it first")
-        return
-    end
-    table.insert(template.description_lines, {
-        format = format,
-        parameters = default_params
-    })
-end
-ctm.add_auto = function(self, card_id, condition_func, context)
-    if type(card_id) ~= "string" then
-        enigma:echo_bad_function_call("add_auto", "card_id", {card_id = card_id, condition_func = condition_func})
-        return
-    end
-    if type(condition_func) ~= "function" then
-        enigma:echo_bad_function_call("add_auto", "func", {card_id = card_id, condition_func = condition_func})
-        return
-    end
-    local template = self.card_templates[card_id]
-    if not template then
-        enigma:echo("Enigma could not add auto to card \""..card_id.."\". Must register it first")
-        return
-    end
-    context = context or "local"
-    if context:find("local") then
-        template.auto_condition_local = condition_func
-    end
-    if context:find("server") then
-        template.auto_condition_server = condition_func
-    end
-end
-ctm.add_auto_description = function(self, card_id, description)
-    if type(card_id) ~= "string" then
-        enigma:echo_bad_function_call("add_auto_description", "card_id", {card_id = card_id, description = description})
-        return
-    end
-    if type(description) ~= "string" then
-        enigma:echo_bad_function_call("add_auto_description", "description", {card_id = card_id, description = description})
-        return
-    end
-    local template = self.card_templates[card_id]
-    if not template then
-        enigma:echo("Enigma could not add auto description to card \""..card_id.."\". Must register it first")
-        return
-    end
-    table.insert(template.auto_descriptions, description)
-end
-ctm.add_channel = function(self, card_id, duration)
-    if type(card_id) ~= "string" then
-        enigma:echo_bad_function_call("add_channel", "card_id", "card_id", card_id, "duration", duration)
-        return
-    end
-    if type(duration) ~= "number" then
-        enigma:echo_bad_function_call("add_channel", "duration", "card_id", card_id, "duration", duration)
-        return
-    end
-    local template = self.card_templates[card_id]
-    if not template then
-        enigma:echo("Enigma could not add channel to card \""..card_id.."\". Must register it first")
-        return
-    end
-    template.channel = duration
-end
-ctm.add_condition = function(self, card_id, condition_func, context)
-    if type(card_id) ~= "string" then
-        enigma:echo_bad_function_call("add_condition", "card_id", {card_id = card_id, condition_func = condition_func})
-        return
-    end
-    if type(condition_func) ~= "function" then
-        enigma:echo_bad_function_call("add_condition", "func", {card_id = card_id, condition_func = condition_func})
-        return
-    end
-    local template = self.card_templates[card_id]
-    if not template then
-        enigma:echo("Enigma could not add condition to card \""..card_id.."\". Must register it first")
-        return
-    end
-    
-    context = context or "local"
-    if context:find("local") then
-        template.condition_local = condition_func
-    end
-    if context:find("server") then
-        template.condition_server = condition_func
-    end
-end
-ctm.add_condition_description = function(self, card_id, description)
-    if type(card_id) ~= "string" then
-        enigma:echo_bad_function_call("add_condition", "card_id", {card_id = card_id, description = description})
-        return
-    end
-    if type(description) ~= "string" then
-        enigma:echo_bad_function_call("add_condition", "description", {card_id = card_id, description = description})
-        return
-    end
-    local template = self.card_templates[card_id]
-    if not template then
-        enigma:echo("Enigma could not add condition to card \""..card_id.."\". Must register it first")
-        return
-    end
-    table.insert(template.condition_descriptions, description)
-end
-ctm.add_double_agent = function(self, card_id)
-    if type(card_id) ~= "string" then
-        enigma:echo_bad_function_call("add_double_agent", "card_id", "card_id", card_id)
-        return
-    end
-    local template = self.card_templates[card_id]
-    if not template then
-        enigma:echo("Enigma could not add double_agent to card \""..card_id.."\". Must register it first")
-        return
-    end
-    template.double_agent = true
-end
-ctm.add_ephemeral = function(self, card_id)
-    if type(card_id) ~= "string" then
-        enigma:echo_bad_function_call("add_ephemeral", "card_id", "card_id", card_id)
-        return
-    end
-    local template = self.card_templates[card_id]
-    if not template then
-        enigma:echo("Enigma could not add ephemeral to card \""..card_id.."\". Must register it first")
-        return
-    end
-    template.ephemeral = true
-end
-ctm.add_infinite = function(self, card_id)
-    if type(card_id) ~= "string" then
-        enigma:echo_bad_function_call("add_infinite", "card_id", "card_id", card_id)
-        return
-    end
-    local template = self.card_templates[card_id]
-    if not template then
-        enigma:echo("Enigma could not add infinite to card \""..card_id.."\". Must register it first")
-        return
-    end
-    template.infinite = true
-end
-ctm.add_unplayable = function(self, card_id)
-    if type(card_id) ~= "string" then
-        enigma:echo_bad_function_call("add_unplayable", "card_id", "card_id", card_id)
-        return
-    end
-    local template = self.card_templates[card_id]
-    if not template then
-        enigma:echo("Enigma could not add unplayable to card \""..card_id.."\". Must register it first")
-        return
-    end
-    template.unplayable = true
-end
-ctm.add_warp_hungry = function(self, card_id, duration)
-    if type(card_id) ~= "string" then
-        enigma:echo_bad_function_call("add_warp_hungry", "card_id", "card_id", card_id, "duration", duration)
-        return
-    end
-    if type(duration) ~= "number" then
-        enigma:echo_bad_function_call("add_warp_hungry", "duration", "card_id", card_id, "duration", duration)
-        return
-    end
-    local template = self.card_templates[card_id]
-    if not template then
-        enigma:echo("Enigma could not add warp_hungry to card \""..card_id.."\". Must register it first")
-        return
-    end
-    template.warp_hungry = duration
 end
 
 ctm.get_card_from_id = function(self, scoped_card_id)
