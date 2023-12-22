@@ -12,7 +12,7 @@ enigma.EVENTS = {
     player_block_broken = "player_block_broken", -- blocking_unit, attacker_unit, fatigue_type
     player_damaged = "player_damaged", -- health_extension, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier
     player_disabled = "player_disabled", -- disabled_unit, disable_type, disabler
-    player_dodge = "player_dodge",
+    player_dodge = "player_dodge", -- dodging_player_unit, dodge_direction
     player_freed = "player_freed",
     player_healed = "player_healed", -- health_extension, healer_unit, heal_amount, heal_source_name, heal_type
     player_hooked = "player_hooked", -- disabled_unit, disabler
@@ -21,14 +21,14 @@ enigma.EVENTS = {
     player_killed = "player_killed", -- killed_unit, killing_blow
     player_knocked_down = "player_knocked_down", -- unit
     player_leeched = "player_leeched", -- disabled_unit, disabler
-    player_picked_up_from_respawn = "player_picked_up_from_respawn",
+    player_picked_up_from_respawn = "player_picked_up_from_respawn", -- player_unit, helper_unit
     player_pounced = "player_pounced", -- disabled_unit, disabler
     player_reload = "player_reload", -- reloading_unit
     player_respawn = "player_respawn", -- respawned_player_unit
     player_timed_block = "player_timed_block", -- blocking_unit, attacker_unit
     player_revived = "player_revived", -- revived_unit, reviver_unit
     player_visible = "player_visible", -- player_unit
-    player_waiting_for_rescue = "player_waiting_for_rescue",
+    player_waiting_for_rescue = "player_waiting_for_rescue", -- player_unit
 
 }
 
@@ -142,6 +142,7 @@ em._invoke_event_callbacks = function(self, event, ...)
         enigma:warning("Cannot invoke callbacks for nonexistent event ("..tostring(event)..")")
         return
     end
+    
     for card,cb in pairs(self.events[event]) do
         if not cb or card.location == enigma.CARD_LOCATION.out_of_play_pile then
             return
@@ -214,12 +215,29 @@ reg_hook_safe(DeathSystem, "kill_unit", function(self, unit, killing_blow)
     else
         em:_invoke_event_callbacks(enigma.EVENTS.enemy_killed, unit, killing_blow)
     end
-end)
+end, "enigma_event_kill_unit")
+
+reg_hook_safe(GenericStatusExtension, "set_ready_for_assisted_respawn", function(self, status_bool, flavour_unit)
+    if status_bool then
+        em:_invoke_event_callbacks(enigma.EVENTS.player_waiting_for_rescue, self.unit)
+    end
+end, "enigma_event_player_waiting_for_rescue")
 
 reg_hook_safe(PlayerCharacterStateWaitingForAssistedRespawn, "on_enter", function(self, unit, ...)
+    enigma:info("Invoking player_respawn event. unit="..tostring(unit))
     em:_invoke_event_callbacks(enigma.EVENTS.player_respawn, unit)
+end, "enigma_event_player_respawn")
+
+reg_hook_safe(PlayerCharacterStateWaitingForAssistedRespawn, "on_exit", function(self, unit, ...)
+    local helper_unit = self.status_extension:get_assisted_respawn_helper_unit()
+    em:_invoke_event_callbacks(enigma.EVENTS.player_picked_up_from_respawn, unit, helper_unit)
+    enigma:info("Invoking player_picked_up_from_respawn event. unit="..tostring(unit)..", helper_unit="..tostring(helper_unit))
 end, "enigma_event_player_respawn")
 
 reg_hook_safe(PlayerCharacterStateJumping, "on_enter", function(self, unit, ...)
     em:_invoke_event_callbacks(enigma.EVENTS.player_jump, unit)
 end, "enigma_event_player_jump")
+
+reg_hook_safe(PlayerCharacterStateDodging, "on_enter", function(self, unit, input, dt, context, t, previous_state, params)
+    em:_invoke_event_callbacks(enigma.EVENTS.player_dodge, unit, self.dodge_direction)
+end, "enigma_event_player_dodge")
