@@ -155,23 +155,57 @@ enigma:command("big_card", "show a big card!", function(card_id)
     enigma.managers.ui.big_card_to_display = card
 end)
 
-enigma:command("enigma", "", function(cmd)
-    if cmd == "toggle_deck_validity_check" then
-        if enigma.skip_deck_validity_check then
-            enigma:echo("Turning deck validity check ON")
-        else
-            enigma:echo("Turning deck validity check OFF")
+enigma:network_register("enigma_dev_game", function(sender, state)
+    if state == "start" then
+        if enigma.managers.game:is_in_game() then
+            enigma:echo("Enigma dev game requested start, but already in a game!")
+            return
         end
-        enigma:set("skip_deck_validity_check", not enigma.skip_deck_validity_check, true)
-    elseif cmd == "toggle_mega_resources" then
-        if enigma.mega_resource_start then
-            enigma:echo("Turning mega resource start OFF")
-        else
-            enigma:echo("Turning mega resource start ON")
-        end
-        enigma:set("mega_resource_start", not enigma.mega_resource_start, true)
+        local game_init_data = enigma.managers.deck_planner.game_init_data
+        enigma:echo("Initializing Enigma game with deck: "..tostring(game_init_data.deck_name)..", cards: "..tostring(game_init_data.cards)..", is_server: "..tostring(game_init_data.is_server))
+        enigma.managers.game:init_game(game_init_data.deck_name, game_init_data.cards, game_init_data.is_server)
+    elseif state == "end" then
+        enigma.managers.game:end_game()
     end
 end)
+enigma:command("enigma", "", function(...)
+    local args = table.pack(...)
+    local cmd = args[1]
+    if cmd == "toggle" then
+        local toggle_cmd = args[2]
+        if not toggle_cmd then
+            enigma:echo("Must provide another argument for enigma toggle")
+            return
+        end
+        if toggle_cmd == "deck_validity_check" then
+            if enigma.skip_deck_validity_check then
+                enigma:echo("Turning deck validity check ON")
+            else
+                enigma:echo("Turning deck validity check OFF")
+            end
+            enigma:set("skip_deck_validity_check", not enigma.skip_deck_validity_check, true)
+        elseif toggle_cmd == "mega_resources" then
+            if enigma.mega_resource_start then
+                enigma:echo("Turning mega resource start OFF")
+            else
+                enigma:echo("Turning mega resource start ON")
+            end
+            enigma:set("mega_resource_start", not enigma.mega_resource_start, true)
+        end
+    elseif cmd == "force" then
+        local force_cmd = args[2]
+        if not force_cmd then
+            enigma:echo("Must provide another argument for enigma force")
+            return
+        end
+        if force_cmd == "start" then
+            enigma:network_send("enigma_dev_game", "all", "start")
+        elseif force_cmd == "end" then
+            enigma:network_send("enigma_dev_game", "all", "end")
+        end
+    end
+end)
+
 
 -- Mod Events
 enigma.update = function(dt)
