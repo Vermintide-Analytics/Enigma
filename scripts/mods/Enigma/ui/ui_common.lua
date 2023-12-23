@@ -2,7 +2,7 @@ local enigma = get_mod("Enigma")
 
 local ui_common = {}
 
-ui_common.create_text_input = function(scenegraph_id, text_scenegraph_id, unfocus_scenegraph_id, default_text)
+ui_common.create_text_input = function(scenegraph_id, text_scenegraph_id, unfocus_scenegraph_id, default_text, hint_text)
 	local widget = {
 		scenegraph_id = scenegraph_id,
 		element = {
@@ -94,6 +94,56 @@ ui_common.create_text_input = function(scenegraph_id, text_scenegraph_id, unfocu
 			}
 		}
 	}
+
+	if hint_text then
+		table.insert(widget.element.passes, {
+			pass_type = "text",
+			style_id = "hint",
+			text_id = "hint",
+			content_check_function = function (content, style)
+				if content.hotspot.is_hover then
+					style.text_color = {
+						128,
+						255,
+						255,
+						255
+					}
+				else
+					style.text_color = {
+						60,
+						255,
+						255,
+						255
+					}
+				end
+
+				return content.text == ""
+			end
+		})
+		widget.content.hint = hint_text
+		widget.style.hint = {
+			scenegraph_id = text_scenegraph_id,
+			horizontal_scroll = true,
+			word_wrap = false,
+			pixel_perfect = true,
+			horizontal_alignment = "left",
+			vertical_alignment = "center",
+			font_size = 32,
+			dynamic_font = true,
+			font_type = "hell_shark_arial",
+			text_color = {
+				60,
+				255,
+				255,
+				255
+			},
+			offset = {
+				2,
+				2,
+				1
+			},
+		}
+	end
 
 	return widget
 end

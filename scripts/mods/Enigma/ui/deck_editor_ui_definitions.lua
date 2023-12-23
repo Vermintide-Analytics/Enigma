@@ -233,6 +233,34 @@ local scenegraph_definition = {
 			1
 		}
 	},
+	card_name_search = {
+		parent = "top_panel",
+		vertical_alignment = "top",
+		horizontal_alignment = "right",
+		size = {
+			WINDOW_WIDTH / 6,
+			TOP_PANEL_HEIGHT / 3
+		},
+		position = {
+			PRETTY_MARGIN*-2,
+			PRETTY_MARGIN*-2 - 4,
+			1
+		}
+	},
+	card_name_search_inner = {
+		parent = "card_name_search",
+		vertical_alignment = "center",
+		horizontal_alignment = "center",
+		size = {
+			-4,
+			-4
+		},
+		position = {
+			0,
+			0,
+			1
+		}
+	},
 	left_panel = {
 		parent = "inner_window",
 		vertical_alignment = "bottom",
@@ -455,6 +483,7 @@ local widgets = {
 		}
 	},
 	delete_deck_button = UIWidgets.create_default_button("delete_deck_button", scenegraph_definition.delete_deck_button.size, nil, nil, enigma:localize("delete"), 24, nil, nil, nil, true, true),
+	card_name_search = ui_common.create_text_input("card_name_search", "card_name_search_inner", "screen", "", enigma:localize("search")),
 	left_panel = {
 		scenegraph_id = "left_panel",
 		element = {

@@ -40,7 +40,8 @@ EnigmaDeckEditorUI.create_ui_elements = function (self)
 	self._widgets, self._widgets_by_name = UIUtils.create_widgets(definitions.widgets)
 
 	self.text_input_widgets = {
-		self._widgets_by_name["deck_name"]
+		self._widgets_by_name["deck_name"],
+		self._widgets_by_name["card_name_search"]
 	}
 
 	UIRenderer.clear_scenegraph_queue(self.ui_renderer)
@@ -133,12 +134,18 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 	end
 
 
-	-- Deck Name Text Box
+	-- Text Inputs
+	local card_filter_update_needed = false
 	local text_changes = ui_common.handle_text_inputs(self.text_input_widgets)
 	if text_changes then
 		local new_deck_name = text_changes[self._widgets_by_name.deck_name]
 		if new_deck_name then
 			enigma.managers.deck_planner:rename_deck(new_deck_name)
+		end
+		local new_card_name_search = text_changes[self._widgets_by_name.card_name_search]
+		if new_card_name_search then
+			self.name_search = new_card_name_search
+			card_filter_update_needed = true
 		end
 	end
 
@@ -234,6 +241,9 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 		self:update_deck_info_ui()
 		self:update_deck_cards_ui()
 	end
+	if card_filter_update_needed then
+		self:update_filtered_cards()
+	end
 end
 
 EnigmaDeckEditorUI.hotkey_allowed = function(self, input, mapping_data)
@@ -291,7 +301,13 @@ EnigmaDeckEditorUI.update_deck_cards_ui = function(self)
 end
 
 EnigmaDeckEditorUI.card_matches_filter = function(self, card)
-	-- TODO
+	if self.name_search then
+		local card_name_lower = card.name:lower()
+		local search_lower = self.name_search:lower()
+		if not card_name_lower:find(search_lower) then
+			return false
+		end
+	end
 	return true
 end
 
@@ -322,6 +338,10 @@ EnigmaDeckEditorUI.update_card_tiles_ui = function(self)
 		local card_scenegraph_id = "card_"..i
 		local card = self.filtered_cards[start_offset + i]
 		card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, card_scenegraph_id, card, CARD_TILE_WIDTH)
+	end
+
+	if self.current_page == 0 and self.num_pages > 0 then
+		self.current_page = 1
 	end
 
 	local pagination_text = enigma:localize("page_count", self.current_page, self.num_pages)

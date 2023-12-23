@@ -153,6 +153,9 @@ local loc = {
 	not_yet_implemented = {
 		en = "Does not do anything... yet",
 	},
+	search = {
+		en = "Search"
+	},
 
 	-- Deck List
 	create_deck = {
