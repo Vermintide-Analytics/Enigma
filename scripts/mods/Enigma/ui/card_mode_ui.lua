@@ -84,10 +84,23 @@ EnigmaCardModeUI._handle_input = function(self, dt, t)
 			enigma.card_mode = false
 		end
 	end
+	ui_common.handle_hand_input(self._widgets_by_name, self.wwise_world)
+
+	local hand = enigma.managers.game.local_data.hand
+	local hand_size = #hand
+	for i=1,hand_size do
+		local interaction_widget = self._widgets_by_name["hand_card_"..i.."_interaction"]
+		if interaction_widget.content.hotspot.on_pressed then
+			local played = enigma.managers.game:play_card_from_hand(i, false, "manual")
+			if played and enigma.managers.user_interaction.hide_card_mode_on_card_play then
+				enigma.card_mode = false
+			end
+		end
+	end
 end
 
 EnigmaCardModeUI.draw = function (self, dt)
-	local input_service = self.input_manager:get_service("big_card_ui")
+	local input_service = self.input_manager:get_service("card_mode_ui")
 	local ui_renderer = self.ui_renderer
 
 	UIRenderer.begin_pass(ui_renderer, self.ui_scenegraph, input_service, dt)

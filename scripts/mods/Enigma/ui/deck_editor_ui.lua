@@ -223,18 +223,10 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 
 	-- Cards
 	for i=1, TOTAL_CARD_TILES do
-		local card_widget = self._widgets_by_name["card_"..i]
-		local card_interaction_widget = self._widgets_by_name["card_"..i.."_deck_editor_interaction"]
+		local card_interaction_widget = self._widgets_by_name["card_"..i.."_interaction"]
 		local card = self.filtered_cards[(self.current_page - 1) * TOTAL_CARD_TILES + i]
 		
-		local background_color_key = card and card.card_type or "default"
-		if card_interaction_widget.content.hotspot.is_hover then
-			background_color_key = background_color_key.."_highlight"
-		end
-		card_widget.style.card_background.color = ui_common.card_colors[background_color_key] or ui_common.card_colors.default
-		if card and card_interaction_widget.content.hotspot.on_hover_enter then
-			self:play_sound("Play_hud_hover")
-		end
+		ui_common.handle_card_input(self._widgets_by_name, "card_"..i, card, self.wwise_world)
 		
 		if card_interaction_widget.content.hotspot.on_pressed then
 			self:play_sound("Play_hud_select")

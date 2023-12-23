@@ -629,6 +629,7 @@ local handle_card_played = function(context, data, card, play_type)
     if can_expend_charge then
         card.charges = card.charges - 1
         card:set_dirty()
+        return enigma.CARD_LOCATION.hand
     else
         local destination_pile = enigma.CARD_LOCATION.discard_pile
         if card.ephemeral then
@@ -647,9 +648,8 @@ local handle_card_played = function(context, data, card, play_type)
         if card[on_location_changed_func_name] then
             card[on_location_changed_func_name](card, location, destination_pile)
         end
+        return destination_pile
     end
-
-    return not can_expend_charge
 end
 local handle_local_card_played = function(card, location, index, skip_warpstone_cost, play_type)
     if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(card.cost) then
@@ -664,8 +664,8 @@ local handle_local_card_played = function(card, location, index, skip_warpstone_
         enigma:info("Skipping warpstone cost for playing "..tostring(card.id))
     end
     
-    local moved = handle_card_played("local", cgm.local_data, card, play_type)
-    if location == enigma.CARD_LOCATION.hand and moved then
+    local new_location = handle_card_played("local", cgm.local_data, card, play_type)
+    if location == enigma.CARD_LOCATION.hand and location ~= new_location then
         enigma.managers.ui.hud_data.hand_indexes_just_removed[index] = true
         enigma.managers.ui.card_mode_ui_data.hand_indexes_just_removed[index] = true
     end
@@ -742,7 +742,7 @@ cgm._play_card_at_index_from_location = function(self, location, index, skip_war
             skip_warpstone_cost = skip_warpstone_cost
         }
         enigma:wwise_event("channel_start")
-        return
+        return true, "channeling"
     end
     return handle_local_card_played(card, location, index, skip_warpstone_cost, play_type)
 end

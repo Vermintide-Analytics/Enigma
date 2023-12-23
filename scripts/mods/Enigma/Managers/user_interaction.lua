@@ -45,15 +45,15 @@ for i=1,5 do
         if not enigma.card_mode then
             return
         end
-        enigma.managers.game:play_card_from_hand(i, false, "manual")
-        if uim.hide_card_mode_on_card_play then
+        local played = enigma.managers.game:play_card_from_hand(i, false, "manual")
+        if played and uim.hide_card_mode_on_card_play then
             enigma.card_mode = false
         end
     end
     enigma[quick_hotkey_func_name] = function()
         if forbid_keybinds() then return end
-        enigma.managers.game:play_card_from_hand(i, false, "manual")
-        if uim.hide_card_mode_on_card_play then
+        local played = enigma.managers.game:play_card_from_hand(i, false, "manual")
+        if played and uim.hide_card_mode_on_card_play then
             enigma.card_mode = false
         end
     end

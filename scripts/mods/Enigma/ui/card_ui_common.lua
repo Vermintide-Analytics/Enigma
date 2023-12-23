@@ -401,7 +401,7 @@ local add_described_keyword_widget = function(widget_defs, card_scenegraph_id, i
 				offset = {
 					0,
 					0,
-					0
+					1
 				}
 			},
 			title_shadow = {
@@ -421,7 +421,7 @@ local add_described_keyword_widget = function(widget_defs, card_scenegraph_id, i
 				offset = {
 					1,
 					-1,
-					-1
+					0
 				}
 			},
 			details = {
@@ -441,14 +441,14 @@ local add_described_keyword_widget = function(widget_defs, card_scenegraph_id, i
 				offset = {
 					0,
 					0,
-					0
+					1
 				}
 			}
 		}
 	}
 end
 
-local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
+local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes, enable_hotspot)
 	local card_width = sizes.card_width
 	local card_height = sizes.card_height
 
@@ -484,7 +484,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					0,
 					0,
-					0
+					1
 				},
 				color = {
 					255,
@@ -503,11 +503,37 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					0,
 					0,
-					0
+					1
 				},
 			},
 		}
 	}
+
+	if enable_hotspot then
+		widget_defs[card_widget_name.."_interaction"] = {
+			scenegraph_id = card_scenegraph_id,
+			element = {
+				passes = {
+					{
+						pass_type = "hotspot",
+						content_id = "hotspot"
+					}
+				}
+			},
+			content = {
+				hotspot = {}
+			},
+			style = {
+				background = {
+					offset = {
+						0,
+						0,
+						10
+					}
+				}
+			}
+		}
+	end
 
 	local card_glow_widget_name = card_scenegraph_id.."_glow"
 	widget_defs[card_glow_widget_name] = {
@@ -536,7 +562,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					0,
 					0,
-					-1
+					0
 				},
 				color = {
 					255,
@@ -580,7 +606,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					0,
 					0,
-					0
+					1
 				},
 				color = {
 					255,
@@ -605,7 +631,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					0,
 					0,
-					1
+					2
 				}
 			},
 		}
@@ -649,7 +675,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					0,
 					0,
-					0
+					1
 				}
 			},
 			cost = {
@@ -666,7 +692,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					0,
 					sizes.card_cost_font_size / -8,
-					1
+					2
 				}
 			},
 		}
@@ -710,7 +736,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					0,
 					0,
-					0
+					1
 				}
 			},
 			duration = {
@@ -722,7 +748,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					0,
 					sizes.card_duration_font_size / -8,
-					1
+					2
 				}
 			},
 		}
@@ -754,7 +780,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					0,
 					0,
-					0
+					1
 				},
 			},
 		}
@@ -792,7 +818,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					0,
 					0,
-					0
+					1
 				},
 				color = {
 					255,
@@ -813,7 +839,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					0,
 					0,
-					1
+					2
 				}
 			},
 		}
@@ -847,7 +873,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					0,
 					0,
-					0
+					1
 				}
 			},
 		}
@@ -890,7 +916,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					0,
 					0,
-					0
+					1
 				}
 			},
 			keywords_shadow = {
@@ -905,7 +931,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes)
 				offset = {
 					1,
 					-1,
-					-1
+					0
 				}
 			},
 		}
@@ -944,10 +970,10 @@ local calculate_card_sizes = function(card_width)
 	return sizes
 end
 
-ui_common.add_card_display = function(scenegraph_defs, widget_defs, scenegraph_parent_id, card_scenegraph_id, card_width)
+ui_common.add_card_display = function(scenegraph_defs, widget_defs, scenegraph_parent_id, card_scenegraph_id, card_width, enable_hotspot)
 	local sizes = calculate_card_sizes(card_width)
 	add_card_scenegraph_nodes(scenegraph_defs, scenegraph_parent_id, card_scenegraph_id, sizes)
-	add_card_widgets(widget_defs, card_scenegraph_id, sizes)
+	add_card_widgets(widget_defs, card_scenegraph_id, sizes, enable_hotspot)
 end
 
 local set_widgets_visibility = function(widgets, card_node_id, visible, has_duration, glow)
@@ -1318,9 +1344,26 @@ ui_common.update_card_display_if_needed = function(ui_renderer, scenegraph_nodes
 	end
 end
 
-ui_common.add_hand_display = function(scenegraph_defs, widget_defs, scenegraph_parent_id, card_width)
+ui_common.handle_card_input = function(widgets, card_node_id, card, wwise_world)
+	if not card then
+		return
+	end
+	local interaction_widget = widgets[card_node_id.."_interaction"]
+	if interaction_widget then
+		if interaction_widget.content.hotspot.on_hover_enter then
+			WwiseWorld.trigger_event(wwise_world, "Play_hud_hover")
+		end
+		local background_color = ui_common.card_colors[card.card_type] or ui_common.card_colors.default
+		if interaction_widget.content.hotspot.is_hover then
+			background_color = ui_common.card_colors[card.card_type.."_highlight"] or ui_common.card_colors.default_highlight
+		end
+		widgets[card_node_id].style.card_background.color = background_color
+	end
+end
+
+ui_common.add_hand_display = function(scenegraph_defs, widget_defs, scenegraph_parent_id, card_width, enable_hotspots)
 	for i=1,5 do
-		ui_common.add_card_display(scenegraph_defs, widget_defs, scenegraph_parent_id, "hand_card_"..i, card_width)
+		ui_common.add_card_display(scenegraph_defs, widget_defs, scenegraph_parent_id, "hand_card_"..i, card_width, enable_hotspots)
 	end
 end
 
@@ -1346,6 +1389,15 @@ ui_common.update_hand_display = function(ui_renderer, scenegraph_nodes, widgets_
 		local current_horizontal_position = card_scenegraph_node.position[1]
 		card_scenegraph_node.position[1] = math.lerp(current_horizontal_position, desired_horizontal_position, 0.1)
 		desired_horizontal_position = desired_horizontal_position + card_margin + card_width
+	end
+end
+
+ui_common.handle_hand_input = function(widgets, wwise_world)
+	local hand = enigma.managers.game.local_data.hand
+	local hand_size = #hand
+
+	for i=1,hand_size do
+		ui_common.handle_card_input(widgets, "hand_card_"..i, hand[i], wwise_world)
 	end
 end
 

@@ -63,7 +63,7 @@ local widgets = {
 	}
 }
 
-ui_common.add_hand_display(scenegraph_definition, widgets, "hand_panel", CARD_WIDTH)
+ui_common.add_hand_display(scenegraph_definition, widgets, "hand_panel", CARD_WIDTH, true)
 
 return {
 	scenegraph_definition = scenegraph_definition,

@@ -815,63 +815,11 @@ local define_card_tile_widget = function(scenegraph_id, tile_index)
 	local vertical_offset = PRETTY_MARGIN*row + CARD_TILE_HEIGHT*(row - 1)
 
 	local card_scenegraph_id = "card_"..tile_index
-	ui_common.add_card_display(scenegraph_definition, widgets, scenegraph_id, card_scenegraph_id, CARD_TILE_WIDTH)
+	ui_common.add_card_display(scenegraph_definition, widgets, scenegraph_id, card_scenegraph_id, CARD_TILE_WIDTH, true)
 	scenegraph_definition[card_scenegraph_id].vertical_alignment = "top"
 	scenegraph_definition[card_scenegraph_id].horizontal_alignment = "left"
 	scenegraph_definition[card_scenegraph_id].position[1] = horizontal_offset
 	scenegraph_definition[card_scenegraph_id].position[2] = vertical_offset * -1
-
-	local background_color = {
-		180,
-		0,
-		0,
-		0
-	}
-	if tile_index % 2 == 0 then
-		background_color = {
-			90,
-			0,
-			0,
-			0
-		}
-	end
-	local hover_color = {
-		background_color[1],
-		64,
-		64,
-		64
-	}
-
-	widgets[card_scenegraph_id.."_deck_editor_interaction"] = {
-		scenegraph_id = card_scenegraph_id,
-		element = {
-			passes = {
-				{
-					pass_type = "hotspot",
-					content_id = "hotspot"
-				},
-				-- {
-				-- 	pass_type = "rect",
-				-- 	style = "background"
-				-- }
-			}
-		},
-		content = {
-			hotspot = {}
-		},
-		style = {
-			background = {
-				color = background_color,
-				normal_color = background_color,
-				hover_color = hover_color,
-				offset = {
-					0,
-					0,
-					10
-				}
-			}
-		}
-	}
 end
 
 for i=1,TOTAL_CARD_TILES do
