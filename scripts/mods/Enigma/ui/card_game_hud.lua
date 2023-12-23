@@ -2,7 +2,7 @@ local definitions = local_require("scripts/mods/Enigma/ui/card_game_hud_definiti
 local CARD_WIDTH = definitions.card_width
 local PRETTY_MARGIN = 10
 local CHANNEL_BAR_INNER_WIDTH = definitions.channel_bar_inner_width
-local ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
+local card_ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
 local DO_RELOAD = true
 EnigmaCardGameHud = class(EnigmaCardGameHud)
 
@@ -159,7 +159,7 @@ EnigmaCardGameHud.update = function (self, dt, t)
 
 
 	-- Hand display
-	ui_common.update_hand_display(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, CARD_WIDTH, PRETTY_MARGIN, enigma.managers.ui.hud_data, "dirty_hud_ui")
+	card_ui_common.update_hand_display(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, CARD_WIDTH, PRETTY_MARGIN, enigma.managers.ui.hud_data, "dirty_hud_ui")
 
 
 

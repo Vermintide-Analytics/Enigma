@@ -1,7 +1,7 @@
 local definitions = local_require("scripts/mods/Enigma/ui/card_mode_ui_definitions")
 local CARD_WIDTH = definitions.card_width
 local PRETTY_MARGIN = 16
-local ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
+local card_ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
 local DO_RELOAD = true
 EnigmaCardModeUI = class(EnigmaCardModeUI)
 
@@ -66,7 +66,7 @@ EnigmaCardModeUI.update = function (self, dt, t)
 	end
 	cached_card_mode = enigma.card_mode
 	
-	ui_common.update_hand_display(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, CARD_WIDTH, PRETTY_MARGIN, enigma.managers.ui.card_mode_ui_data, "dirty_card_mode_ui")
+	card_ui_common.update_hand_display(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, CARD_WIDTH, PRETTY_MARGIN, enigma.managers.ui.card_mode_ui_data, "dirty_card_mode_ui")
 
 	if not enigma.card_mode then
 		return
@@ -84,7 +84,7 @@ EnigmaCardModeUI._handle_input = function(self, dt, t)
 			enigma.card_mode = false
 		end
 	end
-	ui_common.handle_hand_input(self._widgets_by_name, self.wwise_world)
+	card_ui_common.handle_hand_input(self._widgets_by_name, self.wwise_world)
 
 	local hand = enigma.managers.game.local_data.hand
 	local hand_size = #hand

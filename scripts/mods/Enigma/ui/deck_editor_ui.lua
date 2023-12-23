@@ -2,7 +2,8 @@ local definitions = local_require("scripts/mods/Enigma/ui/deck_editor_ui_definit
 local MAX_CARDS_IN_DECK = definitions.max_cards_in_deck
 local TOTAL_CARD_TILES = definitions.num_card_tiles
 local CARD_TILE_WIDTH = definitions.card_tile_width
-local ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
+local card_ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
+local ui_common = local_require("scripts/mods/Enigma/ui/ui_common")
 local DO_RELOAD = true
 EnigmaDeckEditorUI = class(EnigmaDeckEditorUI)
 
@@ -37,6 +38,10 @@ EnigmaDeckEditorUI.create_ui_elements = function (self)
 	DO_RELOAD = false
 	self.ui_scenegraph = UISceneGraph.init_scenegraph(definitions.scenegraph_definition)
 	self._widgets, self._widgets_by_name = UIUtils.create_widgets(definitions.widgets)
+
+	self.text_input_widgets = {
+		self._widgets_by_name["deck_name"]
+	}
 
 	UIRenderer.clear_scenegraph_queue(self.ui_renderer)
 end
@@ -88,7 +93,7 @@ EnigmaDeckEditorUI.update = function (self, dt, t)
 	for i=1, TOTAL_CARD_TILES do
 		local card_scenegraph_id = "card_"..i
 		local card = self.filtered_cards[start_offset + i]
-		ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, card_scenegraph_id, card, CARD_TILE_WIDTH)
+		card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, card_scenegraph_id, card, CARD_TILE_WIDTH)
 	end
 
 	self:_handle_input(dt, t)
@@ -129,28 +134,11 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 
 
 	-- Deck Name Text Box
-	local deck_name_content = self._widgets_by_name.deck_name.content
-	if deck_name_content.deck_name_input_hotspot.on_pressed then
-		deck_name_content.deck_name_input_active = true
-		enigma.managers.ui:text_input_focused()
-	elseif deck_name_content.screen_hotspot.on_pressed then
-		deck_name_content.deck_name_input_active = false
-		enigma.managers.ui:text_input_lost_focus()
-	end
-
-	local keystrokes = Keyboard.keystrokes()
-	for _, stroke in ipairs(keystrokes) do
-		if stroke == Keyboard.ENTER or stroke == Keyboard.ESCAPE then
-			deck_name_content.deck_name_input_active = false
-			enigma.managers.ui:text_input_lost_focus()
-		end
-	end
-
-	if deck_name_content.deck_name_input_active then
-		local previous_deck_name = deck_name_content.deck_name
-		deck_name_content.deck_name, deck_name_content.caret_index = KeystrokeHelper.parse_strokes(deck_name_content.deck_name, deck_name_content.caret_index, "insert", keystrokes)
-		if deck_name_content.deck_name ~= previous_deck_name then
-			enigma.managers.deck_planner:rename_deck(deck_name_content.deck_name)
+	local text_changes = ui_common.handle_text_inputs(self.text_input_widgets)
+	if text_changes then
+		local new_deck_name = text_changes[self._widgets_by_name.deck_name]
+		if new_deck_name then
+			enigma.managers.deck_planner:rename_deck(new_deck_name)
 		end
 	end
 
@@ -226,7 +214,7 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 		local card_interaction_widget = self._widgets_by_name["card_"..i.."_interaction"]
 		local card = self.filtered_cards[(self.current_page - 1) * TOTAL_CARD_TILES + i]
 		
-		ui_common.handle_card_input(self._widgets_by_name, "card_"..i, card, self.wwise_world)
+		card_ui_common.handle_card_input(self._widgets_by_name, "card_"..i, card, self.wwise_world)
 		
 		if card_interaction_widget.content.hotspot.on_pressed then
 			self:play_sound("Play_hud_select")
@@ -269,7 +257,7 @@ EnigmaDeckEditorUI.update_deck_info_ui = function(self)
 	local deck = enigma.managers.deck_planner.editing_deck
 
 	local deck_name_content = self._widgets_by_name.deck_name.content
-	deck_name_content.deck_name = deck and deck.name or ""
+	deck_name_content.text = deck and deck.name or ""
 	deck_name_content.caret_index = deck.name:len() + 1
 	
 	local deck_card_count_content = self._widgets_by_name.deck_card_count.content
@@ -295,7 +283,7 @@ EnigmaDeckEditorUI.update_deck_cards_ui = function(self)
 			widget.content.visible = true
 			widget.content.card_name = card.name
 			widget.content.card_cost = card.cost
-			widget.style.card_rarity.color = ui_common.rarity_colors[card.rarity]
+			widget.style.card_rarity.color = card_ui_common.rarity_colors[card.rarity]
 		else
 			widget.content.visible = false
 		end
@@ -333,7 +321,7 @@ EnigmaDeckEditorUI.update_card_tiles_ui = function(self)
 	for i=1, TOTAL_CARD_TILES do
 		local card_scenegraph_id = "card_"..i
 		local card = self.filtered_cards[start_offset + i]
-		ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, card_scenegraph_id, card, CARD_TILE_WIDTH)
+		card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, card_scenegraph_id, card, CARD_TILE_WIDTH)
 	end
 
 	local pagination_text = enigma:localize("page_count", self.current_page, self.num_pages)

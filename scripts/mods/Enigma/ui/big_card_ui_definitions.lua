@@ -1,4 +1,4 @@
-local ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
+local card_ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
 
 local CARD_WIDTH = 512
 
@@ -49,7 +49,7 @@ local widgets = {
 	}
 }
 
-ui_common.add_card_display(scenegraph_definition, widgets, "screen", "card", CARD_WIDTH)
+card_ui_common.add_card_display(scenegraph_definition, widgets, "screen", "card", CARD_WIDTH)
 
 return {
 	scenegraph_definition = scenegraph_definition,

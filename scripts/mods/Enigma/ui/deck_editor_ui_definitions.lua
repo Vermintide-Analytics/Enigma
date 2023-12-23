@@ -1,4 +1,5 @@
-local ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
+local card_ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
+local ui_common = local_require("scripts/mods/Enigma/ui/ui_common")
 
 local enigma = get_mod("Enigma")
 
@@ -312,7 +313,7 @@ local widgets = {
 				{
 					pass_type = "rect",
 					style_id = "fullscreen_shade"
-				},
+				}
 			}
 		},
 		content = {
@@ -326,6 +327,17 @@ local widgets = {
 					0
 				}
 			},
+			hotspot = {
+				size = {
+					1920,
+					1080
+				},
+				offset = {
+					0,
+					0,
+					1
+				}
+			}
 		}
 	},
 	window = UIWidgets.create_frame("window", scenegraph_definition.window.size, "menu_frame_11"),
@@ -383,99 +395,7 @@ local widgets = {
 			},
 		}
 	},
-	deck_name = {
-		scenegraph_id = "deck_name",
-		element = {
-			passes = {
-				{
-					pass_type = "rect",
-					style_id = "name_input_background"
-				},
-				{
-					pass_type = "rect",
-					style_id = "name_input_inner_background"
-				},
-				{
-					pass_type = "hotspot",
-					content_id = "deck_name_input_hotspot"
-				},
-				{
-					pass_type = "hotspot",
-					scenegraph_id = "screen",
-					content_id = "screen_hotspot"
-				},
-				{
-					pass_type = "text",
-					style_id = "deck_name",
-					text_id = "deck_name",
-					content_check_function = function(content, style)
-						if not content.deck_name_input_active then
-							style.caret_color[1] = 0
-						else
-							style.caret_color[1] = 128 + math.sin(Managers.time:time("ui") * 5) * 128
-						end
-						return true
-					end
-				}
-			}
-		},
-		content = {
-			deck_name_input_hotspot = {},
-			screen_hotspot = {},
-			text_start_offset = 0,
-			text_index = 1,
-			deck_name_input_active = false,
-			deck_name = "-- DECK NAME --",
-			caret_index = 1
-		},
-		style = {
-			name_input_background = {
-				scenegraph_id = "deck_name",
-				color = {
-					255,
-					128,
-					128,
-					128
-				},
-			},
-			name_input_inner_background = {
-				scenegraph_id = "deck_name",
-				color = {
-					255,
-					0,
-					0,
-					0
-				},
-			},
-			deck_name = {
-				scenegraph_id = "deck_name_inner",
-				horizontal_scroll = true,
-				word_wrap = false,
-				pixel_perfect = true,
-				horizontal_alignment = "left",
-				vertical_alignment = "center",
-				font_size = 32,
-				dynamic_font = true,
-				font_type = "hell_shark_arial",
-				text_color = Colors.get_table("white"),
-				offset = {
-					2,
-					2,
-					1
-				},
-				caret_size = {
-					2,
-					30
-				},
-				caret_offset = {
-					0,
-					-4,
-					4
-				},
-				caret_color = Colors.get_table("white")
-			}
-		}
-	},
+	deck_name = ui_common.create_text_input("deck_name", "deck_name_inner", "screen", "--- DECK NAME ---"),
 	deck_card_count = {
 		scenegraph_id = "deck_card_count",
 		element = {
@@ -815,7 +735,7 @@ local define_card_tile_widget = function(scenegraph_id, tile_index)
 	local vertical_offset = PRETTY_MARGIN*row + CARD_TILE_HEIGHT*(row - 1)
 
 	local card_scenegraph_id = "card_"..tile_index
-	ui_common.add_card_display(scenegraph_definition, widgets, scenegraph_id, card_scenegraph_id, CARD_TILE_WIDTH, true)
+	card_ui_common.add_card_display(scenegraph_definition, widgets, scenegraph_id, card_scenegraph_id, CARD_TILE_WIDTH, true)
 	scenegraph_definition[card_scenegraph_id].vertical_alignment = "top"
 	scenegraph_definition[card_scenegraph_id].horizontal_alignment = "left"
 	scenegraph_definition[card_scenegraph_id].position[1] = horizontal_offset

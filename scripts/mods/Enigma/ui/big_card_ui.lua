@@ -1,5 +1,5 @@
 local definitions = local_require("scripts/mods/Enigma/ui/big_card_ui_definitions")
-local ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
+local card_ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
 local DO_RELOAD = true
 EnigmaBigCardUI = class(EnigmaBigCardUI)
 
@@ -72,7 +72,7 @@ EnigmaBigCardUI.update = function (self, dt, t)
 	--	x_scale = 800
 	--end
 
-	ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, "card", card, x_scale)
+	card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, "card", card, x_scale)
 	self:draw(dt)
 end
 

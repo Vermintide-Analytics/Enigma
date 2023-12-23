@@ -43,7 +43,7 @@ local CARD_DETAILS_FONT = "hell_shark"
 -- Pack Box 40
 -- Frame 4
 
-local ui_common = {
+local card_ui_common = {
     card_colors = {
         passive = {
             255,
@@ -970,7 +970,7 @@ local calculate_card_sizes = function(card_width)
 	return sizes
 end
 
-ui_common.add_card_display = function(scenegraph_defs, widget_defs, scenegraph_parent_id, card_scenegraph_id, card_width, enable_hotspot)
+card_ui_common.add_card_display = function(scenegraph_defs, widget_defs, scenegraph_parent_id, card_scenegraph_id, card_width, enable_hotspot)
 	local sizes = calculate_card_sizes(card_width)
 	add_card_scenegraph_nodes(scenegraph_defs, scenegraph_parent_id, card_scenegraph_id, sizes)
 	add_card_widgets(widget_defs, card_scenegraph_id, sizes, enable_hotspot)
@@ -1014,7 +1014,7 @@ local set_widgets_visibility = function(widgets, card_node_id, visible, has_dura
 	additional_keywords_widget.content.visible = visible
 end
 
-ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name)
+card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name)
 	local sizes = calculate_card_sizes(card_width)
 	local pretty_margin = sizes.pretty_margin
 
@@ -1161,7 +1161,7 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 	card_widget.style.card_frame.texture_size[1] = sizes.card_width
 	card_widget.style.card_frame.texture_size[2] = sizes.card_height
 
-	card_widget.style.card_background.color = ui_common.card_colors[card.card_type] or ui_common.card_colors.default
+	card_widget.style.card_background.color = card_ui_common.card_colors[card.card_type] or card_ui_common.card_colors.default
 
 	card_name_widget.style.card_name._dynamic_wraped_text = ""
 	card_name_widget.style.card_name.font_size = sizes.card_name_font_size
@@ -1171,7 +1171,7 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 	card_name_widget.style.card_name.area_size[2] = sizes.card_name_box_height
 	card_name_widget.content.card_name = card.name
 
-	card_name_widget.style.rarity.color = ui_common.rarity_colors[card.rarity]
+	card_name_widget.style.rarity.color = card_ui_common.rarity_colors[card.rarity]
 	
 	card_cost_widget.style.background.texture_size[1] = sizes.card_cost_circle_diameter
 	card_cost_widget.style.background.texture_size[2] = sizes.card_cost_circle_diameter
@@ -1330,21 +1330,21 @@ ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets,
 	end
 end
 
-ui_common.update_card_display_if_needed = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name)
+card_ui_common.update_card_display_if_needed = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name)
 	if not card then
 		widgets[card_node_id].cached_card = nil
 		widgets[card_node_id].cached_card_width = -1
-		return ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, nil, card_width)
+		return card_ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, nil, card_width)
 	end
 	dirty_property_name = dirty_property_name or "dirty"
 	if card[dirty_property_name] or card ~= widgets[card_node_id].cached_card or card_width ~= widgets[card_node_id].cached_card_width then
 		widgets[card_node_id].cached_card = card
 		widgets[card_node_id].cached_card_width = card_width
-		return ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width)
+		return card_ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width)
 	end
 end
 
-ui_common.handle_card_input = function(widgets, card_node_id, card, wwise_world)
+card_ui_common.handle_card_input = function(widgets, card_node_id, card, wwise_world)
 	if not card then
 		return
 	end
@@ -1353,21 +1353,21 @@ ui_common.handle_card_input = function(widgets, card_node_id, card, wwise_world)
 		if interaction_widget.content.hotspot.on_hover_enter then
 			WwiseWorld.trigger_event(wwise_world, "Play_hud_hover")
 		end
-		local background_color = ui_common.card_colors[card.card_type] or ui_common.card_colors.default
+		local background_color = card_ui_common.card_colors[card.card_type] or card_ui_common.card_colors.default
 		if interaction_widget.content.hotspot.is_hover then
-			background_color = ui_common.card_colors[card.card_type.."_highlight"] or ui_common.card_colors.default_highlight
+			background_color = card_ui_common.card_colors[card.card_type.."_highlight"] or card_ui_common.card_colors.default_highlight
 		end
 		widgets[card_node_id].style.card_background.color = background_color
 	end
 end
 
-ui_common.add_hand_display = function(scenegraph_defs, widget_defs, scenegraph_parent_id, card_width, enable_hotspots)
+card_ui_common.add_hand_display = function(scenegraph_defs, widget_defs, scenegraph_parent_id, card_width, enable_hotspots)
 	for i=1,5 do
-		ui_common.add_card_display(scenegraph_defs, widget_defs, scenegraph_parent_id, "hand_card_"..i, card_width, enable_hotspots)
+		card_ui_common.add_card_display(scenegraph_defs, widget_defs, scenegraph_parent_id, "hand_card_"..i, card_width, enable_hotspots)
 	end
 end
 
-ui_common.update_hand_display = function(ui_renderer, scenegraph_nodes, widgets_by_name, card_width, card_margin, hand_ui_data, card_dirty_property_name)
+card_ui_common.update_hand_display = function(ui_renderer, scenegraph_nodes, widgets_by_name, card_width, card_margin, hand_ui_data, card_dirty_property_name)
 	local hand = enigma.managers.game.local_data.hand
 	local hand_size = #hand
 	local desired_horizontal_position = (card_margin + card_width)/2 * (hand_size-1) * -1
@@ -1375,7 +1375,7 @@ ui_common.update_hand_display = function(ui_renderer, scenegraph_nodes, widgets_
 	for i=1,5 do
 		local card = hand[i]
 		local node_id = "hand_card_"..i
-		ui_common.update_card_display_if_needed(ui_renderer, scenegraph_nodes, widgets_by_name, node_id, card, card_width, card_dirty_property_name)
+		card_ui_common.update_card_display_if_needed(ui_renderer, scenegraph_nodes, widgets_by_name, node_id, card, card_width, card_dirty_property_name)
 		local card_scenegraph_node = scenegraph_nodes[node_id]
 		
 		if hand_ui_data.hand_indexes_just_removed[i] then
@@ -1392,13 +1392,13 @@ ui_common.update_hand_display = function(ui_renderer, scenegraph_nodes, widgets_
 	end
 end
 
-ui_common.handle_hand_input = function(widgets, wwise_world)
+card_ui_common.handle_hand_input = function(widgets, wwise_world)
 	local hand = enigma.managers.game.local_data.hand
 	local hand_size = #hand
 
 	for i=1,hand_size do
-		ui_common.handle_card_input(widgets, "hand_card_"..i, hand[i], wwise_world)
+		card_ui_common.handle_card_input(widgets, "hand_card_"..i, hand[i], wwise_world)
 	end
 end
 
-return ui_common
+return card_ui_common
