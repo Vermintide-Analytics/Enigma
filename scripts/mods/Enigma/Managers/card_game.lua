@@ -267,7 +267,7 @@ cgm.init_game = function(self, game_init_data, debug)
         card.owner = enigma:local_peer_id()
         card.original_owner = card.owner
         table.insert(local_data.draw_pile, card)
-        if is_server then
+        if self.is_server then
             enigma.managers.event:_add_card_server_event_callbacks(card)
         end
         enigma.managers.event:_add_card_local_event_callbacks(card)
