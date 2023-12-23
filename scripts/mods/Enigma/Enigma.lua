@@ -163,7 +163,7 @@ enigma:network_register("enigma_dev_game", function(sender, state)
         end
         local game_init_data = enigma.managers.deck_planner.game_init_data
         enigma:echo("Initializing Enigma game with deck: "..tostring(game_init_data.deck_name)..", cards: "..tostring(game_init_data.cards)..", is_server: "..tostring(game_init_data.is_server))
-        enigma.managers.game:init_game(game_init_data.deck_name, game_init_data.cards, game_init_data.is_server)
+        enigma.managers.game:init_game(game_init_data, true)
     elseif state == "end" then
         enigma.managers.game:end_game()
     end

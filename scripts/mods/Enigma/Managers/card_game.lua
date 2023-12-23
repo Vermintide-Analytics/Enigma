@@ -195,20 +195,29 @@ local invoke_card_event_callbacks_for_all_piles = function(data, func_name, ...)
     invoke_card_event_callbacks(data.discard_pile, func_name, ...)
 end
 
-cgm.init_game = function(self, deck_name, card_templates, is_server)
+local set_card_can_pay_warpstone = function(card, cost)
+    local can_pay = enigma.managers.warp:can_pay_cost(cost)
+    if card.can_pay_warpstone ~= can_pay then
+        card:set_dirty()
+    end
+    card.can_pay_warpstone = can_pay
+end
+
+cgm.init_game = function(self, game_init_data, debug)
     enigma:echo("Initializing Enigma game")
-    self.is_server = is_server
+    self.is_server = game_init_data.is_server
+    self.debug = debug
     self.game_state = "initializing"
 
     local card_ids = {}
-    for _,template in ipairs(card_templates) do
+    for _,template in ipairs(game_init_data.cards) do
         table.insert(card_ids, template.id)
     end
     add_chaos_cards_based_on_added_difficulty(card_ids)
     enigma:shuffle(card_ids)
     
     local local_data = {
-        deck_name = deck_name,
+        deck_name = game_init_data.deck_name,
         deck_card_ids = card_ids,
         draw_pile = {},
         hand = {},
@@ -415,6 +424,9 @@ cgm.start_game = function(self)
     self.game_mode = enigma:game_mode()
     
     enigma.managers.warp:start_game(self.game_mode)
+    for _,card in ipairs(self.local_data.draw_pile) do
+        set_card_can_pay_warpstone(card, card.cost)
+    end
 
     self.server_peer_id = Managers.mechanism:server_peer_id()
     local player_manager = Managers.player
@@ -1437,13 +1449,6 @@ cgm.update = function(self, dt)
 end
 
 
-local set_card_can_pay_warpstone = function(card, cost)
-    local can_pay = enigma.managers.warp:can_pay_cost(cost)
-    if card.can_pay_warpstone ~= can_pay then
-        card:set_dirty()
-    end
-    card.can_pay_warpstone = can_pay
-end
 cgm.change_card_cost = function(self, card, new_cost)
     if type(card) ~= "table" then
         enigma:warning("Could not change card cost, invalid card")
@@ -1693,9 +1698,10 @@ cgm.on_game_state_changed = function(self, status, state_name)
             self:end_game()
         end
     elseif state_name == "StateIngame" and status == "enter" and Managers.level_transition_handler then
-        if not enigma:in_keep() and not enigma:in_morris_map() then
+        local in_dev_game = enigma.managers.game:is_in_game() and enigma.managers.game.debug
+        if in_dev_game or (not enigma:in_keep() and not enigma:in_morris_map()) then
             local game_init_data = enigma.managers.deck_planner.game_init_data
-            self:init_game(game_init_data.deck_name, game_init_data.cards, game_init_data.is_server)
+            self:init_game(game_init_data)
         end
     end
 end
