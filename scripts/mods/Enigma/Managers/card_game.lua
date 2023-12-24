@@ -15,6 +15,7 @@ local net = {
     broadcast_pacing_intensity = "broadcast_pacing_intensity",
     notify_card_condition_met_changed = "notify_card_condition_met_changed",
     notify_card_auto_condition_met_changed = "notify_card_auto_condition_met_changed",
+    request_play_card = "request_play_card",
     sync_level_progress = "sync_level_progress",
     sync_card_property = "sync_card_property",
     invoke_card_rpc = "invoke_card_rpc",
@@ -430,9 +431,7 @@ cgm.start_game = function(self)
         peer_data.unit = player.player_unit
         self.data_by_unit[player.player_unit] = peer_data
         enigma:dump(peer_data, "PEER DATA "..tostring(peer_id), 0)
-        if self.is_server then
-            enigma.managers.buff:_register_player(player)
-        end
+        enigma.managers.buff:_register_player(player)
     end
     enigma:info("Finished setting player and unit data for all players")
     for _,card in ipairs(self.local_data.draw_pile) do
@@ -1470,6 +1469,31 @@ cgm.is_in_game = function(self)
 end
 
 -- Utilities
+enigma:network_register(net.request_play_card, function(sender, location, index, expected_card_id)
+    local cards = location and cgm.local_data[location]
+    if not cards then
+        enigma:warning("Received request_play_card with an invalid location")
+        return
+    end
+    local card = index and cards[index]
+    if not card then
+        enigma:warning("Received request_play_card with an invalid card index")
+        return
+    end
+    if card.id ~= expected_card_id then
+        enigma:warning("Requested card to play is "..tostring(expected_card_id).." but found "..tostring(card.id))
+        return
+    end
+    cgm:play_card(card)
+end)
+cgm.request_play_card = function(self, card)
+    if not card.owner then
+        enigma:warning("Could not determine owner of card to request them to play it")
+        return
+    end
+    local location, index = get_card_location(card)
+    enigma:network_send(net.request_play_card, card.owner, location, index, card.id)
+end
 enigma:network_register(net.sync_card_property, function(sender, card_owner_peer_id, location, index, property, value)
     local data = nil
     if card_owner_peer_id == cgm.local_data.peer_id then

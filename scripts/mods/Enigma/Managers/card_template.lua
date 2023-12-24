@@ -33,6 +33,13 @@ local refresh_card_detail_localization = function(card)
 end
 
 local add_card_instance_functions = function(inst)
+    inst.play = function(card)
+        if card.owner == enigma:local_peer_id() then
+            return enigma.managers.game:play_card(card)
+        else
+            enigma.managers.game:request_play_card(card)
+        end
+    end
     inst.sync_property = function(card, property)
         if not property then
             enigma:warning("Cannot sync card property: "..tostring(property))

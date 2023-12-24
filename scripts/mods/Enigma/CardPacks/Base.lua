@@ -309,7 +309,7 @@ pack_handle.register_ability_cards({
                     local disabler_health = ScriptUnit.extension(disabler, "health_system")
                     if not disabler_health:is_dead() then
                         card.disabler_unit = disabler
-                        game:play_card(card)
+                        card:play()
                     end
                 end
             end
@@ -345,7 +345,7 @@ pack_handle.register_ability_cards({
                     local disabler_health = ScriptUnit.extension(disabler, "health_system")
                     if not disabler_health:is_dead() then
                         card.disabler_unit = disabler
-                        game:play_card(card)
+                        card:play()
                     end
                 end
             end
@@ -440,7 +440,7 @@ pack_handle.register_ability_cards({
                 card.time_until_auto_play_chance = card.time_until_auto_play_chance - dt
                 if card.time_until_auto_play_chance <= 0 then
                     if enigma:test_chance(card.auto_play_chance) then
-                        game:play_card(card)
+                        card:play()
                     end
                     card.time_until_auto_play_chance = card.time_until_auto_play_chance + card.auto_play_chance_interval
                 end
@@ -477,7 +477,7 @@ pack_handle.register_ability_cards({
                 if damaged_unit ~= card.context.unit or damage_amount < 60 then
                     return
                 end
-                game:play_card(card)
+                card:play()
             end
         },
         description_lines = {
@@ -855,12 +855,15 @@ pack_handle.register_chaos_cards({
         become_infected = function(card)
             game:shuffle_new_card_into_draw_pile(card.id)
         end,
+        apply_power_reduction_change = function(card, change)
+            buff:update_stat(card.context.unit, "power_level", change)
+        end,
         on_location_changed_local = function(card, old, new)
             if new == enigma.CARD_LOCATION.hand then
                 card.remaining_infection_duration = card.infection_duration
-                buff:update_stat(card.context.unit, "power_level", card.power_level_reduction)
+                card:rpc_server("apply_power_reduction_change", card.power_level_reduction)
             elseif old == enigma.CARD_LOCATION.hand then
-                buff:update_stat(card.context.unit, "power_level", card.power_level_reduction * -1)
+                card:rpc_server("apply_power_reduction_change", card.power_level_reduction * -1)
             end
         end,
         update_local = function(card, dt)
@@ -869,7 +872,7 @@ pack_handle.register_chaos_cards({
                 local previous_int_seconds = card.remaining_infection_duration_int
                 card.remaining_infection_duration_int = math.ceil(card.remaining_infection_duration)
                 if card.remaining_infection_duration <= 0 then
-                    local played = game:play_card(card)
+                    local played = card:play()
                     if not played then
                         card.remaining_infection_duration = 1 -- If we couldn't play the card for some reason, try again in 1 second
                     end

@@ -2,6 +2,11 @@ local enigma = get_mod("Enigma")
 
 local ENIGMA_UMBRELLA_BUFF = "enigma_umbrella_buff"
 
+local net = {
+    surge_stat = "surge_stat",
+    update_stat = "update_stat"
+}
+
 local bm = {
     unit_buff_extensions = {},
     unit_stat_buff_indexes = {},
@@ -112,28 +117,28 @@ local stat_difference_multipliers = {
     movement_speed = 2
 }
 
-bm.update_stat = function(self, unit, stat, difference)
+local handle_update_stat = function(unit, stat, difference)
     local old_value
     local new_value
 
     local difference_multiplier = stat_difference_multipliers[stat] or 1
     difference = difference * difference_multiplier
 
-    local custom_buffs = self.unit_custom_buffs[unit]
+    local custom_buffs = bm.unit_custom_buffs[unit]
     if custom_buffs and custom_buffs[stat] then
         old_value = custom_buffs[stat]
         custom_buffs[stat] = old_value + difference
         new_value = custom_buffs[stat]
     else
-        local index = self.unit_stat_buff_indexes[unit] and self.unit_stat_buff_indexes[unit][stat]
-        local buff_extension = self.unit_buff_extensions[unit]
+        local index = bm.unit_stat_buff_indexes[unit] and bm.unit_stat_buff_indexes[unit][stat]
+        local buff_extension = bm.unit_buff_extensions[unit]
         if not unit or not stat or not buff_extension then
             enigma:echo("Could not update stat... buff: "..tostring(unit).." | stat: "..tostring(stat).." | buff_extension: "..tostring(buff_extension))
             return
         end
         if not index then
             enigma:echo("unit does not have that stat")
-            enigma:dump(self.unit_stat_buff_indexes[unit], "STAT BUFFS", 2)
+            enigma:dump(bm.unit_stat_buff_indexes[unit], "STAT BUFFS", 2)
             return
         end
         
@@ -144,28 +149,61 @@ bm.update_stat = function(self, unit, stat, difference)
         end
 
         if application_method == "proc" then
-            new_value = self:_update_proc_buff(buff_extension, stat, difference, index)
+            new_value = bm:_update_proc_buff(buff_extension, stat, difference, index)
             old_value = new_value - difference
         else
             new_value = buff_extension:update_stat_buff(stat, difference, index)
             old_value = new_value - difference
         end
     end
-    enigma:info("Stat "..stat.." updated from "..old_value.." to "..new_value)
+    enigma:info("Unit: "..tostring(unit)..": Stat "..stat.." updated from "..old_value.." to "..new_value)
     invoke_stat_updated_callbacks(unit, stat, new_value, old_value)
 end
 
-bm.surge_stat = function(self, unit, stat, difference, duration)
-    if not self.unit_stat_surges[unit] then
+enigma:network_register(net.update_stat, function(sender, unit_go_id, stat, difference)
+    local unit = Managers.state.unit_storage:unit(unit_go_id)
+    if not unit then
+        enigma:info("Could not find unit to buff per request from "..tostring(sender))
+        return
+    end
+    handle_update_stat(unit, stat, difference)
+end)
+bm.update_stat = function(self, unit, stat, difference)
+    handle_update_stat(unit, stat, difference)
+    local unit_go_id = Managers.state.unit_storage:go_id(unit)
+    enigma:network_send(net.update_stat, "others", unit_go_id, stat, difference)
+end
+bm.update_stat_locally = function(self, unit, stat, difference)
+    handle_update_stat(unit, stat, difference)
+end
+
+local handle_surge_stat = function(unit, stat, difference, duration)
+    if not bm.unit_stat_surges[unit] then
         enigma:warning("Cannot surge stat")
     end
-    self:update_stat(unit, stat, difference)
-    table.insert(self.unit_stat_surges[unit], {
+    handle_update_stat(unit, stat, difference)
+    table.insert(bm.unit_stat_surges[unit], {
         stat = stat,
         difference = difference,
         remaining_duration = duration
     })
-    enigma:debug("Unit now has "..#self.unit_stat_surges[unit].." active stat surges")
+end
+
+enigma:network_register(net.surge_stat, function(sender, unit_go_id, stat, difference, duration)
+    local unit = Managers.state.unit_storage:unit(unit_go_id)
+    if not unit then
+        enigma:info("Could not find unit to buff per request from "..tostring(sender))
+        return
+    end
+    handle_surge_stat(unit, stat, difference, duration)
+end)
+bm.surge_stat = function(self, unit, stat, difference, duration)
+    handle_surge_stat(unit, stat, difference, duration)
+    local unit_go_id = Managers.state.unit_storage:go_id(unit)
+    enigma:network_send(net.surge_stat, "others", unit_go_id, stat, difference, duration)
+end
+bm.surge_stat_locally = function(self, unit, stat, difference, duration)
+    handle_surge_stat(unit, stat, difference, duration)
 end
 
 bm._register_player = function(self, player)
