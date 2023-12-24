@@ -57,6 +57,13 @@ local add_card_instance_functions = function(inst)
         end
         enigma.managers.game:_invoke_card_rpc(peer_id, card, func_name, ...)
     end
+    inst.rpc_server = function(card, func_name, ...)
+        if enigma.managers.game.is_server and card.func_name then
+            enigma:pcall(card.func_name, ...)
+        else
+            card:rpc_peer(enigma.managers.game.server_peer_id, func_name, ...)
+        end
+    end
     inst.is_in_draw_pile = function(self)
         return self.location == enigma.CARD_LOCATION.draw_pile
     end
