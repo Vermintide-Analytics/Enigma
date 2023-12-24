@@ -156,6 +156,23 @@ local template_template = {
             enigma:warning("Card instanced without a context, this is not allowed")
             return nil
         end
+        inst.owner = context.peer_id
+        inst.original_owner = inst.owner
+
+        if not inst.condition_server then
+            inst.condition_server_met = true
+        end
+        if not inst.condition_local then
+            inst.condition_local_met = true
+        end
+        inst.condition_met = inst.condition_server_met and inst.condition_local_met or false
+        if inst.auto_condition_local and not inst.auto_condition_server then
+            inst.auto_condition_server_met = true
+        end
+        if inst.auto_condition_server and not inst.auto_condition_local then
+            inst.auto_condition_local_met = true
+        end
+
         inst.context = context
         inst.times_played = 0
         if self.duration then

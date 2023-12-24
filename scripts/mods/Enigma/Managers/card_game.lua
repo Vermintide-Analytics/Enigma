@@ -251,21 +251,7 @@ cgm.init_game = function(self, game_init_data, debug)
     for _,card_id in ipairs(card_ids) do
         local card_template = card_manager:get_card_from_id(card_id)
         local card = card_template:instance(local_data)
-        if not card.condition_server then
-            card.condition_server_met = true
-        end
-        if not card.condition_local then
-            card.condition_local_met = true
-        end
-        card.condition_met = card.condition_server_met and card.condition_local_met or false
-        if card.auto_condition_local and not card.auto_condition_server then
-            card.auto_condition_server_met = true
-        end
-        if card.auto_condition_server and not card.auto_condition_local then
-            card.auto_condition_local_met = true
-        end
-        card.owner = enigma:local_peer_id()
-        card.original_owner = card.owner
+        
         table.insert(local_data.draw_pile, card)
         if self.is_server then
             enigma.managers.event:_add_card_server_event_callbacks(card)
