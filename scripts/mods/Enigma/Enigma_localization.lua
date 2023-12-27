@@ -2,6 +2,36 @@ local loc = {
 	mod_description = {
 		en = "Enigma description",
 	},
+
+	-- Card Types
+	ability = {
+		en = "Ability"
+	},
+	attack = {
+		en = "Attack"
+	},
+	chaos = {
+		en = "Chaos"
+	},
+	passive = {
+		en = "Passive"
+	},
+
+	-- Rarities
+	common = {
+		en = "Common"
+	},
+	epic = {
+		en = "Epic"
+	},
+	legendary = {
+		en = "Legendary"
+	},
+	rare = {
+		en = "Rare"
+	},
+
+	-- Keywords
 	auto = {
 		en = "Auto",
 	},
@@ -31,6 +61,36 @@ local loc = {
 	},
 	warp_hungry = {
 		en = "Warp-Hungry (%is)",
+	},
+	keyword_auto = {
+		en = "Auto",
+	},
+	keyword_channel = {
+		en = "Channel",
+	},
+	keyword_charges = {
+		en = "Charges"
+	},
+	keyword_condition = {
+		en = "Condition",
+	},
+	keyword_double_agent = {
+		en = "Double Agent",
+	},
+	keyword_ephemeral = {
+		en = "Ephemeral",
+	},
+	keyword_infinite = {
+		en = "Infinite",
+	},
+	keyword_retain = {
+		en = "Retain",
+	},
+	keyword_unplayable = {
+		en = "Unplayable",
+	},
+	keyword_warp_hungry = {
+		en = "Warp-Hungry",
 	},
 
 	-- Settings
@@ -138,6 +198,9 @@ local loc = {
 	channeling_complete = {
 		en = "Channel Complete"
 	},
+	cost = {
+		en = "Cost"
+	},
 	delete = {
 		en = "Delete",
 	},
@@ -156,8 +219,14 @@ local loc = {
 	not_yet_implemented = {
 		en = "Does not do anything... yet",
 	},
+	rarity = {
+		en = "Rarity"
+	},
 	search = {
 		en = "Search"
+	},
+	type = {
+		en = "Type"
 	},
 
 	-- Deck List
@@ -166,12 +235,19 @@ local loc = {
 	},
 
 	-- Deck Editor
+	card_pack = {
+		en = "Pack"
+	},
 	deck_editor_window_title = {
 		en = "Deck Planner",
 	},
 	deck_list = {
 		en = "Deck List",
-	}
+	},
+	keyword = {
+		en = "Keyword"
+	},
+
 }
 
 local base_card_pack_localizations = local_require("scripts/mods/Enigma/CardPacks/Base_localization")

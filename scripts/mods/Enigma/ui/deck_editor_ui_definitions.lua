@@ -275,6 +275,20 @@ local scenegraph_definition = {
 			1
 		}
 	},
+	filters_button = {
+		parent = "top_panel",
+		horizontal_alignment = "right",
+		vertical_alignment = "bottom",
+		size = {
+			42,
+			42
+		},
+		position = {
+			0,
+			10,
+			1
+		}
+	},
 	left_panel = {
 		parent = "inner_window",
 		vertical_alignment = "bottom",
@@ -301,6 +315,20 @@ local scenegraph_definition = {
 			0,
 			0,
 			1
+		}
+	},
+	filters_panel = {
+		parent = "right_panel",
+		vertical_alignment = "top",
+		horizontal_alignment = "center",
+		size = {
+			RIGHT_PANEL_WIDTH * 0.9,
+			RIGHT_PANEL_HEIGHT * 0.5
+		},
+		position = {
+			0,
+			0,
+			10
 		}
 	},
 	pagination_panel = {
@@ -353,12 +381,17 @@ local widgets = {
 		element = {
 			passes = {
 				{
+					pass_type = "hotspot",
+					content_id = "screen_hotspot"
+				},
+				{
 					pass_type = "rect",
 					style_id = "fullscreen_shade"
 				}
 			}
 		},
 		content = {
+			screen_hotspot = {},
 		},
 		style = {
 			fullscreen_shade = {
@@ -434,6 +467,129 @@ local widgets = {
 					100,
 					100,
 					100
+				}
+			},
+		}
+	},
+	filters_button = {
+		scenegraph_id = "filters_button",
+		element = {
+			passes = {
+				{
+					style_id = "search_filters_hotspot",
+					pass_type = "hotspot",
+					content_id = "search_filters_hotspot",
+					content_check_function = function ()
+						return not Managers.input:is_device_active("gamepad")
+					end,
+					content_change_function = function (content, style)
+						local filters_active = content.parent.filters_active
+	
+						if filters_active ~= content.filters_active then
+							content.filters_active = filters_active
+	
+							if filters_active then
+								Colors.copy_to(style.parent.search_filters_glow.color, Colors.color_definitions.white)
+							else
+								Colors.copy_to(style.parent.search_filters_glow.color, Colors.color_definitions.font_title)
+							end
+						end
+	
+						local alpha = 0
+	
+						if content.is_hover then
+							alpha = 255
+						elseif content.filters_active then
+							alpha = 200
+						end
+	
+						style.parent.search_filters_glow.color[1] = alpha
+					end
+				},
+				{
+					pass_type = "texture",
+					style_id = "search_filters_bg",
+					texture_id = "search_filters_bg"
+				},
+				{
+					pass_type = "texture",
+					style_id = "search_filters_icon",
+					texture_id = "search_filters_icon"
+				},
+				{
+					pass_type = "texture",
+					style_id = "search_filters_glow",
+					texture_id = "search_filters_glow"
+				},
+			}
+		},
+		content = {
+			search_filters_icon = "search_filters_icon",
+			search_filters_bg = "search_filters_bg",
+			search_filters_glow = "search_filters_icon_glow",
+			frame = UIFrameSettings.button_frame_01.texture,
+			glow = UIFrameSettings.frame_outer_glow_01.texture,
+			search_filters_hotspot = {},
+		},
+		style = {
+			search_filters_hotspot = {
+				vertical_alignment = "center",
+				horizontal_alignment = "left",
+				area_size = {
+					96,
+					96
+				},
+				offset = {
+					-42,
+					28,
+					7
+				}
+			},
+			search_filters_bg = {
+				vertical_alignment = "center",
+				horizontal_alignment = "left",
+				color = {
+					255,
+					255,
+					255,
+					255
+				},
+				texture_size = {
+					128,
+					128
+				},
+				offset = {
+					-80,
+					-4,
+					8
+				}
+			},
+			search_filters_icon = {
+				vertical_alignment = "center",
+				horizontal_alignment = "left",
+				color = Colors.get_color_table_with_alpha("white", 255),
+				texture_size = {
+					128,
+					128
+				},
+				offset = {
+					-80,
+					-4,
+					8
+				}
+			},
+			search_filters_glow = {
+				vertical_alignment = "center",
+				horizontal_alignment = "left",
+				color = Colors.get_color_table_with_alpha("font_title", 255),
+				texture_size = {
+					128,
+					128
+				},
+				offset = {
+					-80,
+					-4,
+					9
 				}
 			},
 		}

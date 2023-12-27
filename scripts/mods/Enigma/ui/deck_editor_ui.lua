@@ -9,6 +9,129 @@ EnigmaDeckEditorUI = class(EnigmaDeckEditorUI)
 
 local enigma = get_mod("Enigma")
 
+local alphabet_comparator = function(str1, str2)
+	return str1 < str2
+end
+
+local alphabet_card_pack_comparator = function(pack_1, pack_2)
+	return alphabet_comparator(pack_1.name:lower(), pack_2.name:lower())
+end
+
+local card_pack_filter_options = {
+	key = "pack",
+}
+local filter_definitions = {
+	{
+		key = "rarity",
+		{
+			enigma.CARD_RARITY.common,
+			enigma:localize(enigma.CARD_RARITY.common)
+		},
+		{
+			enigma.CARD_RARITY.rare,
+			enigma:localize(enigma.CARD_RARITY.rare)
+		},
+		{
+			enigma.CARD_RARITY.epic,
+			enigma:localize(enigma.CARD_RARITY.epic)
+		},
+		{
+			enigma.CARD_RARITY.legendary,
+			enigma:localize(enigma.CARD_RARITY.legendary)
+		},
+	},
+	{
+		key = "cost",
+		{
+			0,
+			"0"
+		},
+		{
+			1,
+			"1"
+		},
+		{
+			2,
+			"2"
+		},
+		{
+			3,
+			"3"
+		},
+		{
+			4,
+			"4"
+		},
+		{
+			5,
+			"5+"
+		},
+	},
+	{
+		key = "type",
+		{
+			enigma.CARD_TYPE.passive,
+			enigma:localize(enigma.CARD_TYPE.passive)
+		},
+		{
+			enigma.CARD_TYPE.attack,
+			enigma:localize(enigma.CARD_TYPE.attack)
+		},
+		{
+			enigma.CARD_TYPE.ability,
+			enigma:localize(enigma.CARD_TYPE.ability)
+		},
+		{
+			enigma.CARD_TYPE.chaos,
+			enigma:localize(enigma.CARD_TYPE.chaos)
+		},
+	},
+	{
+		key = "keyword",
+		{
+			"auto",
+			enigma:localize("keyword_auto")
+		},
+		{
+			"channel",
+			enigma:localize("keyword_channel")
+		},
+		{
+			"charges",
+			enigma:localize("keyword_charges")
+		},
+		{
+			"condition",
+			enigma:localize("keyword_condition")
+		},
+		-- {
+		-- 	"double_agent",
+		-- 	enigma:localize("keyword_double_agent")
+		-- },
+		{
+			"ephemeral",
+			enigma:localize("keyword_ephemeral")
+		},
+		{
+			"infinite",
+			enigma:localize("keyword_infinite")
+		},
+		{
+			"retain",
+			enigma:localize("keyword_retain")
+		},
+		{
+			"unplayable",
+			enigma:localize("keyword_unplayable")
+		},
+		-- {
+		-- 	"warp_hungry",
+		-- 	enigma:localize("keyword_warp_hungry")
+		-- },
+	},
+	card_pack_filter_options
+}
+
 EnigmaDeckEditorUI.init = function(self, ingame_ui_context)
 	self.network_event_delegate = ingame_ui_context.network_event_delegate
 	self.camera_manager = ingame_ui_context.camera_manager
@@ -43,6 +166,26 @@ EnigmaDeckEditorUI.create_ui_elements = function (self)
 		self._widgets_by_name["deck_name"],
 		self._widgets_by_name["card_name_search"]
 	}
+
+	local card_packs = {}
+	for _,pack in pairs(enigma.managers.card_pack.card_packs) do
+		table.insert(card_packs, {
+			id = pack.id,
+			name = pack.name
+		})
+	end
+	table.sort(card_packs, alphabet_card_pack_comparator)
+	for _,pack in ipairs(card_packs) do
+		table.insert(card_pack_filter_options, {
+			pack.id,
+			pack.name
+		})
+	end
+
+	local filters_widget = UIWidget.init(ui_common.create_search_filters_widget(self.ui_scenegraph, "filters_panel", self.ui_renderer, filter_definitions))
+	self._widgets[#self._widgets + 1] = filters_widget
+	self._widgets_by_name.filters = filters_widget
+	filters_widget.content.visible = false
 
 	UIRenderer.clear_scenegraph_queue(self.ui_renderer)
 end
@@ -143,9 +286,33 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 		return
 	end
 
+	-- Filters
+	local card_filter_update_needed = false
+	local filters_toggle_button = self._widgets_by_name.filters_button
+	local screen_hotspot = self._widgets_by_name.background.content.screen_hotspot
+	local panel_hotspot = self._widgets_by_name.filters.content.panel_hotspot
+	if filters_toggle_button.content.search_filters_hotspot.on_pressed then
+		self.filters_panel_active = not self.filters_panel_active
+		self._widgets_by_name.filters.content.visible = self.filters_panel_active
+	elseif self.filters_panel_active and screen_hotspot.on_pressed and not panel_hotspot.on_pressed then
+		self.filters_panel_active = false
+		self._widgets_by_name.filters.content.visible = self.filters_panel_active
+		return
+	end
+
+	local filters_widget = self._widgets_by_name.filters
+	if filters_widget.content.query_dirty then
+		card_filter_update_needed = true
+	end
+
+	if self.filters_panel_active then
+		if card_filter_update_needed then
+			self:update_filtered_cards()
+		end
+		return
+	end
 
 	-- Text Inputs
-	local card_filter_update_needed = false
 	local text_changes = ui_common.handle_text_inputs(self.text_input_widgets)
 	if text_changes then
 		local new_deck_name = text_changes[self._widgets_by_name.deck_name]
@@ -315,7 +482,7 @@ EnigmaDeckEditorUI.update_deck_cards_ui = function(self)
 	end
 end
 
-EnigmaDeckEditorUI.card_matches_filter = function(self, card)
+EnigmaDeckEditorUI.card_matches_filter = function(self, card, filters_query)
 	if self.name_search then
 		local card_name_lower = card.name:lower()
 		local search_lower = self.name_search:lower()
@@ -323,23 +490,58 @@ EnigmaDeckEditorUI.card_matches_filter = function(self, card)
 			return false
 		end
 	end
+	if filters_query.rarity and card.rarity ~= filters_query.rarity then
+		return false
+	end
+	if filters_query.cost == 5 and card.cost < 5 then
+		return false
+	elseif filters_query.cost and card.cost ~= filters_query.cost then
+		return false
+	end
+	if filters_query.type and card.card_type ~= filters_query.type then
+		return false
+	end
+	if filters_query.pack and card.card_pack and card.card_pack.id ~= filters_query.pack then
+		return false
+	end
+	if filters_query.keyword then
+		local keyword = filters_query.keyword
+		if keyword == "auto" then
+			if #card.auto_descriptions == 0 then
+				return false
+			end
+		elseif keyword == "condition" then
+			if #card.condition_descriptions == 0 then
+				return false
+			end
+		elseif keyword == "retain" then
+			if #card.retain_descriptions == 0 then
+				return false
+			end
+		elseif not card[keyword] then
+			return false
+		end
+	end
 	return true
 end
 
-local alphabet_comparator = function(card_1, card_2)
-	return card_1.name:lower() < card_2.name:lower()
+local alphabet_card_comparator = function(card_1, card_2)
+	return alphabet_comparator(card_1.name:lower(), card_2.name:lower())
 end
 
 EnigmaDeckEditorUI.update_filtered_cards = function(self)
 	table.clear(self.filtered_cards)
 
+	local filters_query = self._widgets_by_name.filters.content.query
+	self._widgets_by_name.filters.content.query_dirty = false
+
 	for _,card_template in pairs(enigma.managers.card_template.card_templates) do
-		if self:card_matches_filter(card_template) then
+		if self:card_matches_filter(card_template, filters_query) then
 			table.insert(self.filtered_cards, card_template)
 		end
 	end
 
-	table.sort(self.filtered_cards, alphabet_comparator)
+	table.sort(self.filtered_cards, alphabet_card_comparator)
 
 	self.num_pages = math.ceil(#self.filtered_cards / TOTAL_CARD_TILES)
 	self.current_page = math.min(self.current_page, self.num_pages)
