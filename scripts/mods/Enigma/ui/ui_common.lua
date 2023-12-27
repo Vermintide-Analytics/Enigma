@@ -183,12 +183,15 @@ ui_common.handle_text_inputs = function(text_input_widgets)
 		local pressed = widget.content.hotspot.on_pressed
 		if pressed then
 			any_pressed = widget
-			widget.content.input_active = true
 		elseif widget.content.unfocus_hotspot.on_pressed then
 			unfocus_pressed = true
 		end
 	end
 	if any_pressed then
+		for _,widget in ipairs(text_input_widgets) do
+			local active = widget == any_pressed
+			widget.content.input_active = active
+		end
 		enigma.managers.ui:text_input_focused()
 	elseif unfocus_pressed then
 		for _,widget in ipairs(text_input_widgets) do
