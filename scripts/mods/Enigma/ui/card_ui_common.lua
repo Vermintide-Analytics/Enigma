@@ -650,6 +650,11 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes, enable
 				{
 					pass_type = "text",
 					text_id = "cost",
+					style_id = "shadow"
+				},
+				{
+					pass_type = "text",
+					text_id = "cost",
 					style_id = "cost"
 				},
 			}
@@ -676,6 +681,23 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes, enable
 					0,
 					0,
 					1
+				}
+			},
+			shadow = {
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				font_size = sizes.card_cost_font_size,
+				font_type = CARD_NAME_FONT,
+				text_color = {
+					255,
+					0,
+					0,
+					0
+				},
+				offset = {
+					1,
+					sizes.card_cost_font_size / -7,
+					2
 				}
 			},
 			cost = {
