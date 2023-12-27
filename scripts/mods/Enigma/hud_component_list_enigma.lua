@@ -5,26 +5,12 @@ local adventure_settings = require("scripts/ui/hud_ui/component_list_definitions
 local enigma_components = {
 	{
 		use_hud_scale = true,
-		class_name = "EnigmaTestUI",
-		filename = "scripts/mods/Enigma/test_ui",
+		class_name = "EnigmaDeckPrepHud",
+		filename = "scripts/mods/Enigma/ui/deck_prep_hud",
 		visibility_groups = {
 			"alive",
-			"entering_mission",
-			"mission_vote",
 			"dead",
-			"in_menu"
-		}
-	},
-	{
-		use_hud_scale = true,
-		class_name = "WarpstoneImgUI",
-		filename = "scripts/mods/Enigma/warpstone_img_ui",
-		visibility_groups = {
-			"alive",
-			"entering_mission",
-			"mission_vote",
-			"dead",
-			"in_menu"
+			"mission_vote"
 		}
 	},
 	{

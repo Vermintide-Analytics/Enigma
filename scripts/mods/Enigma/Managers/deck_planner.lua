@@ -58,7 +58,10 @@ local deck_template = {}
 local local_peer_id
 dpm.init = function(self)
     local_peer_id = Network.peer_id()
-    self.player_data[local_peer_id] = { valid = false }
+    self.player_data[local_peer_id] = {
+        deck_name = "N/A",
+        valid = false
+    }
 
     self:load_save_data()
     dpm:update_self_equipped_deck_valid()
@@ -110,17 +113,17 @@ dpm.deck_is_valid = function(self, deck)
 end
 
 dpm.update_self_equipped_deck_valid = function(self)
-    local cached = self.player_data[local_peer_id].valid
-    local current = self:is_equipped_deck_valid()
-    if cached ~= current then
+    local cached_deck_name = self.player_data[local_peer_id].deck_name
+    local equipped = self:equipped_deck()
+    local current_deck_name = equipped and equipped.name or "N/A"
+    local cached_valid = self.player_data[local_peer_id].valid
+    local now_valid = self:is_equipped_deck_valid()
+    if cached_valid ~= now_valid or cached_deck_name ~= current_deck_name then
+        self.player_data[local_peer_id].deck_name = current_deck_name
+        self.player_data[local_peer_id].valid = now_valid
+        enigma.managers.ui.deck_prep_dirty = true
         self:notify_players_of_deck_validity()
     end
-end
-dpm.update_player_equipped_deck_valid = function(self, peer_id, valid)
-    if not self.player_data[peer_id] then
-        self.player_data[peer_id] = {}
-    end
-    self.player_data[peer_id].valid = valid
 end
 dpm.update_all_players_equipped_decks_valid = function(self)
     local all_valid = true
@@ -138,7 +141,9 @@ dpm.notify_players_of_deck_validity = function(self, recipient)
         return
     end
     recipient = recipient or "all"
-    enigma:network_send(net.sync_deck_validity, recipient, self:is_equipped_deck_valid())
+    local equipped_deck = self:equipped_deck()
+    local deck_name = equipped_deck and equipped_deck.name or "N/A"
+    enigma:network_send(net.sync_deck_validity, recipient, deck_name, self:is_equipped_deck_valid())
 end
 
 ------------------------
@@ -640,7 +645,11 @@ end, "deck_planner_init")
 -- Events --
 ------------
 dpm.on_user_joined = function(self, player)
-    self.player_data[player.peer_id] = {}
+    self.player_data[player.peer_id] = {
+        deck_name = "N/A",
+        valid = false
+    }
+    enigma.managers.ui.deck_prep_dirty = true
     self:notify_players_of_deck_validity(player.peer_id)
     self:update_all_players_equipped_decks_valid()
 end
@@ -655,14 +664,16 @@ enigma:register_mod_event_callback("on_user_left", dpm, "on_user_left")
 ----------
 -- RPCs --
 ----------
-enigma:network_register(net.sync_deck_validity, function(sender, valid)
+enigma:network_register(net.sync_deck_validity, function(sender, deck_name, valid)
     if not enigma:in_keep() then
         return
     end
     if not dpm.player_data[sender] then
         dpm.player_data[sender] = {}
     end
+    dpm.player_data[sender].deck_name = deck_name
     dpm.player_data[sender].valid = valid
+    enigma.managers.ui.deck_prep_dirty = true
     dpm:update_all_players_equipped_decks_valid()
 end)
 
