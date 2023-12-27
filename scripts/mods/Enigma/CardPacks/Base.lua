@@ -309,7 +309,7 @@ pack_handle.register_ability_cards({
                     local disabler_health = ScriptUnit.extension(disabler, "health_system")
                     if not disabler_health:is_dead() then
                         card.disabler_unit = disabler
-                        card:play()
+                        card:request_play()
                     end
                 end
             end
@@ -345,7 +345,7 @@ pack_handle.register_ability_cards({
                     local disabler_health = ScriptUnit.extension(disabler, "health_system")
                     if not disabler_health:is_dead() then
                         card.disabler_unit = disabler
-                        card:play()
+                        card:request_play()
                     end
                 end
             end

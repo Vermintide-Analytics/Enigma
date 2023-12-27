@@ -34,6 +34,13 @@ end
 
 local add_card_instance_functions = function(inst)
     inst.play = function(card)
+        if card.owner ~= enigma:local_peer_id() then
+            enigma:warning("("..card.id..") cannot call card:play from remote context. Must be called by the owner, or use card:request_play instead")
+        else
+            return enigma.managers.game:play_card(card)
+        end
+    end
+    inst.request_play = function(card)
         if card.owner == enigma:local_peer_id() then
             return enigma.managers.game:play_card(card)
         else
