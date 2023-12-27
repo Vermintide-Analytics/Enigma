@@ -147,6 +147,9 @@ local loc = {
 	equip = {
 		en = "Equip",
 	},
+	equipped = {
+		en = "Equipped",
+	},
 	page_count = {
 		en = "%i of %i",
 	},

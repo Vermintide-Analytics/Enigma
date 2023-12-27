@@ -112,9 +112,11 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 	-- Window buttons
 	local deck_list_button = self._widgets_by_name.deck_list_button
 	local close_window_button = self._widgets_by_name.close_window_button
+	local delete_deck_button = self._widgets_by_name.delete_deck_button
 
 	UIWidgetUtils.animate_default_button(deck_list_button, dt)
 	UIWidgetUtils.animate_default_button(close_window_button, dt)
+	UIWidgetUtils.animate_default_button(delete_deck_button, dt)
 
 	if deck_list_button.content.button_hotspot.on_hover_enter then
 		self:play_sound("Play_hud_hover")
@@ -122,15 +124,23 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 	if close_window_button.content.button_hotspot.on_hover_enter then
 		self:play_sound("Play_hud_hover")
 	end
+	if not delete_deck_button.content.disable_button and delete_deck_button.content.button_hotspot.on_hover_enter then
+		self:play_sound("Play_hud_hover")
+	end
 
 	if UIUtils.is_button_pressed(deck_list_button) then
 		self:play_sound("Play_hud_select")
 		Managers.ui:handle_transition("deck_planner_view", { stop_editing = true })
 	end
-
 	if input_close_pressed or UIUtils.is_button_pressed(close_window_button) then
 		self:play_sound("Play_hud_select")
 		Managers.ui:handle_transition("close_active", {})
+	end
+	if UIUtils.is_button_pressed(delete_deck_button) then
+		self:play_sound("Play_hud_select")
+		enigma.managers.deck_planner:force_delete_deck(deck.name)
+		Managers.ui:handle_transition("deck_planner_view", { stop_editing = true })
+		return
 	end
 
 
@@ -149,21 +159,20 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 		end
 	end
 
-	-- Delete button
-	local delete_deck_button = self._widgets_by_name.delete_deck_button
-	UIWidgetUtils.animate_default_button(delete_deck_button, dt)
-	if not delete_deck_button.content.disable_button and delete_deck_button.content.button_hotspot.on_hover_enter then
+	-- Equip button
+	local deck_ui_update_needed = false
+	local equip_deck_button = self._widgets_by_name.equip_deck_button
+	UIWidgetUtils.animate_default_button(equip_deck_button, dt)
+	if equip_deck_button.content.button_hotspot.on_hover_enter then
 		self:play_sound("Play_hud_hover")
 	end
-	if UIUtils.is_button_pressed(delete_deck_button) then
+	if UIUtils.is_button_pressed(equip_deck_button) then
 		self:play_sound("Play_hud_select")
-		enigma.managers.deck_planner:force_delete_deck(deck.name)
-		Managers.ui:handle_transition("deck_planner_view", { stop_editing = true })
-		return
+		enigma.managers.deck_planner:equip_deck_for_current_career_and_game_mode(deck.name)
+		deck_ui_update_needed = true
 	end
 
 	-- Deck cards
-	local deck_ui_update_needed = false
 	for i=1, MAX_CARDS_IN_DECK do
 		local item_name = "deck_slot_"..i
 		local item = self._widgets_by_name[item_name]
@@ -279,6 +288,12 @@ EnigmaDeckEditorUI.update_deck_info_ui = function(self)
 	local delete_deck_button = self._widgets_by_name.delete_deck_button
 	delete_deck_button.content.disable_button = deck.prebuilt
 	delete_deck_button.content.visible = not deck.prebuilt
+
+	local equip_deck_button = self._widgets_by_name.equip_deck_button
+	local equipped_deck_text = self._widgets_by_name.equipped_deck_text
+	local equipped = enigma.managers.deck_planner:equipped_deck() == deck
+	equip_deck_button.content.visible = not equipped
+	equipped_deck_text.content.visible = equipped
 end
 
 EnigmaDeckEditorUI.update_deck_cards_ui = function(self)

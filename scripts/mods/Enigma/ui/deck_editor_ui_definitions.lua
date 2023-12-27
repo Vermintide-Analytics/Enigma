@@ -149,6 +149,20 @@ local scenegraph_definition = {
 			10
 		}
 	},
+	delete_deck_button = {
+		parent = "window",
+		vertical_alignment = "top",
+		horizontal_alignment = "left",
+		size = {
+			380,
+			42
+		},
+		position = {
+			135,
+			16,
+			10
+		}
+	},
 	top_panel = {
 		parent = "inner_window",
 		vertical_alignment = "top",
@@ -219,12 +233,12 @@ local scenegraph_definition = {
 			0
 		}
 	},
-	delete_deck_button = {
+	equip_deck_button = {
 		parent = "top_panel",
 		vertical_alignment = "top",
 		horizontal_alignment = "left",
 		size = {
-			WINDOW_WIDTH / 6,
+			WINDOW_WIDTH / 8,
 			TOP_PANEL_HEIGHT / 3
 		},
 		position = {
@@ -402,6 +416,7 @@ local widgets = {
 	}),
 	deck_list_button = UIWidgets.create_default_button("deck_list_button", scenegraph_definition.deck_list_button.size, nil, nil, enigma:localize("deck_list"), 24, nil, "button_detail_04", 34, true),
 	close_window_button = UIWidgets.create_default_button("close_window_button", scenegraph_definition.close_window_button.size, nil, nil, Localize("interaction_action_close"), 24, nil, "button_detail_04", 34, true),
+	delete_deck_button = UIWidgets.create_default_button("delete_deck_button", scenegraph_definition.delete_deck_button.size, nil, nil, enigma:localize("delete"), 24, nil, nil, nil, true, true),
 	top_panel = {
 		scenegraph_id = "top_panel",
 		element = {
@@ -482,7 +497,36 @@ local widgets = {
 			}
 		}
 	},
-	delete_deck_button = UIWidgets.create_default_button("delete_deck_button", scenegraph_definition.delete_deck_button.size, nil, nil, enigma:localize("delete"), 24, nil, nil, nil, true, true),
+	equipped_deck_text = {
+		scenegraph_id = "equip_deck_button",
+		element = {
+			passes = {
+				{
+					pass_type = "text",
+					style_id = "text",
+					text_id = "text"
+				}
+			}
+		},
+		content = {
+			text = enigma:localize("equipped")
+		},
+		style = {
+			text = {
+				horizontal_alignment = "center",
+				vertical_alignment = "center",
+				font_size = 32,
+				font_type = "hell_shark",
+				text_color = {
+					255,
+					255,
+					255,
+					255
+				}
+			}
+		}
+	},
+	equip_deck_button = UIWidgets.create_default_button("equip_deck_button", scenegraph_definition.equip_deck_button.size, nil, nil, enigma:localize("equip"), 24, nil, nil, nil, true, true),
 	card_name_search = ui_common.create_text_input("card_name_search", "card_name_search_inner", "screen", "", enigma:localize("search")),
 	left_panel = {
 		scenegraph_id = "left_panel",
