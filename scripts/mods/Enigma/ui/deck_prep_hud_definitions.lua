@@ -127,7 +127,7 @@ local add_player_row = function(index)
 					255
 				},
 				offset = {
-					0,
+					10,
 					0,
 					1
 				}
@@ -148,7 +148,7 @@ local add_player_row = function(index)
 					TEXT_SIZE
 				},
 				offset = {
-					20,
+					30,
 					TEXT_SIZE * -1 - 2,
 					1
 				}
@@ -165,7 +165,7 @@ local add_player_row = function(index)
 					255
 				},
 				offset = {
-					20 + TEXT_SIZE + 5,
+					30 + TEXT_SIZE + 5,
 					TEXT_SIZE * -1 - 2,
 					1
 				}
@@ -181,4 +181,5 @@ end
 return {
 	scenegraph_definition = scenegraph_definition,
 	widgets = widgets,
+	info_panel_height = INFO_PANEL_HEIGHT
 }

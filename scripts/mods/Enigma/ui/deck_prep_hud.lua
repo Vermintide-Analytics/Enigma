@@ -1,4 +1,5 @@
 local definitions = local_require("scripts/mods/Enigma/ui/deck_prep_hud_definitions")
+local INFO_PANEL_HEIGHT = definitions.info_panel_height
 local PRETTY_MARGIN = 10
 local DO_RELOAD = true
 EnigmaDeckPrepHud = class(EnigmaDeckPrepHud)
@@ -27,27 +28,8 @@ EnigmaDeckPrepHud.create_ui_elements = function (self)
 	self.ui_scenegraph = UISceneGraph.init_scenegraph(definitions.scenegraph_definition)
 	self._widgets, self._widgets_by_name = UIUtils.create_widgets(definitions.widgets)
 
-	self.draw_pile_widget = self._widgets_by_name.draw_pile_column
-	self.discard_pile_widget = self._widgets_by_name.discard_pile_column
-	self.warpstone_widget = self._widgets_by_name.warpstone_column
-	self.card_draw_widget = self._widgets_by_name.card_draw_column
-	self.channel_bar_widget = self._widgets_by_name.channel_bar
-	self.channel_bar_inner_widget = self._widgets_by_name.channel_bar_inner
-	self.hand_panel_widget = self._widgets_by_name.hand_panel
-	
-	self.warp_dust_bar_node = self.ui_scenegraph.warp_dust_bar
-	self.warp_dust_bar_node_inner = self.ui_scenegraph.warp_dust_bar_inner
-	self.card_draw_bar_node = self.ui_scenegraph.card_draw_bar
-	self.card_draw_bar_node_inner = self.ui_scenegraph.card_draw_bar_inner
-	self.channel_bar_node_inner = self.ui_scenegraph.channel_bar_inner
-
-	self.time_since_channel_ended = 0
-
-	self.WARP_DUST_PER_WARPSTONE = enigma.managers.warp:get_warp_dust_per_warpstone()
-
-	self.channeling_message = enigma:localize("channeling")
-	self.channeling_cancelled_message = enigma:localize("channeling_cancelled")
-	self.channeling_complete_message = enigma:localize("channeling_complete")
+	self.info_panel_node = self.ui_scenegraph.info_panel
+	self.info_panel_widget = self._widgets_by_name.info_panel
 
 	UIRenderer.clear_scenegraph_queue(self.ui_renderer)
 end
@@ -94,6 +76,7 @@ EnigmaDeckPrepHud.update = function (self, dt, t)
 				all_valid = false
 			end
 		end
+		self.info_panel_node.size[2] = INFO_PANEL_HEIGHT * 0.2 * math.min(num_players, 5)
 		if num_players > 5 then
 			-- TODO: Handle larger players with a simplified view
 		else
