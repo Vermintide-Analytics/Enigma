@@ -13,18 +13,18 @@ local wm = {
         trash = 0.18,
         elite = 0.37,
         special = 1.35,
-        boss = 0.36
+        boss = 0.54
     },
-    warp_dust_per_damage_taken = 2.0,
+    warp_dust_per_damage_taken = 1.5,
     warp_dust_per_stagger_seconds = {
-        trash = 1.8,
-        elite = 5.8,
-        special = 6.0,
+        trash = 2.2,
+        elite = 9.0,
+        special = 10.0,
         boss = 22.0
     },
     warp_dust_per_level_progress = {
-        adventure = 7000,
-        deus = 4000
+        adventure = 10000,
+        deus = 6000
     },
 
     ranged_damage_warp_dust_multiplier = 1.2,
