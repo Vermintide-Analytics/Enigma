@@ -56,8 +56,8 @@ local format_shuffling_card_into_draw_pile = function(card, remote_peer_id)
     return format_card_event_log(card, "SHUFFLING INTO DRAW PILE", remote_peer_id)
 end
 
-local format_location = function(peer_id, location, index)
-    return tostring(peer_id).."."..tostring(location).."["..tostring(index).."]"
+local format_card_identification = function(peer_id, id)
+    return tostring(peer_id).."."..tostring(id)
 end
 
 ---------------------------
@@ -220,6 +220,10 @@ cgm.init_game = function(self, game_init_data, debug)
     local local_data = {
         deck_name = game_init_data.deck_name,
         deck_card_ids = card_ids,
+
+        all_cards = {},
+        next_card_local_id = 1,
+
         draw_pile = {},
         hand = {},
         discard_pile = {},
@@ -286,6 +290,10 @@ end
 enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_name, card_ids_in_deck)
     local peer_data = {
         deck_name = deck_name,
+
+        all_cards = {},
+        next_card_local_id = 1,
+
         draw_pile = {},
         hand = {},
         discard_pile = {},
@@ -536,19 +544,19 @@ local handle_local_card_drawn = function(free)
     local drawn_card = handle_card_drawn("local", cgm.local_data)
 
     enigma:wwise_event("draw_card")
-    enigma:network_send(net.event_card_drawn, "others", drawn_card.id)
+    enigma:network_send(net.event_card_drawn, "others", drawn_card.local_id)
 
     cgm.statistics.cards_drawn = cgm.statistics.cards_drawn + 1
     return true
 end
-enigma:network_register(net.event_card_drawn, function(peer_id, expected_card_id)
+enigma:network_register(net.event_card_drawn, function(peer_id, expected_card_local_id)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
         enigma:warning(tostring(peer_id).." TOLD US OF A CARD DRAW EVENT, BUT WE DON'T HAVE DATA FOR THAT PEER")
         return
     end
     local drawn_card = handle_card_drawn("remote", peer_data)
-    if not drawn_card or not drawn_card.id == expected_card_id then
+    if not drawn_card or not drawn_card.local_id == expected_card_local_id then
         enigma:warning("Unexpected card drawn from draw pile when syncing draw from "..tostring(peer_id))
         return
     end
@@ -656,23 +664,19 @@ local handle_local_card_played = function(card, location, index, skip_warpstone_
     end
 
     enigma:wwise_event("play_card")
-    enigma:network_send(net.event_card_played, "others", location, index, card.id, play_type)
+    enigma:network_send(net.event_card_played, "others", card.local_id, play_type)
     cgm.statistics.cards_played[play_type] = cgm.statistics.cards_played[play_type] + 1
     return true
 end
-enigma:network_register(net.event_card_played, function(peer_id, location, index, expected_card_id, play_type)
+enigma:network_register(net.event_card_played, function(peer_id, card_local_id, play_type)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
         enigma:warning(tostring(peer_id).." TOLD US OF A CARD PLAYED EVENT, BUT WE DON'T HAVE DATA FOR THAT PEER")
         return
     end
-    local card = peer_data[location][index]
+    local card = peer_data.all_cards[card_local_id]
     if not card then
-        enigma:warning("Could not find a card to be played at "..format_location(peer_id, location, index))
-        return
-    end
-    if card.id ~= expected_card_id then
-        enigma:warning("Unexpected card found at "..format_location(peer_id, location, index).." when attempting to play")
+        enigma:warning("Could not find a card to be played with local ID "..format_card_identification(peer_id, card_local_id))
         return
     end
     handle_card_played("remote", peer_data, card, play_type)
@@ -823,27 +827,21 @@ local handle_card_discarded = function(context, data, card, discard_type)
     end
 end
 local handle_local_card_discarded = function(card, discard_type)
-    local location, index = get_card_location(card)
-
     handle_card_discarded("local", cgm.local_data, card, discard_type)
     
-    enigma:network_send(net.event_card_discarded, "others", location, index, card.id, discard_type)
+    enigma:network_send(net.event_card_discarded, "others", card.local_id, discard_type)
     cgm.statistics.cards_discarded[discard_type] = cgm.statistics.cards_discarded[discard_type] + 1
     return true
 end
-enigma:network_register(net.event_card_discarded, function(peer_id, location, index, expected_card_id, discard_type)
+enigma:network_register(net.event_card_discarded, function(peer_id, card_local_id, discard_type)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
         enigma:warning(tostring(peer_id).." TOLD US OF A CARD DISCARDED EVENT, BUT WE DON'T HAVE DATA FOR THAT PEER")
         return
     end
-    local card = peer_data[location][index]
+    local card = peer_data.all_cards[card_local_id]
     if not card then
-        enigma:warning("Could not find a card to be discarded at "..format_location(peer_id, location, index))
-        return
-    end
-    if card.id ~= expected_card_id then
-        enigma:warning("Unexpected card found at "..format_location(peer_id, location, index).." when attempting to discard")
+        enigma:warning("Could not find a card to be discarded with local ID "..format_card_identification(peer_id, card_local_id))
         return
     end
     handle_card_discarded("remote", peer_data, card, discard_type)
@@ -922,15 +920,17 @@ local handle_shuffle_new_card_into_draw_pile = function(context, data, card_id, 
     end
     local on_shuffle_into_draw_pile_func_name = "on_shuffle_into_draw_pile_"..context
     if card[on_shuffle_into_draw_pile_func_name] then
-        card[on_shuffle_into_draw_pile_func_name](card)
+        safe(card[on_shuffle_into_draw_pile_func_name], card)
     end
 end
 local handle_local_shuffle_new_card_into_draw_pile = function(card_id)
     local draw_pile_size = #cgm.local_data.draw_pile
     local index = math.floor(enigma:random_range_int(1, draw_pile_size + 1))
-    handle_shuffle_new_card_into_draw_pile("local", cgm.local_data, card_id, index)
 
-    enigma:network_send(net.event_new_card_shuffled_into_draw_pile, "others", card_id, index) 
+    -- Need to send the RPC which creates the new card in other players' games, otherwise we risk
+    -- sending other RPCs specific to this card before they even know about it.
+    enigma:network_send(net.event_new_card_shuffled_into_draw_pile, "others", card_id, index)
+    handle_shuffle_new_card_into_draw_pile("local", cgm.local_data, card_id, index)
 end
 enigma:network_register(net.event_new_card_shuffled_into_draw_pile, function(peer_id, card_id, index)
     local peer_data = cgm.peer_data[peer_id]
@@ -971,28 +971,22 @@ local handle_shuffle_card_into_draw_pile = function(context, data, card, new_ind
     end
 end
 local handle_local_shuffle_card_into_draw_pile = function(card)
-    local location, index = get_card_location(card)
-
     local draw_pile_size = #cgm.local_data.draw_pile
     local new_index = math.floor(enigma:random_range_int(1, draw_pile_size + 1))
 
     handle_shuffle_card_into_draw_pile("local", cgm.local_data, card, new_index)
 
-    enigma:network_send(net.event_card_shuffled_into_draw_pile, "others", location, index, card.id, new_index)
+    enigma:network_send(net.event_card_shuffled_into_draw_pile, "others", card.local_id, new_index)
 end
-enigma:network_register(net.event_card_shuffled_into_draw_pile, function(peer_id, location, index, expected_card_id, new_index)
+enigma:network_register(net.event_card_shuffled_into_draw_pile, function(peer_id, card_local_id, new_index)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
         enigma:warning(tostring(peer_id).." TOLD US OF A CARD SHUFFLED INTO DRAW PILE EVENT, BUT WE DON'T HAVE DATA FOR THAT PEER")
         return
     end
-    local card = peer_data[location][index]
+    local card = peer_data.all_cards[card_local_id]
     if not card then
-        enigma:warning("Could not find a card to be shuffled into draw pile at "..format_location(peer_id, location, index))
-        return
-    end
-    if card.id ~= expected_card_id then
-        enigma:warning("Unexpected card found at "..format_location(peer_id, location, index).." when attempting to shuffle into draw pile")
+        enigma:warning("Could not find a card to be shuffled into draw pile at "..format_card_identification(peer_id, card_local_id))
         return
     end
     handle_shuffle_card_into_draw_pile("remote", peer_data, card, new_index)
@@ -1012,35 +1006,35 @@ end
 ------------
 -- UPDATE --
 ------------
-enigma:network_register(net.notify_card_condition_met_changed, function(peer_id, pile, index, satisfied)
+enigma:network_register(net.notify_card_condition_met_changed, function(peer_id, card_local_id, satisfied)
     if peer_id ~= cgm.server_peer_id then
         enigma:warning("Only the server is allowed to tell us when a card condition met changes")
-        local card = cgm.local_data[pile][index]
+        local card = cgm.local_data.all_cards[card_local_id]
         if card then
             enigma:warning("Attempted to set card playable: "..card.id)
         end
         return
     end
-    local card = cgm.local_data[pile][index]
+    local card = cgm.local_data.all_cards[card_local_id]
     if not card then
-        enigma:warning("Attempted to set card playable at invalid index")
+        enigma:warning("Attempted to set card playable, invalid card local id "..tostring(card_local_id))
         return
     end
     card.cond_satisfied_server = satisfied
     card.cond_satisfied = card.cond_satisfied_server and ((card.cond_satisfied_local == nil) or card.cond_satisfied_local)
 end)
-enigma:network_register(net.notify_card_auto_condition_met_changed, function(peer_id, index, met)
+enigma:network_register(net.notify_card_auto_condition_met_changed, function(peer_id, card_local_id, met)
     if peer_id ~= cgm.server_peer_id then
         enigma:warning("Only the server is allowed to tell us when a card auto-trigger condition met changes")
-        local card = cgm.local_data.hand[index]
+        local card = cgm.local_data.all_cards[card_local_id]
         if card then
             enigma:warning("Attempted to set card auto met: "..card.id)
         end
         return
     end
-    local card = cgm.local_data.hand[index]
+    local card = cgm.local_data.all_cards[card_local_id]
     if not card then
-        enigma:warning("Attempted to set card auto met at invalid index")
+        enigma:warning("Attempted to set card auto met, invalid card local id "..tostring(card_local_id))
         return
     end
     card.auto_condition_server_met = met
@@ -1469,19 +1463,10 @@ cgm.is_in_game = function(self)
 end
 
 -- Utilities
-enigma:network_register(net.request_play_card, function(sender, location, index, expected_card_id)
-    local cards = location and cgm.local_data[location]
-    if not cards then
-        enigma:warning("Received request_play_card with an invalid location")
-        return
-    end
-    local card = index and cards[index]
+enigma:network_register(net.request_play_card, function(sender, card_local_id)
+    local card = cgm.local_data.all_cards[card_local_id]
     if not card then
-        enigma:warning("Received request_play_card with an invalid card index")
-        return
-    end
-    if card.id ~= expected_card_id then
-        enigma:warning("Requested card to play is "..tostring(expected_card_id).." but found "..tostring(card.id))
+        enigma:warning("Received request_play_card with an invalid card local id "..tostring(card_local_id))
         return
     end
     cgm:play_card(card)
@@ -1491,10 +1476,9 @@ cgm.request_play_card = function(self, card)
         enigma:warning("Could not determine owner of card to request them to play it")
         return
     end
-    local location, index = get_card_location(card)
-    enigma:network_send(net.request_play_card, card.owner, location, index, card.id)
+    enigma:network_send(net.request_play_card, card.owner, card.local_id)
 end
-enigma:network_register(net.sync_card_property, function(sender, card_owner_peer_id, location, index, property, value)
+enigma:network_register(net.sync_card_property, function(sender, card_owner_peer_id, card_local_id, property, value)
     local data = nil
     if card_owner_peer_id == cgm.local_data.peer_id then
         data = cgm.local_data
@@ -1505,14 +1489,9 @@ enigma:network_register(net.sync_card_property, function(sender, card_owner_peer
         enigma:warning("Received sync_card_property with an invalid peer_id")
         return
     end
-    local cards = location and data[location]
-    if not cards then
-        enigma:warning("Received sync_card_property with an invalid location")
-        return
-    end
-    local card = index and cards[index]
+    local card = data.all_cards[card_local_id]
     if not card then
-        enigma:warning("Received sync_card_property with an invalid card index")
+        enigma:warning("Received sync_card_property with an invalid card local id "..tostring(card_local_id))
         return
     end
     if not property then
@@ -1530,12 +1509,11 @@ cgm.sync_card_property = function(self, card, property, value)
         enigma:warning("Cannot sync card property: "..tostring(property))
         return
     end
-    local location, index = get_card_location(card)
     local card_owner_peer_id = card.context.peer_id
     enigma:info("Sending sync_card_property to others. ["..tostring(card.id).."]."..tostring(property).."="..tostring(value))
-    enigma:network_send(net.sync_card_property, "others", card_owner_peer_id, location, index, property, value)
+    enigma:network_send(net.sync_card_property, "others", card_owner_peer_id, card.local_id, property, value)
 end
-enigma:network_register(net.invoke_card_rpc, function(sender, card_owner_peer_id, location, index, func_name, ...)
+enigma:network_register(net.invoke_card_rpc, function(sender, card_owner_peer_id, card_local_id, func_name, ...)
     local data = nil
     if card_owner_peer_id == cgm.local_data.peer_id then
         data = cgm.local_data
@@ -1546,14 +1524,9 @@ enigma:network_register(net.invoke_card_rpc, function(sender, card_owner_peer_id
         enigma:warning("Received invoke_card_rpc with an invalid peer_id")
         return
     end
-    local cards = location and data[location]
-    if not cards then
-        enigma:warning("Received invoke_card_rpc with an invalid location")
-        return
-    end
-    local card = index and cards[index]
+    local card = data.all_cards[card_local_id]
     if not card then
-        enigma:warning("Received invoke_card_rpc with an invalid card index")
+        enigma:warning("Received invoke_card_rpc with an invalid card local id "..tostring(card_local_id))
         return
     end
     if not func_name then
@@ -1563,6 +1536,7 @@ enigma:network_register(net.invoke_card_rpc, function(sender, card_owner_peer_id
     enigma:debug("Received card RPC \""..tostring(func_name).."\" on card "..tostring(card.id))
     if type(card[func_name]) ~= "function" then
         enigma:warning("Function \""..tostring(func_name).."\" does not exist on card "..tostring(card.id))
+        return
     end
     safe(card[func_name], card, ...)
 end)
@@ -1574,10 +1548,9 @@ cgm._invoke_card_rpc = function(self, recipient, card, func_name, ...)
         enigma:warning("Cannot invoke card rpc: "..tostring(func_name))
         return
     end
-    local location, index = get_card_location(card)
     local card_owner_peer_id = card.context.peer_id
     enigma:info("Sending invoke_card_rpc to "..tostring(recipient)..". ["..tostring(card.id).."]."..tostring(func_name))
-    enigma:network_send(net.invoke_card_rpc, recipient, card_owner_peer_id, location, index, func_name, ...)
+    enigma:network_send(net.invoke_card_rpc, recipient, card_owner_peer_id, card.local_id, func_name, ...)
 end
 cgm.active_channel = function(self)
     return self.local_data and self.local_data.active_channel

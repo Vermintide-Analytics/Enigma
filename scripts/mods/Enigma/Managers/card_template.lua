@@ -177,6 +177,12 @@ local template_template = {
             enigma:warning("Card instanced without a context, this is not allowed")
             return nil
         end
+
+        inst.local_id = context.next_card_local_id
+        enigma:debug("New card local id: "..tostring(inst.local_id))
+        table.insert(context.all_cards, inst)
+        context.next_card_local_id = context.next_card_local_id + 1
+
         inst.owner = context.peer_id
         inst.original_owner = inst.owner
 
