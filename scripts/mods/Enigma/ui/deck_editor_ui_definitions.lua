@@ -289,6 +289,20 @@ local scenegraph_definition = {
 			1
 		}
 	},
+	show_hidden_cards = {
+		parent = "top_panel",
+		horizontal_alignment = "right",
+		vertical_alignment = "bottom",
+		size = {
+			140,
+			42
+		},
+		position = {
+			-100,
+			10,
+			1
+		}
+	},
 	left_panel = {
 		parent = "inner_window",
 		vertical_alignment = "bottom",
@@ -594,6 +608,7 @@ local widgets = {
 			},
 		}
 	},
+	show_hidden_cards = ui_common.create_checkbox_widget(enigma:localize("show_hidden"), "", "show_hidden_cards", 0, nil, nil),
 	deck_name = ui_common.create_text_input("deck_name", "deck_name_inner", "screen", "--- DECK NAME ---"),
 	deck_card_count = {
 		scenegraph_id = "deck_card_count",

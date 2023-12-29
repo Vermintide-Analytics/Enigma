@@ -247,6 +247,9 @@ local loc = {
 	keyword = {
 		en = "Keyword"
 	},
+	show_hidden = {
+		en = "Show Hidden"
+	}
 
 }
 

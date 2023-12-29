@@ -312,6 +312,20 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 		return
 	end
 
+	-- Show Hidden Checkbox
+	local checkbox_content = self._widgets_by_name.show_hidden_cards.content
+	local checkbox_hotspot = checkbox_content.button_hotspot
+
+	if checkbox_hotspot.on_hover_enter then
+		self:play_sound("Play_hud_hover")
+	end
+
+	if checkbox_hotspot.on_release then
+		checkbox_content.checked = not checkbox_content.checked
+		self:play_sound("Play_hud_select")
+		card_filter_update_needed = true
+	end
+
 	-- Text Inputs
 	local text_changes = ui_common.handle_text_inputs(self.text_input_widgets)
 	if text_changes then
@@ -406,8 +420,12 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 		if card_interaction_widget.content.hotspot.on_right_click then
 			-- Add card to deck, if allowed
 			self:play_sound("Play_hud_select")
-			enigma.managers.deck_planner:add_card_to_editing_deck(card.id)
-			deck_ui_update_needed = true
+			if card.allow_in_deck then
+				enigma.managers.deck_planner:add_card_to_editing_deck(card.id)
+				deck_ui_update_needed = true
+			else
+				enigma:echo(tostring(card.name).." cannot be added to decks")
+			end
 		end
 	end
 
@@ -483,6 +501,11 @@ EnigmaDeckEditorUI.update_deck_cards_ui = function(self)
 end
 
 EnigmaDeckEditorUI.card_matches_filter = function(self, card, filters_query)
+	local show_hidden_checkbox = self._widgets_by_name.show_hidden_cards
+	if not show_hidden_checkbox.content.checked and (card.card_type == enigma.CARD_TYPE.chaos or card.hide_in_deck_editor) then
+		return false
+	end
+
 	if self.name_search then
 		local card_name_lower = card.name:lower()
 		local search_lower = self.name_search:lower()

@@ -227,6 +227,294 @@ ui_common.handle_text_inputs = function(text_input_widgets)
 	return changes
 end
 
+ui_common.create_checkbox_widget = function (text, tooltip_text, scenegraph_id, checkbox_offset, optional_text_offset, optional_tooltip_text_disabled)
+	local frame_settings = UIFrameSettings.menu_frame_06
+
+	return {
+		element = {
+			passes = {
+				{
+					pass_type = "hotspot",
+					content_id = "button_hotspot"
+				},
+				{
+					style_id = "tooltip_text",
+					pass_type = "tooltip_text",
+					text_id = "tooltip_text",
+					content_check_function = function (ui_content)
+						return ui_content.button_hotspot.is_hover and ui_content.tooltip_text ~= "" and not ui_content.is_disabled
+					end
+				},
+				{
+					style_id = "tooltip_text",
+					pass_type = "tooltip_text",
+					text_id = "tooltip_text_disabled",
+					content_check_function = function (ui_content)
+						return ui_content.button_hotspot.is_hover and ui_content.tooltip_text_disabled ~= "" and ui_content.is_disabled
+					end
+				},
+				{
+					style_id = "setting_text",
+					pass_type = "text",
+					text_id = "setting_text",
+					content_check_function = function (content)
+						return not content.button_hotspot.is_hover and not content.is_disabled
+					end
+				},
+				{
+					style_id = "setting_text_disabled",
+					pass_type = "text",
+					text_id = "setting_text",
+					content_check_function = function (content)
+						return content.is_disabled
+					end
+				},
+				{
+					style_id = "setting_text_hover",
+					pass_type = "text",
+					text_id = "setting_text",
+					content_check_function = function (content)
+						return content.button_hotspot.is_hover and not content.is_disabled
+					end
+				},
+				{
+					pass_type = "texture",
+					style_id = "checkbox_marker",
+					texture_id = "checkbox_marker",
+					content_check_function = function (content)
+						return content.checked and not content.is_disabled
+					end
+				},
+				{
+					pass_type = "texture",
+					style_id = "checkbox_marker_disabled",
+					texture_id = "checkbox_marker",
+					content_check_function = function (content)
+						return content.checked and content.is_disabled
+					end
+				},
+				{
+					pass_type = "rect",
+					style_id = "checkbox_background"
+				},
+				{
+					pass_type = "texture_frame",
+					style_id = "checkbox_frame",
+					texture_id = "checkbox_frame",
+					content_check_function = function (content)
+						return not content.is_disabled
+					end
+				},
+				{
+					pass_type = "texture_frame",
+					style_id = "checkbox_frame_disabled",
+					texture_id = "checkbox_frame",
+					content_check_function = function (content)
+						return content.is_disabled
+					end
+				}
+			}
+		},
+		content = {
+			checked = false,
+			checkbox_marker = "matchmaking_checkbox",
+			button_hotspot = {},
+			tooltip_text = tooltip_text,
+			setting_text = text,
+			tooltip_text_disabled = optional_tooltip_text_disabled or "",
+			checkbox_frame = frame_settings.texture
+		},
+		style = {
+			checkbox_style = {
+				vertical_alignment = "bottom",
+				horizontal_alignment = "right",
+				texture_size = {
+					40,
+					40
+				},
+				offset = {
+					checkbox_offset,
+					0,
+					1
+				},
+				color = {
+					255,
+					255,
+					255,
+					255
+				}
+			},
+			checkbox_style_disabled = {
+				vertical_alignment = "bottom",
+				horizontal_alignment = "right",
+				texture_size = {
+					40,
+					40
+				},
+				offset = {
+					checkbox_offset,
+					0,
+					1
+				},
+				color = {
+					96,
+					255,
+					255,
+					255
+				}
+			},
+			checkbox_background = {
+				vertical_alignment = "bottom",
+				horizontal_alignment = "right",
+				texture_size = {
+					40,
+					40
+				},
+				offset = {
+					checkbox_offset,
+					0,
+					0
+				},
+				color = {
+					255,
+					0,
+					0,
+					0
+				}
+			},
+			checkbox_frame = {
+				vertical_alignment = "bottom",
+				horizontal_alignment = "right",
+				area_size = {
+					40,
+					40
+				},
+				texture_size = frame_settings.texture_size,
+				texture_sizes = frame_settings.texture_sizes,
+				offset = {
+					checkbox_offset,
+					0,
+					1
+				},
+				color = {
+					255,
+					255,
+					255,
+					255
+				}
+			},
+			checkbox_frame_disabled = {
+				vertical_alignment = "bottom",
+				horizontal_alignment = "right",
+				area_size = {
+					40,
+					40
+				},
+				texture_size = frame_settings.texture_size,
+				texture_sizes = frame_settings.texture_sizes,
+				offset = {
+					checkbox_offset,
+					0,
+					1
+				},
+				color = {
+					96,
+					255,
+					255,
+					255
+				}
+			},
+			checkbox_marker = {
+				vertical_alignment = "bottom",
+				horizontal_alignment = "right",
+				texture_size = {
+					37,
+					31
+				},
+				offset = {
+					checkbox_offset + 4,
+					6,
+					1
+				},
+				color = Colors.get_color_table_with_alpha("font_title", 255)
+			},
+			checkbox_marker_disabled = {
+				vertical_alignment = "bottom",
+				horizontal_alignment = "right",
+				texture_size = {
+					37,
+					31
+				},
+				offset = {
+					checkbox_offset + 4,
+					6,
+					1
+				},
+				color = Colors.get_color_table_with_alpha("white", 96)
+			},
+			setting_text = {
+				vertical_alignment = "center",
+				upper_case = true,
+				horizontal_alignment = "right",
+				font_size = 24,
+				font_type = "hell_shark",
+				text_color = Colors.get_color_table_with_alpha("font_title", 255),
+				offset = optional_text_offset or {
+					-50,
+					0,
+					4
+				}
+			},
+			setting_text_disabled = {
+				vertical_alignment = "center",
+				upper_case = true,
+				horizontal_alignment = "right",
+				font_size = 24,
+				font_type = "hell_shark",
+				text_color = Colors.get_color_table_with_alpha("white", 96),
+				offset = optional_text_offset or {
+					-50,
+					0,
+					4
+				}
+			},
+			setting_text_hover = {
+				vertical_alignment = "center",
+				upper_case = true,
+				horizontal_alignment = "right",
+				font_size = 24,
+				font_type = "hell_shark",
+				text_color = Colors.get_color_table_with_alpha("font_default", 255),
+				offset = optional_text_offset or {
+					-50,
+					0,
+					4
+				}
+			},
+			tooltip_text = {
+				font_size = 24,
+				max_width = 500,
+				cursor_side = "left",
+				horizontal_alignment = "left",
+				vertical_alignment = "top",
+				font_type = "hell_shark",
+				text_color = Colors.get_color_table_with_alpha("white", 255),
+				line_colors = {},
+				offset = {
+					0,
+					0,
+					50
+				},
+				cursor_offset = {
+					-10,
+					-27
+				}
+			}
+		},
+		scenegraph_id = scenegraph_id
+	}
+end
+
 local FILTER_COLOR_DEFAULT = {
 	255,
 	32,

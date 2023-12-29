@@ -163,6 +163,9 @@ local template_template = {
     unplayable = false,
     warp_hungry = nil,
 
+    hide_in_deck_editor = false,
+    allow_in_deck = true,
+
     description_lines = {},
     retain_descriptions = {},
     auto_descriptions = {},
