@@ -1363,11 +1363,11 @@ end
 local card_draw_gain_lut = {
     {
         threshold = 50,
-        rate = 0.020
+        rate = 0.018
     },
     {
         threshold = 20,
-        rate = 0.014
+        rate = 0.013
     },
     {
         threshold = 3,

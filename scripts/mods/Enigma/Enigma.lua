@@ -91,6 +91,8 @@ enigma:command("enigma_dump", "dump some Enigma info to the console", function(m
         enigma.managers.card_pack:dump()
     elseif manager == "card_template" then
         enigma.managers.card_template:dump()
+    elseif manager == "warp" then
+        enigma.managers.warp:dump()
     elseif manager == "deck_planner" then
         enigma.managers.deck_planner:dump()
     elseif manager == "game" or manager == "card_game" then
@@ -155,6 +157,29 @@ enigma:command("big_card", "show a big card!", function(card_id)
     enigma.managers.ui.big_card_to_display = card
 end)
 
+enigma._command_toggle = function(self, args)
+    local toggle_cmd = args[2]
+    if not toggle_cmd then
+        enigma:echo("Must provide another argument for enigma toggle")
+        return
+    end
+    if toggle_cmd == "deck_validity_check" then
+        if enigma.skip_deck_validity_check then
+            enigma:echo("Turning deck validity check ON")
+        else
+            enigma:echo("Turning deck validity check OFF")
+        end
+        enigma:set("skip_deck_validity_check", not enigma.skip_deck_validity_check, true)
+    elseif toggle_cmd == "mega_resources" then
+        if enigma.mega_resource_start then
+            enigma:echo("Turning mega resource start OFF")
+        else
+            enigma:echo("Turning mega resource start ON")
+        end
+        enigma:set("mega_resource_start", not enigma.mega_resource_start, true)
+    end
+end
+
 enigma:network_register("enigma_dev_game", function(sender, state)
     if state == "start" then
         if enigma.managers.game:is_in_game() then
@@ -168,41 +193,43 @@ enigma:network_register("enigma_dev_game", function(sender, state)
         enigma.managers.game:end_game()
     end
 end)
+enigma._command_force = function(self, args)
+    local force_cmd = args[2]
+    if not force_cmd then
+        enigma:echo("Must provide another argument for enigma force")
+        return
+    end
+    if force_cmd == "start" then
+        enigma:network_send("enigma_dev_game", "all", "start")
+    elseif force_cmd == "end" then
+        enigma:network_send("enigma_dev_game", "all", "end")
+    end
+end
+
+enigma._command_paste = function(self, args)
+    local configure_target = args[2]
+    if configure_target == "warp" then
+        local json = tostring(Clipboard.get())
+        local data = cjson.decode(json)
+        if not data then
+            enigma:echo("Invalid json data to configure warp settings")
+            return
+        end
+        for key,val in pairs(data) do
+            enigma.managers.warp[key] = val
+        end
+        enigma:dump(enigma.managers.warp, "WARP MANAGER", 3)
+    end
+end
+
 enigma:command("enigma", "", function(...)
     local args = table.pack(...)
     local cmd = args[1]
-    if cmd == "toggle" then
-        local toggle_cmd = args[2]
-        if not toggle_cmd then
-            enigma:echo("Must provide another argument for enigma toggle")
-            return
-        end
-        if toggle_cmd == "deck_validity_check" then
-            if enigma.skip_deck_validity_check then
-                enigma:echo("Turning deck validity check ON")
-            else
-                enigma:echo("Turning deck validity check OFF")
-            end
-            enigma:set("skip_deck_validity_check", not enigma.skip_deck_validity_check, true)
-        elseif toggle_cmd == "mega_resources" then
-            if enigma.mega_resource_start then
-                enigma:echo("Turning mega resource start OFF")
-            else
-                enigma:echo("Turning mega resource start ON")
-            end
-            enigma:set("mega_resource_start", not enigma.mega_resource_start, true)
-        end
-    elseif cmd == "force" then
-        local force_cmd = args[2]
-        if not force_cmd then
-            enigma:echo("Must provide another argument for enigma force")
-            return
-        end
-        if force_cmd == "start" then
-            enigma:network_send("enigma_dev_game", "all", "start")
-        elseif force_cmd == "end" then
-            enigma:network_send("enigma_dev_game", "all", "end")
-        end
+    local command_function = enigma["_command_"..tostring(cmd)]
+    if command_function then
+        command_function(enigma, args)
+    else
+        enigma:echo("No such command \""..tostring(cmd).."\"")
     end
 end)
 

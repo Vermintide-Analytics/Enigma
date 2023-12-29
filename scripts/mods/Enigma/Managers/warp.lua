@@ -8,19 +8,26 @@ local wm = {
     warp_dust = 0.0,
     deferred_warp_dust = 0.0,
 
-    warp_dust_per_second = 3.0,
-    warp_dust_per_damage_dealt = 0.14,
+    warp_dust_per_second = 1.5,
+    warp_dust_per_damage_dealt = {
+        trash = 0.18,
+        elite = 0.37,
+        special = 1.35,
+        boss = 0.36
+    },
     warp_dust_per_damage_taken = 2.0,
     warp_dust_per_stagger_seconds = {
-        trash = 1.5,
-        elite = 5.0,
-        special = 5.0,
-        boss = 20.0
+        trash = 1.8,
+        elite = 5.8,
+        special = 6.0,
+        boss = 22.0
     },
     warp_dust_per_level_progress = {
-        adventure = 5000,
-        deus = 3000
-    }
+        adventure = 7000,
+        deus = 4000
+    },
+
+    ranged_damage_warp_dust_multiplier = 1.2,
 }
 enigma.managers.warp = wm
 
@@ -36,9 +43,19 @@ wm.start_game = function(self, game_mode)
     self.statistics = {
         earned_warp_dust = {
             passive = 0,
-            damage_dealt = 0,
+
+            damage_dealt_trash = 0,
+            damage_dealt_elite = 0,
+            damage_dealt_special = 0,
+            damage_dealt_boss = 0,
+            
             damage_taken = 0,
-            stagger = 0,
+
+            stagger_trash = 0,
+            stagger_elite = 0,
+            stagger_special = 0,
+            stagger_boss = 0,
+
             level_progress = 0,
             debug = 0,
             other = 0
@@ -49,6 +66,22 @@ wm.start_game = function(self, game_mode)
 end
 
 wm.end_game = function(self)
+    local total_earned_warpdust = 0
+    local total_stagger_warpdust = 0
+    local total_damage_warpdust = 0
+    for source,amount in pairs(self.statistics.earned_warp_dust) do
+        if source:find("stagger_") then
+            total_stagger_warpdust = total_stagger_warpdust + amount
+        end
+        if source:find("damage_dealt_") then
+            total_damage_warpdust = total_damage_warpdust + amount
+        end
+        total_earned_warpdust = total_earned_warpdust + amount
+    end
+    self.statistics.earned_warp_dust.TOTAL = total_earned_warpdust
+    self.statistics.earned_warp_dust.STAGGER_TOTAL = total_stagger_warpdust
+    self.statistics.earned_warp_dust.DAMAGE_DEALT_TOTAL = total_damage_warpdust
+
     enigma:dump(self.statistics, "ENIGMA WARP DUST STATISTICS", 5)
     enigma:unregister_mod_event_callback("update", self, "update")
 end
@@ -76,9 +109,33 @@ wm.add_warp_dust = function(self, amount, source, raw)
 
     self.warp_dust = self.warp_dust + amount
     self.statistics.earned_warp_dust[source] = self.statistics.earned_warp_dust[source] + amount
-    local previouos_warpstone_amount = self.warpstone
+    local previous_warpstone_amount = self.warpstone
     self.warpstone, self.warp_dust = condense_warpstone(self.warpstone, self.warp_dust)
-    if self.warpstone ~= previouos_warpstone_amount then
+    if self.warpstone ~= previous_warpstone_amount then
+        on_warpstone_amount_changed()
+    end
+end
+
+wm._add_warp_dust_from_multiple_sources = function(self, data, raw)
+    local multiplier = 1
+    if not raw then
+        local local_unit = enigma.managers.game.local_data and enigma.managers.game.local_data.unit
+        if local_unit then
+            local custom_buffs = enigma.managers.buff.unit_custom_buffs[local_unit]
+            if custom_buffs and custom_buffs.warp_dust_multiplier then
+                multiplier = custom_buffs.warp_dust_multiplier
+            end
+        end
+    end
+
+    for source,amount in pairs(data) do
+        local multiplied = amount * multiplier
+        self.warp_dust = self.warp_dust + multiplied
+        self.statistics.earned_warp_dust[source] = self.statistics.earned_warp_dust[source] + multiplied
+    end
+    local previous_warpstone_amount = self.warpstone
+    self.warpstone, self.warp_dust = condense_warpstone(self.warpstone, self.warp_dust)
+    if self.warpstone ~= previous_warpstone_amount then
         on_warpstone_amount_changed()
     end
 end
@@ -102,13 +159,19 @@ wm.pay_cost = function(self, cost, reason)
     return true
 end
 
+local stagger_warp_dust_data = {
+    stagger_trash = 0,
+    stagger_elite = 0,
+    stagger_special = 0,
+    stagger_boss = 0
+}
 wm._process_accumulated_stagger = function(self, trash, elite, special, boss)
     local gain_lut = self.warp_dust_per_stagger_seconds
-    local gain = trash * gain_lut.trash + elite * gain_lut.elite + special * gain_lut.special + boss * gain_lut.boss
-    self:add_warp_dust(gain, "stagger")
-    -- if gain > 0 then
-    --     enigma:info("Added "..gain.." warp dust from recently staggered enemies")
-    -- end
+    stagger_warp_dust_data.stagger_trash = trash * gain_lut.trash
+    stagger_warp_dust_data.stagger_elite = elite * gain_lut.elite
+    stagger_warp_dust_data.stagger_special = special * gain_lut.special
+    stagger_warp_dust_data.stagger_boss = boss * gain_lut.boss
+    self:_add_warp_dust_from_multiple_sources(stagger_warp_dust_data)
 end
 
 wm._handle_level_progress_gained = function(self, new_progress)
@@ -130,6 +193,9 @@ wm.get_warp_dust_per_warpstone = function(self)
 end
 
 -- Hooks
+local reg_prehook_safe = function(obj, func_name, func, hook_id)
+    enigma.managers.hook:prehook_safe("Enigma", obj, func_name, func, hook_id)
+end
 local reg_hook_safe = function(obj, func_name, func, hook_id)
     enigma.managers.hook:hook_safe("Enigma", obj, func_name, func, hook_id)
 end
@@ -141,13 +207,21 @@ local handle_damage_dealt = function(self, attacker_unit, damage_amount, hit_zon
     end
     local self_unit = enigma.managers.game.local_data and enigma.managers.game.local_data.unit
     if attacker_unit == self_unit or source_attacker_unit == self_unit then
-        local gain = damage_amount * wm.warp_dust_per_damage_dealt
-        wm:add_warp_dust(gain, "damage_dealt")
-        -- enigma:info("Added "..gain.." warp dust from DEALING damage")
+        local breed = Unit.get_data(self.unit, "breed")
+        if breed then
+            local enemy_type = breed.boss and "boss" or breed.special and "special" or breed.elite and "elite" or "trash"
+            local gain = damage_amount * wm.warp_dust_per_damage_dealt[enemy_type]
+
+            if attack_type and RangedAttackTypes[attack_type] and attack_type ~= "grenade" then
+                gain = gain * wm.ranged_damage_warp_dust_multiplier
+            end
+
+            wm:add_warp_dust(gain, "damage_dealt_"..enemy_type)
+        end
     end
 end
-reg_hook_safe(GenericHealthExtension, "add_damage", handle_damage_dealt, "enigma_warp_manager_damage_dealt")
-reg_hook_safe(RatOgreHealthExtension, "add_damage", handle_damage_dealt, "enigma_warp_manager_damage_dealt")
+reg_prehook_safe(GenericHealthExtension, "add_damage", handle_damage_dealt, "enigma_warp_manager_damage_dealt")
+reg_prehook_safe(RatOgreHealthExtension, "add_damage", handle_damage_dealt, "enigma_warp_manager_damage_dealt")
 
 local handle_damage_taken = function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, ...)
     if self.unit == (enigma.managers.game.local_data and enigma.managers.game.local_data.unit) and damage_type ~= "temporary_health_degen" then
@@ -159,6 +233,10 @@ end
 reg_hook_safe(PlayerUnitHealthExtension, "add_damage", handle_damage_taken, "enigma_warp_manager_damage_taken")
 
 -- Dev
+wm.dump = function(self)
+    enigma:dump(self, "WARP MANAGER", 3)
+end
+
 enigma:command("gain_warpstone", "", function(num)
     num = num or 1
     wm.warpstone = wm.warpstone + num
