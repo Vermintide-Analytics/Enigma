@@ -31,6 +31,8 @@ EnigmaBigCardUI.create_ui_elements = function (self)
 	self.ui_scenegraph = UISceneGraph.init_scenegraph(definitions.scenegraph_definition)
 	self._widgets, self._widgets_by_name = UIUtils.create_widgets(definitions.widgets)
 
+	self.background_widget = self._widgets_by_name.background
+
 	UIRenderer.clear_scenegraph_queue(self.ui_renderer)
 end
 
@@ -53,12 +55,16 @@ EnigmaBigCardUI.update = function (self, dt, t)
 		ShowCursorStack.push()
 
 		self.input_manager:capture_input(ALL_INPUT_METHODS, 1, "big_card_ui", "big_card_ui")
+		local background_color = self.background_widget.style.fullscreen_shade.color
+		background_color[1] = enigma.managers.ui.big_card_showcase_mode and 255 or 150
 
 	elseif cached_card and not card then
 		-- on exit
 		ShowCursorStack.pop()
 		
 		self.input_manager:release_input(ALL_INPUT_METHODS, 1, "big_card_ui", "big_card_ui")
+
+		enigma.managers.ui.big_card_showcase_mode = false
 	end
 	cached_card = card
 	if not card then

@@ -144,7 +144,7 @@ enigma.on_all_mods_loaded = function()
 end
 
 -- Commands
-enigma:command("big_card", "show a big card!", function(card_id)
+enigma:command("card_showcase", "Showcase an Enigma card", function(card_id)
     if not card_id then
         enigma.managers.ui.big_card_to_display = nil
         return
@@ -154,6 +154,7 @@ enigma:command("big_card", "show a big card!", function(card_id)
         enigma:echo("Could not find card with id: "..tostring(card_id))
         return
     end
+    enigma.managers.ui.big_card_showcase_mode = true
     enigma.managers.ui.big_card_to_display = card
 end)
 
