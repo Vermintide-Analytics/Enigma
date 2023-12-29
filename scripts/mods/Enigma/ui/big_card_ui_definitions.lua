@@ -12,7 +12,7 @@ local scenegraph_definition = {
 		position = {
 			0,
 			0,
-			UILayer.hud+100
+			UILayer.chat+10
 		}
 	}
 }
