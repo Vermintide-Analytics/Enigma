@@ -355,6 +355,25 @@ local KEYWORD_COLOR = {
 	15
 }
 
+local GLOW_PLAYABLE = {
+	255,
+	30,
+	255,
+	0
+}
+local GLOW_RETAIN = {
+	255,
+	255,
+	255,
+	142
+}
+local GLOW_RETAIN_PLAYABLE = {
+	255,
+	201,
+	244,
+	136
+}
+
 local add_described_keyword_widget = function(widget_defs, card_scenegraph_id, index, sizes)
 	local scenegraph_id = card_scenegraph_id.."_keyword_details_"..index
 
@@ -564,12 +583,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes, enable
 					0,
 					0
 				},
-				color = {
-					255,
-					30,
-					255,
-					0
-				}
+				color = GLOW_PLAYABLE
 			}
 		}
 	}
@@ -1040,7 +1054,11 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	local sizes = calculate_card_sizes(card_width)
 	local pretty_margin = sizes.pretty_margin
 
-	set_widgets_visibility(widgets, card_node_id, card, card and card.duration, card and not card.unplayable and card.condition_met and card.can_pay_warpstone)
+	local playable = card and not card.unplayable and card.condition_met and card.can_pay_warpstone
+	local has_retain = card and #card.retain_descriptions > 0
+	local in_hand = card and card.location == enigma.CARD_LOCATION.hand
+	local show_glow = playable or (has_retain and in_hand)
+	set_widgets_visibility(widgets, card_node_id, card, card and card.duration, show_glow)
 	if not card then
 		return
 	end
@@ -1170,6 +1188,7 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 
 	-- Set widget contents/styles
 	local card_widget = widgets[card_node_id]
+	local card_glow_widget = widgets[card_node_id.."_glow"]
 	local card_name_widget = widgets[card_name_node_id]
 	local card_cost_widget = widgets[card_cost_node_id]
 	local card_duration_widget = widgets[card_duration_node_id]
@@ -1184,6 +1203,14 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	card_widget.style.card_frame.texture_size[2] = sizes.card_height
 
 	card_widget.style.card_background.color = card_ui_common.card_colors[card.card_type] or card_ui_common.card_colors.default
+
+	-- Glow color
+	local glow_color = GLOW_PLAYABLE
+	if has_retain and in_hand then
+		glow_color = playable and GLOW_RETAIN_PLAYABLE or GLOW_RETAIN
+	end
+	card_glow_widget.style.glow.color = glow_color
+
 
 	card_name_widget.style.card_name._dynamic_wraped_text = ""
 	card_name_widget.style.card_name.font_size = sizes.card_name_font_size
