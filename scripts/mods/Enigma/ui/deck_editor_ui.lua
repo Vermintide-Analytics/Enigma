@@ -365,9 +365,12 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 			end
 	
 			if item.content.item_hotspot.on_pressed then
-				self:play_sound("Play_hud_select")
-				enigma.managers.ui.big_card_to_display = card
-	
+				if type(card) == "string" then
+					enigma:echo("That card is not defined. Either it was removed from the card pack, or you do not have that card pack.")
+				else
+					self:play_sound("Play_hud_select")
+					enigma.managers.ui.big_card_to_display = card
+				end
 			elseif item.content.item_hotspot.on_right_click then
 				self:play_sound("Play_hud_select")
 				enigma.managers.deck_planner:remove_card_from_editing_deck_by_index(i)
@@ -490,10 +493,12 @@ EnigmaDeckEditorUI.update_deck_cards_ui = function(self)
 		local widget = self._widgets_by_name[widget_name]
 		local card = cards[i]
 		if card then
+			local card_defined = type(card) == "table"
+			
 			widget.content.visible = true
-			widget.content.card_name = card.name
-			widget.content.card_cost = card.cost
-			widget.style.card_rarity.color = card_ui_common.rarity_colors[card.rarity]
+			widget.content.card_name = card_defined and card.name or card
+			widget.content.card_cost = card_defined and card.cost or ""
+			widget.style.card_rarity.color = card_defined and card_ui_common.rarity_colors[card.rarity] or card_ui_common.rarity_colors[enigma.CARD_RARITY.common]
 		else
 			widget.content.visible = false
 		end

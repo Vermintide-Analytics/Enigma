@@ -171,6 +171,16 @@ local template_template = {
     auto_descriptions = {},
     condition_descriptions = {},
 
+    sounds_2D = {
+        on_draw = nil,
+        on_play = nil,
+        on_discard = nil,
+    },
+    sounds_3D = {
+        on_draw = nil,
+        on_play = nil,
+        on_discard = nil,
+    },
 
     instance = function(self, context)
         local inst = table.deep_copy(self, 100)

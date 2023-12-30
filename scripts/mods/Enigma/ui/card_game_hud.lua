@@ -105,6 +105,13 @@ EnigmaCardGameHud.create_ui_elements = function (self)
 	self.card_draw_bar_node_inner = self.ui_scenegraph.card_draw_bar_inner
 	self.channel_bar_node_inner = self.ui_scenegraph.channel_bar_inner
 
+	self._widgets_except_hand = {}
+	for id,widget in pairs(self._widgets_by_name) do
+		if not id:find("hand_") then
+			table.insert(self._widgets_except_hand, widget)
+		end
+	end
+
 	self.time_since_channel_ended = 0
 
 	self.WARP_DUST_PER_WARPSTONE = enigma.managers.warp:get_warp_dust_per_warpstone()
@@ -157,11 +164,8 @@ EnigmaCardGameHud.update = function (self, dt, t)
 	self:update_card_draw_color()
 	self:update_hand_panel_color()
 
-
 	-- Hand display
 	card_ui_common.update_hand_display(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, CARD_WIDTH, PRETTY_MARGIN, enigma.managers.ui.hud_data, "dirty_hud_ui")
-
-
 
 	-- Channel Bar
 	local active_channel = game_data.active_channel
@@ -214,6 +218,7 @@ EnigmaCardGameHud.draw = function (self, dt)
 	local ui_renderer = self.ui_renderer
 
 	UIRenderer.begin_pass(ui_renderer, self.ui_scenegraph, input_service, dt)
-	UIRenderer.draw_all_widgets(ui_renderer, self._widgets)
+	local widgets_to_draw = enigma.managers.game.local_data and not enigma.managers.game:unable_to_play() and self._widgets or self._widgets_except_hand
+	UIRenderer.draw_all_widgets(ui_renderer, widgets_to_draw)
 	UIRenderer.end_pass(ui_renderer)
 end

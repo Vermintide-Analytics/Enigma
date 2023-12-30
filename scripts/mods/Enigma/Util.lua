@@ -128,12 +128,11 @@ enigma.heal = function(self, unit, heal, healer, heal_type)
         enigma:warning("Only the server can heal")
         return false
     end
+    if not ALIVE[unit] then
+        return false
+    end
     healer = healer or unit
     heal_type = heal_type or "health_regen"
-
-    local breed = Unit.get_data(unit, "breed")
-    local breed_name = breed and breed.name
-    enigma:info("HEALING "..tostring(breed_name).." for "..tostring(heal))
 
     DamageUtils.heal_network(unit, healer, heal, heal_type)
 end

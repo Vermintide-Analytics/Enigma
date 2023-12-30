@@ -1,6 +1,7 @@
 local enigma = get_mod("Enigma")
 
 local ENIGMA_UMBRELLA_BUFF = "enigma_umbrella_buff"
+local umbrella_stat_buffs = {}
 
 local net = {
     surge_stat = "surge_stat",
@@ -8,12 +9,15 @@ local net = {
 }
 
 local bm = {
+    player_units = {},
+
     unit_buff_extensions = {},
     unit_stat_buff_indexes = {},
     global_stat_updated_callbacks = {},
     unit_stat_updated_callbacks = {},
 
     unit_custom_buffs = {},
+    unit_builtin_buffs = {},
     unit_stat_surges = {},
 
     _internal = {},
@@ -35,6 +39,9 @@ local custom_buff_definitions = {
     dodge_speed = 1.0,
     temporary_healing_received = 1.0,
     warp_dust_multiplier = 1.0,
+}
+local builtin_buff_definitions = {
+    movement_speed = 1
 }
 
 -- Define global callbacks for when stats are updated
@@ -113,23 +120,21 @@ local invoke_stat_updated_callbacks = function(unit, stat, new_value, old_value)
     end
 end
 
-local stat_difference_multipliers = {
-    movement_speed = 2
-}
-
 local handle_update_stat = function(unit, stat, difference)
     local old_value
     local new_value
 
-    local difference_multiplier = stat_difference_multipliers[stat] or 1
-    difference = difference * difference_multiplier
-
     local custom_buffs = bm.unit_custom_buffs[unit]
+    local builtin_buffs = bm.unit_builtin_buffs[unit]
     if custom_buffs and custom_buffs[stat] then
         old_value = custom_buffs[stat]
         custom_buffs[stat] = old_value + difference
         new_value = custom_buffs[stat]
-    else
+    elseif builtin_buffs and builtin_buffs[stat] then
+        old_value = builtin_buffs[stat]
+        builtin_buffs[stat] = old_value + difference
+        new_value = builtin_buffs[stat]
+
         local index = bm.unit_stat_buff_indexes[unit] and bm.unit_stat_buff_indexes[unit][stat]
         local buff_extension = bm.unit_buff_extensions[unit]
         if not unit or not stat or not buff_extension then
@@ -149,11 +154,9 @@ local handle_update_stat = function(unit, stat, difference)
         end
 
         if application_method == "proc" then
-            new_value = bm:_update_proc_buff(buff_extension, stat, difference, index)
-            old_value = new_value - difference
+            bm:_update_proc_buff(buff_extension, stat, difference, index)
         else
-            new_value = buff_extension:update_stat_buff(stat, difference, index)
-            old_value = new_value - difference
+            buff_extension:update_stat_buff(stat, difference, index)
         end
     end
     enigma:info("Unit: "..tostring(unit)..": Stat "..stat.." updated from "..old_value.." to "..new_value)
@@ -207,17 +210,88 @@ bm.surge_stat_locally = function(self, unit, stat, difference, duration)
 end
 
 bm._register_player = function(self, player)
-    local unit = player.player_unit
-    local breed = Unit.get_data(unit, "breed")
+    self:_register_player_unit(player, player.player_unit)
+end
+
+bm._register_player_unit = function(self, player, unit)
+    local previous_player_unit = self.player_units[player]
+    self.player_units[player] = unit
+
     local buff_ext = ScriptUnit.extension(unit, "buff_system")
-    enigma:echo("Adding buff data for "..tostring(unit).." ("..tostring(breed and breed.name)..")")
-    bm.unit_stat_buff_indexes[unit] = {}
-    bm.unit_custom_buffs[unit] = table.shallow_copy(custom_buff_definitions)
-    bm.unit_stat_surges[unit] = {}
     bm.unit_buff_extensions[unit] = buff_ext
+    bm.unit_stat_buff_indexes[unit] = {}
     enigma:hook_enable(BuffExtension, "_add_stat_buff")
     buff_ext:add_buff(ENIGMA_UMBRELLA_BUFF)
     enigma:hook_disable(BuffExtension, "_add_stat_buff")
+    
+    local breed = Unit.get_data(unit, "breed")
+
+    if previous_player_unit and previous_player_unit ~= unit then
+        enigma:echo("Persisting buff data for "..tostring(unit).." ("..tostring(breed and breed.name)..")")
+        bm.unit_custom_buffs[unit] = bm.unit_custom_buffs[previous_player_unit]
+        bm.unit_builtin_buffs[unit] = bm.unit_builtin_buffs[previous_player_unit]
+        bm.unit_stat_surges[unit] = bm.unit_stat_surges[previous_player_unit]
+        
+        bm.unit_custom_buffs[previous_player_unit] = nil
+        bm.unit_builtin_buffs[previous_player_unit] = nil
+        bm.unit_stat_surges[previous_player_unit] = nil
+
+        for stat,current_value in pairs(bm.unit_custom_buffs[unit]) do
+            local difference = current_value - custom_buff_definitions[stat]
+            if difference ~= 0 then
+                bm.unit_custom_buffs[unit][stat] = custom_buff_definitions[stat]
+                enigma:info("Updating "..tostring(stat).." by "..tostring(difference).." when persisting buffs")
+                handle_update_stat(unit, stat, difference)
+            end
+        end
+        for stat,current_value in pairs(bm.unit_builtin_buffs[unit]) do
+            local difference = current_value - builtin_buff_definitions[stat]
+            if difference ~= 0 then
+                bm.unit_builtin_buffs[unit][stat] = builtin_buff_definitions[stat]
+                enigma:info("Updating "..tostring(stat).." by "..tostring(difference).." when persisting buffs")
+                handle_update_stat(unit, stat, difference)
+            end
+        end
+    else
+        enigma:echo("Adding buff data for "..tostring(unit).." ("..tostring(breed and breed.name)..")")
+        bm.unit_custom_buffs[unit] = table.shallow_copy(custom_buff_definitions)
+        bm.unit_builtin_buffs[unit] = table.shallow_copy(builtin_buff_definitions)
+        bm.unit_stat_surges[unit] = {}
+    end
+end
+
+bm._reset_player = function(self, player)
+    if not self.unit_stat_buff_indexes then
+        return
+    end
+    local unit = player.player_unit
+    local buff_ext = ScriptUnit.extension(unit, "buff_system")
+    if not unit or not buff_ext then
+        enigma:echo("No player buffs to reset")
+        return
+    end
+    for stat,current_value in pairs(self.unit_custom_buffs[unit]) do
+        local difference = custom_buff_definitions[stat] - current_value
+        if difference ~= 0 then
+            enigma:info("Updating "..tostring(stat).." by "..tostring(difference).." when resetting buffs")
+            handle_update_stat(unit, stat, difference)
+        end
+    end
+    for stat,current_value in pairs(self.unit_builtin_buffs[unit]) do
+        local difference = builtin_buff_definitions[stat] - current_value
+        if difference ~= 0 then
+            enigma:info("Updating "..tostring(stat).." by "..tostring(difference).." when resetting buffs")
+            handle_update_stat(unit, stat, difference)
+        end
+    end
+    buff_ext:remove_buff(ENIGMA_UMBRELLA_BUFF)
+    self.unit_stat_surges[unit] = {}
+end
+
+bm._reset_players = function(self)
+    for player,_ in pairs(self.player_units) do
+        self:_reset_player(player)
+    end
 end
 
 local buff_params = {}
@@ -239,7 +313,6 @@ end
 
 -- Umbrella Buff
 
-local umbrella_stat_buffs = {}
 local set_default_value_based_on_application_method = function(buff_table, application_method)
     local stat = buff_table.stat_buff
     if not stat then
@@ -297,6 +370,7 @@ for stat,method in pairs(StatBuffApplicationMethods) do
         set_default_value_based_on_application_method(new_buff_table, method)
         apply_stat_specific_properties(stat, new_buff_table)
         table.insert(umbrella_stat_buffs, new_buff_table)
+        builtin_buff_definitions[stat] = builtin_buff_definitions[stat] or 0
     end
 end
 
@@ -420,9 +494,11 @@ end, "enigma_buff")
 bm.on_game_state_changed = function(self, status, state_name)
     if state_name == "StateLoading" and status == "enter" then
         enigma:info("Resetting stat buff data for all units")
+        self.player_units = {}
         self.unit_stat_buff_indexes = {}
         self.unit_buff_extensions = {}
         self.unit_custom_buffs = {}
+        self.unit_builtin_buffs = {}
         self.unit_stat_surges = {}
 	end
 end

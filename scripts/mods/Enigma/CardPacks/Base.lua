@@ -34,7 +34,7 @@ pack_handle.register_passive_cards({
     collar_cage = {
         name = "base_collar_cage",
         rarity = LEGENDARY,
-        cost = 4,
+        cost = 3,
         texture = "enigma_base_collar_cage",
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_packmaster", 1.0)
@@ -48,7 +48,7 @@ pack_handle.register_passive_cards({
     eshin_counter_intelligence = {
         name = "base_eshin_counter_intelligence",
         rarity = LEGENDARY,
-        cost = 4,
+        cost = 3,
         texture = "enigma_base_eshin_counter_intelligence",
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_assassin", 1.0)
@@ -121,7 +121,7 @@ pack_handle.register_passive_cards({
     soul_safe = {
         name = "base_soul_safe",
         rarity = LEGENDARY,
-        cost = 4,
+        cost = 3,
         texture = "enigma_base_soul_safe",
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_leech", 1.0)
@@ -138,12 +138,12 @@ pack_handle.register_passive_cards({
         cost = 1,
         texture = "enigma_base_spartan",
         on_play_server = function(card)
-            buff:update_stat(card.context.unit, "power_level_impact", 0.05)
+            buff:update_stat(card.context.unit, "power_level_impact", 0.08)
         end,
         description_lines = {
             {
                 format = "description_power_level_impact",
-                parameters = { 5 }
+                parameters = { 8 }
             }
         }
     },
@@ -171,16 +171,16 @@ pack_handle.register_passive_cards({
             buff:update_stat(card.context.unit, "power_level", 0.1)
         end,
         on_play_local = function(card)
-            buff:update_stat(card.context.unit, "attack_speed", 0.05)
+            buff:update_stat(card.context.unit, "attack_speed", 0.03)
             buff:update_stat(card.context.unit, "max_health", 0.15)
             buff:update_stat(card.context.unit, "movement_speed", 0.05)
             buff:update_stat(card.context.unit, "cooldown_regen", 0.1)
-            buff:update_stat(card.context.unit, "critical_strike_chance", 0.05)
+            buff:update_stat(card.context.unit, "critical_strike_chance", 0.03)
         end,
         description_lines = {
             {
                 format = "description_attack_speed",
-                parameters = { 5 }
+                parameters = { 3 }
             },
             {
                 format = "description_max_health",
@@ -196,7 +196,7 @@ pack_handle.register_passive_cards({
             },
             {
                 format = "description_critical_strike_chance",
-                parameters = { 5 }
+                parameters = { 3 }
             },
         }
     },
@@ -209,8 +209,8 @@ pack_handle.register_passive_cards({
             if card.times_played > 0 then
                 card.next_heal_time = card.next_heal_time - dt
                 if card.next_heal_time <= 0 then
-                    enigma:heal(card.context.unit, 5*card.times_played)
                     card.next_heal_time = card.next_heal_time + card.heal_interval
+                    enigma:heal(card.context.unit, 5*card.times_played)
                 end
             end
         end,
@@ -506,21 +506,18 @@ pack_handle.register_ability_cards({
         rarity = RARE,
         cost = 1,
         texture = "enigma_base_spare_engine",
-        warp_dust_increase = 0.1,
-        card_draw_increase = 0.25,
+        warp_dust_increase = 0.15,
         on_location_changed_local = function(card, old, new)
             if new == "hand" then
                 buff:update_stat(card.context.unit, "warp_dust_multiplier", card.warp_dust_increase)
-                buff:update_stat(card.context.unit, "card_draw_multiplier", card.card_draw_increase)
             elseif old == "hand" then
                 buff:update_stat(card.context.unit, "warp_dust_multiplier", card.warp_dust_increase * -1)
-                buff:update_stat(card.context.unit, "card_draw_multiplier", card.card_draw_increase * -1)
             end
         end,
         retain_descriptions = {
             {
                 format = "base_spare_engine_retain",
-                parameters = { 10, 25 }
+                parameters = { 15 }
             },
         }
     },

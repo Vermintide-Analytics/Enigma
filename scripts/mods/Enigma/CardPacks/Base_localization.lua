@@ -223,7 +223,7 @@ return {
         en = "Spare Engine"
     },
     base_spare_engine_retain = {
-        en = "%+i%% Warp Dust\n %+i%% Card Draw"
+        en = "%+i%% Warp Dust"
     },
 
     base_stolen_bell = {
