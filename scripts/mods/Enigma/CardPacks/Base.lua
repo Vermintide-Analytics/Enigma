@@ -39,6 +39,9 @@ pack_handle.register_passive_cards({
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_packmaster", 1.0)
         end,
+        sounds_2D = {
+            on_play = "legendary_buff"
+        },
         description_lines = {
             {
                 format = "base_collar_cage_description"
@@ -53,6 +56,9 @@ pack_handle.register_passive_cards({
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_assassin", 1.0)
         end,
+        sounds_2D = {
+            on_play = "legendary_buff"
+        },
         description_lines = {
             {
                 format = "base_eshin_counter_intelligence_description"
@@ -112,6 +118,9 @@ pack_handle.register_passive_cards({
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_gunner", 1.0)
         end,
+        sounds_2D = {
+            on_play = "legendary_buff"
+        },
         description_lines = {
             {
                 format = "base_plated_armor_description"
@@ -126,6 +135,9 @@ pack_handle.register_passive_cards({
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_leech", 1.0)
         end,
+        sounds_2D = {
+            on_play = "legendary_buff"
+        },
         description_lines = {
             {
                 format = "base_soul_safe_description"
@@ -245,6 +257,9 @@ pack_handle.register_attack_cards({
                 enigma.hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_slashing_linesman, 5)
             end
         end,
+        sounds_3D = {
+            on_play = "slice"
+        },
         description_lines = {
             {
                 format = "base_cyclone_strike_description"
@@ -315,6 +330,9 @@ pack_handle.register_ability_cards({
             end
         },
         unplayable = true,
+        sounds_3D = {
+            on_play = "harmonious_bell"
+        },
         description_lines = {
             {
                 format = "base_divine_insurance_description"
@@ -351,6 +369,9 @@ pack_handle.register_ability_cards({
             end
         },
         unplayable = true,
+        sounds_3D = {
+            on_play = "dissonant_bell"
+        },
         description_lines = {
             {
                 format = "base_dubious_insurance_description"
@@ -733,6 +754,9 @@ pack_handle.register_chaos_cards({
             end
             enigma:force_damage(card.context.unit, 10)
         end,
+        sounds_2D = {
+            on_draw = "curse_lifetap"
+        },
         retain_descriptions = {
             {
                 format = "base_life_sap_retain",
@@ -783,6 +807,9 @@ pack_handle.register_chaos_cards({
                 buff:update_stat(card.context.unit, "cannot_use_career_skill", -1)
             end
         end,
+        sounds_2D = {
+            on_draw = "curse_confuse"
+        },
         retain_descriptions = {
             {
                 format = "base_silence_retain",
@@ -805,6 +832,9 @@ pack_handle.register_chaos_cards({
                 buff:update_stat(card.context.unit, "dodge_speed", card.dodge_decrease * -1)
             end
         end,
+        sounds_2D = {
+            on_draw = "curse_decrepify"
+        },
         retain_descriptions = {
             {
                 format = "description_dodge_range_and_speed",

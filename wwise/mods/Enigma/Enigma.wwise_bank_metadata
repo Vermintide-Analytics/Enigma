@@ -1,7 +1,21 @@
 
 events = [
+	"boxing_bell"
 	"channel_end"
 	"channel_start"
+	"cleave"
+	"curse_confuse"
+	"curse_decrepify"
+	"curse_lifetap"
+	"dissonant_bell"
 	"draw_card"
+	"harmonious_bell"
+	"legendary_buff"
+	"light_bell"
 	"play_card"
+	"power_down"
+	"power_up"
+	"slice"
+	"ss_powerup"
+	"whoosh"
 ]

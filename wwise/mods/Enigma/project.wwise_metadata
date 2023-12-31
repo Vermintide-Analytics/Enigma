@@ -1,13 +1,27 @@
-
+﻿
 aux_buses = [
 ]
 banks = {
 	Enigma = {
 		events = [
+			"boxing_bell"
 			"channel_end"
 			"channel_start"
+			"cleave"
+			"curse_confuse"
+			"curse_decrepify"
+			"curse_lifetap"
+			"dissonant_bell"
 			"draw_card"
+			"harmonious_bell"
+			"legendary_buff"
+			"light_bell"
 			"play_card"
+			"power_down"
+			"power_up"
+			"slice"
+			"ss_powerup"
+			"whoosh"
 		]
 	}
 }
@@ -15,6 +29,13 @@ buses = [
 	"Master Audio Bus"
 ]
 events = {
+	boxing_bell = {
+		attenuation_max = 0
+		duration_max = 1.911
+		duration_min = 1.911
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
 	channel_end = {
 		attenuation_max = 0
 		duration_max = 0
@@ -30,6 +51,41 @@ events = {
 		loop_count = 0
 		positioning = "2D"
 	}
+	cleave = {
+		attenuation_max = 0
+		duration_max = 1.663
+		duration_min = 1.663
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	curse_confuse = {
+		attenuation_max = 0
+		duration_max = 1.718
+		duration_min = 1.718
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	curse_decrepify = {
+		attenuation_max = 0
+		duration_max = 1.573
+		duration_min = 1.573
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	curse_lifetap = {
+		attenuation_max = 0
+		duration_max = 1.805
+		duration_min = 1.805
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	dissonant_bell = {
+		attenuation_max = 0
+		duration_max = 2.804
+		duration_min = 2.804
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
 	draw_card = {
 		attenuation_max = 0
 		duration_max = 0.595
@@ -37,10 +93,66 @@ events = {
 		duration_type = "OneShot"
 		positioning = "2D"
 	}
+	harmonious_bell = {
+		attenuation_max = 0
+		duration_max = 2.559
+		duration_min = 2.559
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	legendary_buff = {
+		attenuation_max = 0
+		duration_max = 4.535
+		duration_min = 4.535
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	light_bell = {
+		attenuation_max = 0
+		duration_max = 2.265
+		duration_min = 2.265
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
 	play_card = {
 		attenuation_max = 0
 		duration_max = 0.179
 		duration_min = 0.179
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	power_down = {
+		attenuation_max = 0
+		duration_max = 0.698
+		duration_min = 0.698
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	power_up = {
+		attenuation_max = 0
+		duration_max = 0.685
+		duration_min = 0.685
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	slice = {
+		attenuation_max = 0
+		duration_max = 0.755
+		duration_min = 0.755
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	ss_powerup = {
+		attenuation_max = 0
+		duration_max = 2.218
+		duration_min = 2.218
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	whoosh = {
+		attenuation_max = 0
+		duration_max = 0.508
+		duration_min = 0.508
 		duration_type = "OneShot"
 		positioning = "2D"
 	}

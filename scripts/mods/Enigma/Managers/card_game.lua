@@ -1,4 +1,5 @@
 local enigma = get_mod("Enigma")
+local sound = enigma.managers.sound
 
 local safe = function(func, ...)
     return enigma:pcall(func, ...)
@@ -418,6 +419,7 @@ cgm.start_game = function(self)
     self.game_state = "in_progress"
     self.game_mode = enigma:game_mode()
     
+    enigma.managers.sound:start_game()
     enigma.managers.warp:start_game(self.game_mode)
     for _,card in ipairs(self.local_data.draw_pile) do
         set_card_can_pay_warpstone(card, card.cost)
@@ -505,6 +507,7 @@ cgm.end_game = function(self)
     self.time_until_broadcast_pacing_intensity = nil
     enigma:unregister_mod_event_callback("update", self, "update")
     enigma.managers.warp:end_game()
+    enigma.managers.sound:end_game()
     enigma.managers.event:remove_all_card_event_callbacks()
 
     if self.debug then
@@ -543,6 +546,10 @@ local handle_card_drawn = function(context, data)
     if card[on_location_changed_func_name] then
         card[on_location_changed_func_name](card, enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
     end
+    
+    if card.sounds_3D.on_draw then
+        sound:trigger_at_unit(card.sounds_3D.on_draw, data.unit)
+    end
     return card
 end
 local handle_local_card_drawn = function(free)
@@ -550,8 +557,11 @@ local handle_local_card_drawn = function(free)
         cgm.local_data.available_card_draws = cgm.local_data.available_card_draws - 1
     end
     local drawn_card = handle_card_drawn("local", cgm.local_data)
+    if drawn_card.sounds_2D.on_draw then
+        sound:trigger(drawn_card.sounds_2D.on_draw)
+    end
 
-    enigma:wwise_event("draw_card")
+    sound:trigger("draw_card")
     enigma:network_send(net.event_card_drawn, "others", drawn_card.local_id)
 
     cgm.statistics.cards_drawn = cgm.statistics.cards_drawn + 1
@@ -631,6 +641,9 @@ local handle_card_played = function(context, data, card, play_type)
         table.insert(card.active_durations, 1, card.duration)
     end
 
+    if card.sounds_3D.on_play then
+        sound:trigger_at_unit(card.sounds_3D.on_play, data.unit)
+    end
     if can_expend_charge then
         card.charges = card.charges - 1
         card:set_dirty()
@@ -674,8 +687,11 @@ local handle_local_card_played = function(card, location, index, skip_warpstone_
         enigma.managers.ui.hud_data.hand_indexes_just_removed[index] = true
         enigma.managers.ui.card_mode_ui_data.hand_indexes_just_removed[index] = true
     end
+    if card.sounds_2D.on_play then
+        sound:trigger(card.sounds_2D.on_play)
+    end
 
-    enigma:wwise_event("play_card")
+    sound:trigger("play_card")
     enigma:network_send(net.event_card_played, "others", card.local_id, play_type)
     cgm.statistics.cards_played[play_type] = cgm.statistics.cards_played[play_type] + 1
     return true
@@ -746,7 +762,7 @@ cgm._play_card_at_index_from_location = function(self, location, index, skip_war
             play_type = play_type,
             skip_warpstone_cost = skip_warpstone_cost
         }
-        enigma:wwise_event("channel_start")
+        sound:trigger("channel_start")
         return true, "channeling"
     end
     return handle_local_card_played(card, location, index, skip_warpstone_cost, play_type)
@@ -841,10 +857,16 @@ local handle_card_discarded = function(context, data, card, discard_type)
     if card[on_location_changed_func_name] then
         card[on_location_changed_func_name](card, location, destination_pile)
     end
+    if card.sounds_3D.on_discard then
+        sound:trigger_at_unit(card.sounds_3D.on_discard, data.unit)
+    end
 end
 local handle_local_card_discarded = function(card, discard_type)
     handle_card_discarded("local", cgm.local_data, card, discard_type)
-    
+    if card.sounds_2D.on_discard then
+        sound:trigger(card.sounds_2D.on_discard)
+    end
+
     enigma:network_send(net.event_card_discarded, "others", card.local_id, discard_type)
     cgm.statistics.cards_discarded[discard_type] = cgm.statistics.cards_discarded[discard_type] + 1
     return true
@@ -1091,7 +1113,7 @@ cgm._update_active_channel = function(self, dt)
     if self.local_data.active_channel.cancelled then
         self.local_data.previous_channel = self.local_data.active_channel
         self.local_data.active_channel = nil
-        enigma:wwise_event("channel_end")
+        sound:trigger("channel_end")
         return
     end
     self.local_data.active_channel.remaining_duration = self.local_data.active_channel.remaining_duration - dt
@@ -1102,7 +1124,7 @@ cgm._update_active_channel = function(self, dt)
         local play_type = self.local_data.active_channel.play_type
         self.local_data.previous_channel = self.local_data.active_channel
         self.local_data.active_channel = nil
-        enigma:wwise_event("channel_end")
+        sound:trigger("channel_end")
         handle_local_card_played(card, location, index, skip_warpstone_cost, play_type)
     end
 end

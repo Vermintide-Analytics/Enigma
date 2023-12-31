@@ -46,6 +46,7 @@ dofile("scripts/mods/Enigma/Constants")
 dofile("scripts/mods/Enigma/Util")
 
 dofile("scripts/mods/Enigma/Managers/hook")
+dofile("scripts/mods/Enigma/Managers/sound")
 dofile("scripts/mods/Enigma/Managers/buff")
 dofile("scripts/mods/Enigma/Managers/event")
 dofile("scripts/mods/Enigma/Managers/warp")
