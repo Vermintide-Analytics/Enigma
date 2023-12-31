@@ -26,6 +26,9 @@ return {
     description_dodge_speed = {
         en = "%+.1f%% Dodge Speed"
     },
+    description_draw_a_card = {
+        en = "Draw a card"
+    },
     description_execute_man_sized_enemy = {
         en = "%+.1f%% Chance to Instantly Slay Man-Sized Enemies"
     },
@@ -155,7 +158,12 @@ return {
     base_cyclone_strike_description = {
         en = "Strike all nearby enemies with an instantaneous sweep"
     },
-    
+    base_quick_stab = {
+        en = "Quick Stab"
+    },
+    base_quick_stab_description = {
+        en = "Quickly strike all enemies in front of you"
+    },
 
 
     -- Ability cards

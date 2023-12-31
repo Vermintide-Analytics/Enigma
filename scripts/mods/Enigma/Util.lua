@@ -195,13 +195,14 @@ enigma.get_level_progress = function(self)
     return nil
 end
 
+-- Shapecasting
+
+-- Sphere
 enigma.get_units_in_sphere = function(self, center, radius, unit_type)
     unit_type = unit_type or "all"
     local results = {}
-    enigma:info("Getting units in sphere. radius="..tostring(radius)..", center="..tostring(center))
     if unit_type == "all" or unit_type == "ai" then
         AiUtils.broadphase_query(center, radius, results)
-        enigma:info("ai units in radius: "..tostring(#results))
     end
     if unit_type == "all" or unit_type == "player" then
         local side = Managers.state.side:get_side_from_name("heroes")
@@ -237,11 +238,49 @@ enigma.get_player_and_bot_units_around_unit = function(self, unit, radius)
     return enigma:get_player_and_bot_units_in_sphere(center, radius)
 end
 
+-- Cone
+enigma.get_units_in_cone = function(self, origin, direction, length, angle_degrees, unit_type)
+    unit_type = unit_type or "all"
+    local nearby = self:get_units_in_sphere(origin, length, unit_type)
+
+    local in_cone = {}
+    direction = Vector3.normalize(direction)
+    local threshold_cos = math.cos(math.rad(angle_degrees/2))
+
+    for _,target in ipairs(nearby) do
+        local to_target = Vector3.normalize(Unit.world_position(target, 0) - origin)
+        local cos = Vector3.dot(to_target, direction)
+        if cos >= threshold_cos then
+            table.insert(in_cone, target)
+        end
+    end
+    return in_cone
+end
+
+enigma.get_units_in_front_of_unit = function(self, unit, length, angle_degrees, unit_type)
+    if ScriptUnit.has_extension(unit, "first_person_system") then
+        unit = ScriptUnit.extension(unit, "first_person_system"):get_first_person_unit()
+    end
+    local unit_position = Unit.world_position(unit, 0)
+    local unit_rotation = Unit.world_rotation(unit, 0)
+	local unit_direction = Quaternion.forward(unit_rotation)
+    return self:get_units_in_cone(unit_position, unit_direction, length, angle_degrees, unit_type)
+end
+
+enigma.get_ai_units_in_front_of_unit = function(self, unit, length, angle_degrees)
+    return self:get_units_in_front_of_unit(unit, length, angle_degrees, "ai")
+end
+enigma.get_player_and_bot_units_in_front_of_unit = function(self, unit, length, angle_degrees)
+    return self:get_units_in_front_of_unit(unit, length, angle_degrees, "player")
+end
+
+
+
 enigma._hit_enemy = function(self, hit_unit, attacker_unit, hit_zone_name, hit_position, attack_direction, damage_source, power_level, damage_profile, target_index, boost_curve_multiplier, is_critical_strike, can_damage, can_stagger, blocking, shield_breaking_hit, backstab_multiplier, first_hit, total_hits)
     local hit_ragdoll_actor = nil
     DamageUtils.server_apply_hit(Managers.time:time("game"), attacker_unit, hit_unit, hit_zone_name, hit_position, attack_direction, hit_ragdoll_actor, damage_source, power_level, damage_profile, target_index, boost_curve_multiplier, is_critical_strike, can_damage, can_stagger, blocking, shield_breaking_hit, backstab_multiplier, first_hit, total_hits)
 end
-enigma.hit_enemy = function(hit_unit, attacking_player_unit, hit_zone_name, damage_profile, power_multiplier, is_critical_strike, break_shields)
+enigma.hit_enemy = function(self, hit_unit, attacking_player_unit, hit_zone_name, damage_profile, power_multiplier, is_critical_strike, break_shields)
     power_multiplier = power_multiplier or 1
     hit_zone_name = hit_zone_name or "full"
     damage_profile = damage_profile or DamageProfileTemplates.default

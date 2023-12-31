@@ -3,6 +3,11 @@ local enigma = get_mod("Enigma")
 local dm = {
     aura_color = ColorBox(255, 255, 255, 0),
     aura_radius = nil,
+
+    cone_color = ColorBox(255, 255, 0, 255),
+    cone_length = nil,
+    cone_degrees = nil,
+
     damage_debug = false
 }
 enigma.managers.debug = dm
@@ -70,6 +75,27 @@ enigma:command("enigma_draw_aura", "Draw a sphere of a specific radius around yo
     enigma:echo("Debug aura visualization radius set to "..tostring(radius))
 end)
 
+enigma:command("enigma_draw_front_cone", "", function(length, degrees)
+    length = tonumber(length)
+    degrees = tonumber(degrees)
+    if length and degrees then
+        if dm.cone_length then
+            LineObject.reset(dm.line_object)
+            LineObject.dispatch(dm.line_object_world, dm.line_object)
+        end
+        dm.cone_length = length
+        dm.cone_degrees = math.clamp(degrees/2, 0, 89)
+    else
+        dm.cone_length = nil
+        dm.cone_degrees = nil
+    end
+    if dm.line_object then
+        World.destroy_line_object(dm.line_object_world, dm.line_object)
+    end
+    dm.line_object_world = Managers.world:world("level_world")
+    dm.line_object = World.create_line_object(dm.line_object_world)
+end)
+
 enigma:command("enigma_debug_damage", "Toggle verbose debug print to console of damage events", function()
     dm.damage_debug = not dm.ddamage_debug
     if dm.damage_debug then
@@ -83,14 +109,31 @@ end)
 
 -- Events
 dm.update = function(self, dt)
+    local dispatch = false
     if self.aura_radius then
         local local_player_unit = enigma:local_player_unit()
         if local_player_unit then
             local center = Unit.world_position(local_player_unit, 0)
             LineObject.add_sphere(self.line_object, self.aura_color:unbox(), center, self.aura_radius, 50, 10)
-            LineObject.dispatch(self.line_object_world, self.line_object)
-            LineObject.reset(self.line_object)
+            dispatch = true
         end
+    end
+    if self.cone_length then
+        local local_player_unit = enigma:local_player_unit()
+        if local_player_unit then
+            if ScriptUnit.has_extension(local_player_unit, "first_person_system") then
+                local_player_unit = ScriptUnit.extension(local_player_unit, "first_person_system"):get_first_person_unit()
+            end
+            local center = Unit.world_position(local_player_unit, 0)
+            local direction = Vector3.normalize(Quaternion.forward(Unit.world_rotation(local_player_unit, 0)))
+            local radius = self.cone_length * math.tan(math.rad(self.cone_degrees))
+            LineObject.add_cone(self.line_object, self.cone_color:unbox(), center, center + (direction * self.cone_length), radius, 50, 10)
+            dispatch = true
+        end
+    end
+    if dispatch then
+        LineObject.dispatch(self.line_object_world, self.line_object)
+        LineObject.reset(self.line_object)
     end
 end
 enigma:register_mod_event_callback("update", dm, "update")

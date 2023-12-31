@@ -254,7 +254,7 @@ pack_handle.register_attack_cards({
             local us = card.context.unit
             local nearby_ai_units = enigma:get_ai_units_around_unit(us, 6)
             for _,unit in ipairs(nearby_ai_units) do
-                enigma.hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_slashing_linesman, 5)
+                card:hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_slashing_linesman, 5)
             end
         end,
         sounds_3D = {
@@ -266,6 +266,30 @@ pack_handle.register_attack_cards({
             }
         }
     },
+    quick_stab = {
+        name = "base_quick_stab",
+        rarity = COMMON,
+        cost = 0,
+        texture = "enigma_base_quick_stab",
+        on_play_server = function(card)
+            local us = card.context.unit
+            local ai_units_to_stab = enigma:get_ai_units_in_front_of_unit(us, 3, 90)
+            for _,unit in ipairs(ai_units_to_stab) do
+                card:hit_enemy(unit, us, nil, DamageProfileTemplates.medium_pointy_smiter_flat_1h, 1.5)
+            end
+        end,
+        on_play_local = function(card)
+            game:draw_card(true)
+        end,
+        description_lines = {
+            {
+                format = "base_quick_stab_description"
+            },
+            {
+                format = "description_draw_a_card"
+            }
+        }
+    }
 })
 
 pack_handle.register_ability_cards({

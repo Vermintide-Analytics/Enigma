@@ -21,6 +21,7 @@ local net = {
     sync_card_property = "sync_card_property",
     invoke_card_rpc = "invoke_card_rpc",
     sync_player_accumulated_stagger = "sync_player_accumulated_stagger",
+    sync_card_game_property = "sync_card_game_property"
 }
 
 local cgm = {
@@ -236,6 +237,8 @@ cgm.init_game = function(self, game_init_data, debug)
         available_card_draws = 0,
         card_draw_gain_multiplier = 1,
 
+        attack_card_power_multiplier = 1,
+
         peer_id = Network.peer_id(),
     }
 
@@ -301,6 +304,8 @@ enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_nam
         out_of_play_pile = {},
 
         active_duration_cards = {},
+
+        attack_card_power_multiplier = 1,
 
         peer_id = peer_id,
     }
@@ -1559,14 +1564,14 @@ enigma:network_register(net.sync_card_property, function(sender, card_owner_peer
         safe(card.on_property_synced, card, property, value)
     end
 end)
-cgm.sync_card_property = function(self, card, property, value)
+cgm.sync_card_property = function(self, card, property)
     if not property then
         enigma:warning("Cannot sync card property: "..tostring(property))
         return
     end
     local card_owner_peer_id = card.context.peer_id
-    enigma:info("Sending sync_card_property to others. ["..tostring(card.id).."]."..tostring(property).."="..tostring(value))
-    enigma:network_send(net.sync_card_property, "others", card_owner_peer_id, card.local_id, property, value)
+    enigma:info("Sending sync_card_property to others. ["..tostring(card.id).."]."..tostring(property).."="..tostring(card[property]))
+    enigma:network_send(net.sync_card_property, "others", card_owner_peer_id, card.local_id, property, card[property])
 end
 enigma:network_register(net.invoke_card_rpc, function(sender, card_owner_peer_id, card_local_id, func_name, ...)
     local data = nil
@@ -1615,6 +1620,51 @@ cgm.cancel_channel = function(self)
     if active_channel then
         cgm.local_data.active_channel.cancelled = true
     end
+end
+enigma:network_register(net.sync_card_game_property, function(sender, peer_id, property, value)
+    local data = nil
+    if peer_id == cgm.local_data.peer_id then
+        data = cgm.local_data
+    else
+        data = cgm.peer_data[peer_id]
+    end
+    if not data then
+        enigma:warning("Received sync_card_game_property with an invalid peer_id")
+        return
+    end
+    if not property then
+        enigma:warning("Received sync_card_game_property with an invalid property name")
+        return
+    end
+    enigma:debug("Received card game property sync "..tostring(peer_id)..": \""..tostring(property).."\"="..tostring(value))
+    data[property] = value
+end)
+enigma._sync_card_game_property = function(self, peer_id, property)
+    if not property then
+        enigma:warning("Cannot sync card game property: "..tostring(property))
+        return
+    end
+    local data = nil
+    if peer_id == cgm.local_data.peer_id then
+        data = cgm.local_data
+    else
+        data = cgm.peer_data[peer_id]
+    end
+    if not data then
+        enigma:warning("Cannot sync card game property, we do not have data for peer: "..tostring(peer_id))
+        return
+    end
+    enigma:info("Sending sync_card_game_property to others. ["..tostring(peer_id).."]."..tostring(property).."="..tostring(data[property]))
+    enigma:network_send(net.sync_card_game_property, "others", peer_id, property, data[property])
+end
+
+enigma.apply_attack_card_power_multiplier_for_local_player = function(self, multiplier)
+    if not self.local_data then
+        enigma:warning("Cannot apply attack card damage multiplier, not in a game")
+        return
+    end
+    self.local_data.attack_card_power_multiplier = self.local_data.attack_card_power_multiplier * multiplier
+    self:_sync_card_game_property(self.local_data.peer_id, "attack_card_power_multiplier")
 end
 
 -- Hooks

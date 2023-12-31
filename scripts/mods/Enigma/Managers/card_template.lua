@@ -52,7 +52,7 @@ local add_card_instance_functions = function(inst)
             enigma:warning("Cannot sync card property: "..tostring(property))
             return
         end
-        enigma.managers.game:sync_card_property(card, property, card[property])
+        enigma.managers.game:sync_card_property(card, property)
     end
     inst.rpc_others = function(card, func_name, ...)
         if not func_name then
@@ -94,6 +94,20 @@ local add_card_instance_functions = function(inst)
         refresh_card_detail_localization(self)
         self.dirty_hud_ui = true
         self.dirty_card_mode_ui = true
+    end
+end
+
+local add_card_type_specific_properties = function(inst)
+    if inst.card_type == enigma.CARD_TYPE.attack then
+        inst.power_multiplier = 1
+        inst.hit_enemy = function(card, hit_unit, attacking_player_unit, hit_zone_name, damage_profile, power_multiplier, is_critical_strike, break_shields)
+            power_multiplier = power_multiplier * card.power_multiplier * inst.context.attack_card_power_multiplier
+            enigma:hit_enemy(hit_unit, attacking_player_unit, hit_zone_name, damage_profile, power_multiplier, is_critical_strike, break_shields)
+        end
+        inst.damage = function(card, unit, damage, damager, damage_source)
+            damage = damage * card.power_multiplier * inst.context.attack_card_power_multiplier
+            enigma:force_damage(unit, damage, damager, damage_source)
+        end
     end
 end
 
@@ -219,6 +233,7 @@ local template_template = {
             inst.active_durations = {}
         end
         add_card_instance_functions(inst)
+        add_card_type_specific_properties(inst)
         return inst
     end,
 }
