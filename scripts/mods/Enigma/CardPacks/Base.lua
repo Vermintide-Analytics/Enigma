@@ -369,14 +369,14 @@ pack_handle.register_ability_cards({
         texture = "enigma_base_field_medicine",
         on_play_server = function(card)
             local us = card.context.unit
-            enigma:heal(us, 15)
+            enigma:heal(us, 20)
         end,
         charges = 5,
-        channel = 2,
+        channel = 1,
         description_lines = {
             {
                 format = "description_restore_health",
-                parameters = { 15 }
+                parameters = { 20 }
             },
         }
     },
