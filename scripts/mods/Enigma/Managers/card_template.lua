@@ -181,7 +181,7 @@ local template_template = {
     condition_server = nil,
     double_agent = false,
     ephemeral = false,
-    infinite = false,
+    echo = false,
     unplayable = false,
     warp_hungry = nil,
 

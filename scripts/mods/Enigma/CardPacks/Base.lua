@@ -313,7 +313,7 @@ pack_handle.register_ability_cards({
                 end
             end
         end,
-        infinite = true,
+        echo = true,
         description_lines = {
             {
                 format = "description_take_damage",
@@ -765,7 +765,7 @@ pack_handle.register_chaos_cards({
                 parameters = { 5, 0 }
             },
         },
-        infinite = true
+        echo = true
     },
     life_sap = {
         name = "base_life_sap",

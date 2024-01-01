@@ -113,8 +113,8 @@ local filter_definitions = {
 			enigma:localize("keyword_ephemeral")
 		},
 		{
-			"infinite",
-			enigma:localize("keyword_infinite")
+			"echo",
+			enigma:localize("keyword_echo")
 		},
 		{
 			"retain",

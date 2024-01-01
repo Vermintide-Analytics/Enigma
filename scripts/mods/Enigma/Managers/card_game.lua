@@ -614,7 +614,7 @@ end
 ----------
 -- PLAY --
 ----------
-local handle_card_played = function(context, data, card, play_type)
+local handle_card_played = function(context, data, card, play_type, destination_index)
     local location = card.location
 
     enigma:info(format_playing_card(card, data.peer_id))
@@ -651,12 +651,21 @@ local handle_card_played = function(context, data, card, play_type)
         return enigma.CARD_LOCATION.hand
     else
         local destination_pile = enigma.CARD_LOCATION.discard_pile
+        local inserted_index = nil
         if card.ephemeral then
             destination_pile = enigma.CARD_LOCATION.out_of_play_pile
         end
 
-        if card.infinite and not card.ephemeral then
-            add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, card, 1) -- Put at bottom of draw pile
+        if card.echo and not card.ephemeral then
+            destination_pile = enigma.CARD_LOCATION.draw_pile
+            if context == "local" then
+                -- Generate random index to insert (also return that value so we can send it to peers)
+                local draw_pile_size = #data.draw_pile
+                inserted_index = math.floor(enigma:random_range_int(1, draw_pile_size + 1))
+                add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, card, inserted_index) -- Shuffle into draw pile
+            else
+                add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, card, destination_index) -- Insert into draw pile where we were told to
+            end
         else
             add_card_to_pile(data, destination_pile, card)
         end
@@ -667,7 +676,7 @@ local handle_card_played = function(context, data, card, play_type)
         if card[on_location_changed_func_name] then
             card[on_location_changed_func_name](card, location, destination_pile)
         end
-        return destination_pile
+        return destination_pile, inserted_index
     end
 end
 local handle_local_card_played = function(card, location, index, skip_warpstone_cost, play_type)
@@ -683,21 +692,24 @@ local handle_local_card_played = function(card, location, index, skip_warpstone_
         enigma:info("Skipping warpstone cost for playing "..tostring(card.id))
     end
     
-    local new_location = handle_card_played("local", cgm.local_data, card, play_type)
+    local new_location, inserted_index = handle_card_played("local", cgm.local_data, card, play_type)
     if location == enigma.CARD_LOCATION.hand and location ~= new_location then
         enigma.managers.ui.hud_data.hand_indexes_just_removed[index] = true
         enigma.managers.ui.card_mode_ui_data.hand_indexes_just_removed[index] = true
+    end
+    if new_location == enigma.CARD_LOCATION.draw_pile then
+        cgm:add_card_cost(card, 1)
     end
     if card.sounds_2D.on_play then
         sound:trigger(card.sounds_2D.on_play)
     end
 
     sound:trigger("play_card")
-    enigma:network_send(net.event_card_played, "others", card.local_id, play_type)
+    enigma:network_send(net.event_card_played, "others", card.local_id, play_type, inserted_index)
     cgm.statistics.cards_played[play_type] = cgm.statistics.cards_played[play_type] + 1
     return true
 end
-enigma:network_register(net.event_card_played, function(peer_id, card_local_id, play_type)
+enigma:network_register(net.event_card_played, function(peer_id, card_local_id, play_type, destination_index)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
         enigma:warning(tostring(peer_id).." TOLD US OF A CARD PLAYED EVENT, BUT WE DON'T HAVE DATA FOR THAT PEER")
@@ -708,7 +720,7 @@ enigma:network_register(net.event_card_played, function(peer_id, card_local_id, 
         enigma:warning("Could not find a card to be played with local ID "..format_card_identification(peer_id, card_local_id))
         return
     end
-    handle_card_played("remote", peer_data, card, play_type)
+    handle_card_played("remote", peer_data, card, play_type, destination_index)
 end)
 cgm._play_card_at_index_from_location = function(self, location, index, skip_warpstone_cost, play_type)
     play_type = play_type or "auto"
@@ -1503,6 +1515,12 @@ cgm.change_card_cost = function(self, card, new_cost)
     end
     card.cost = new_cost
     set_card_can_pay_warpstone(card, card.cost)
+end
+cgm.add_card_cost = function(self, card, cost_to_add)
+    self:change_card_cost(card, card.cost + cost_to_add)
+end
+cgm.multiply_card_cost = function(self, card, multiplier)
+    self:change_card_cost(card, card.cost * multiplier)
 end
 
 cgm.on_warpstone_amount_changed = function(self)

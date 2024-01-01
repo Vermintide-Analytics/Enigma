@@ -50,8 +50,8 @@ local loc = {
 	ephemeral = {
 		en = "Ephemeral",
 	},
-	infinite = {
-		en = "Infinite",
+	echo = {
+		en = "Echo",
 	},
 	retain = {
 		en = "Retain",
@@ -80,8 +80,8 @@ local loc = {
 	keyword_ephemeral = {
 		en = "Ephemeral",
 	},
-	keyword_infinite = {
-		en = "Infinite",
+	keyword_echo = {
+		en = "Echo",
 	},
 	keyword_retain = {
 		en = "Retain",
