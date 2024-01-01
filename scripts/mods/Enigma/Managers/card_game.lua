@@ -237,8 +237,6 @@ cgm.init_game = function(self, game_init_data, debug)
         available_card_draws = 0,
         card_draw_gain_multiplier = 1,
 
-        attack_card_power_multiplier = 1,
-
         peer_id = Network.peer_id(),
     }
 
@@ -304,8 +302,6 @@ enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_nam
         out_of_play_pile = {},
 
         active_duration_cards = {},
-
-        attack_card_power_multiplier = 1,
 
         peer_id = peer_id,
     }
@@ -1656,15 +1652,6 @@ enigma._sync_card_game_property = function(self, peer_id, property)
     end
     enigma:info("Sending sync_card_game_property to others. ["..tostring(peer_id).."]."..tostring(property).."="..tostring(data[property]))
     enigma:network_send(net.sync_card_game_property, "others", peer_id, property, data[property])
-end
-
-enigma.apply_attack_card_power_multiplier_for_local_player = function(self, multiplier)
-    if not self.local_data then
-        enigma:warning("Cannot apply attack card damage multiplier, not in a game")
-        return
-    end
-    self.local_data.attack_card_power_multiplier = self.local_data.attack_card_power_multiplier * multiplier
-    self:_sync_card_game_property(self.local_data.peer_id, "attack_card_power_multiplier")
 end
 
 -- Hooks

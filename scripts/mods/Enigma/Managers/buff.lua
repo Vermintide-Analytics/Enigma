@@ -15,8 +15,8 @@ local bm = {
     unit_stat_buff_indexes = {},
     global_stat_updated_callbacks = {},
     unit_stat_updated_callbacks = {},
-
     unit_custom_buffs = {},
+
     unit_builtin_buffs = {},
     unit_stat_surges = {},
 
@@ -25,6 +25,7 @@ local bm = {
 enigma.managers.buff = bm
 
 local custom_buff_definitions = {
+    attack_card_power_multiplier = 1.0,
     cannot_use_career_skill = 0,
     card_draw_multiplier = 1.0,
     chance_ignore_assassin = 0,

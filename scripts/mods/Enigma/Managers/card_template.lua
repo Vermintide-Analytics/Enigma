@@ -101,11 +101,19 @@ local add_card_type_specific_properties = function(inst)
     if inst.card_type == enigma.CARD_TYPE.attack then
         inst.power_multiplier = 1
         inst.hit_enemy = function(card, hit_unit, attacking_player_unit, hit_zone_name, damage_profile, power_multiplier, is_critical_strike, break_shields)
-            power_multiplier = power_multiplier * card.power_multiplier * inst.context.attack_card_power_multiplier
+            power_multiplier = power_multiplier * card.power_multiplier
+            local custom_buffs = enigma.managers.buff.unit_custom_buffs[inst.context.unit]
+            if custom_buffs then
+                power_multiplier = power_multiplier * custom_buffs.attack_card_power_multiplier
+            end
             enigma:hit_enemy(hit_unit, attacking_player_unit, hit_zone_name, damage_profile, power_multiplier, is_critical_strike, break_shields)
         end
         inst.damage = function(card, unit, damage, damager, damage_source)
-            damage = damage * card.power_multiplier * inst.context.attack_card_power_multiplier
+            damage = damage * card.power_multiplier
+            local custom_buffs = enigma.managers.buff.unit_custom_buffs[inst.context.unit]
+            if custom_buffs then
+                damage = damage * custom_buffs.attack_card_power_multiplier
+            end
             enigma:force_damage(unit, damage, damager, damage_source)
         end
     end
