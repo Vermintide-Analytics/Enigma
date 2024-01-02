@@ -34,7 +34,7 @@ events = {
 		duration_max = 1.911
 		duration_min = 1.911
 		duration_type = "OneShot"
-		positioning = "2D"
+		positioning = "3D"
 	}
 	channel_end = {
 		attenuation_max = 0
@@ -84,7 +84,7 @@ events = {
 		duration_max = 2.804
 		duration_min = 2.804
 		duration_type = "OneShot"
-		positioning = "2D"
+		positioning = "3D"
 	}
 	draw_card = {
 		attenuation_max = 0
@@ -98,7 +98,7 @@ events = {
 		duration_max = 2.559
 		duration_min = 2.559
 		duration_type = "OneShot"
-		positioning = "2D"
+		positioning = "3D"
 	}
 	legendary_buff = {
 		attenuation_max = 0

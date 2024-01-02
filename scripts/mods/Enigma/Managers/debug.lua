@@ -107,6 +107,25 @@ enigma:command("enigma_debug_damage", "Toggle verbose debug print to console of 
     end
 end)
 
+enigma:command("enigma_leap", "", function(x, y, z, distance, speed, initial_vertical_speed)
+    local local_player_unit = enigma:local_player_unit()
+    if not local_player_unit then
+        return
+    end
+    enigma:leap_forward(local_player_unit, distance, speed, initial_vertical_speed)
+end)
+
+enigma:command("enigma_ignore_next_fall_damage", "", function(ignore)
+    local local_player_unit = enigma:local_player_unit()
+    if not local_player_unit then
+        return
+    end
+    if ignore == nil then
+        ignore = true
+    end
+    enigma:set_ignore_next_fall_damage(local_player_unit, ignore)
+end)
+
 -- Events
 dm.update = function(self, dt)
     local dispatch = false
@@ -137,3 +156,6 @@ dm.update = function(self, dt)
     end
 end
 enigma:register_mod_event_callback("update", dm, "update")
+
+
+-- Temp

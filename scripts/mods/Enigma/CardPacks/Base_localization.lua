@@ -158,11 +158,19 @@ return {
     base_cyclone_strike_description = {
         en = "Strike all nearby enemies with an instantaneous sweep"
     },
+
     base_quick_stab = {
         en = "Quick Stab"
     },
     base_quick_stab_description = {
         en = "Quickly strike all enemies in front of you"
+    },
+    
+    base_slam = {
+        en = "Slam"
+    },
+    base_slam_description = {
+        en = "Jump high in the air, then come down with great force, damaging and staggering nearby enemies."
     },
 
 
@@ -249,6 +257,13 @@ return {
     },
     base_ubersreik_hero_description = {
         en = "Free the nearest disabled ally"
+    },
+
+    base_vault = {
+        en = "Vault"
+    },
+    base_vault_description = {
+        en = "Leap forward over enemies and obstacles"
     },
 
     base_warpfire_strikes = {

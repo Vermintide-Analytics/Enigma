@@ -630,7 +630,7 @@ local handle_card_played = function(context, data, card, play_type, destination_
     end
     local on_play_func_name = "on_play_"..context
     if card[on_play_func_name] then
-        card[on_play_func_name](card, play_type)
+        safe(card[on_play_func_name], card, play_type)
     end
     if cgm.is_server then
         invoke_card_event_callbacks_for_all_piles(data, "on_any_card_played_server", card)
@@ -1125,11 +1125,11 @@ end)
 cgm._handle_requested_card_play_from_ui = function(self, dt)
     local index_from_hand_to_play = enigma.managers.user_interaction.request_play_card_from_hand_next_update
     if index_from_hand_to_play then
+        enigma.managers.user_interaction.request_play_card_from_hand_next_update = nil
         local played = enigma.managers.game:play_card_from_hand(index_from_hand_to_play, false, "manual")
         if played and enigma.managers.user_interaction.hide_card_mode_on_card_play then
             enigma.card_mode = false
         end
-        enigma.managers.user_interaction.request_play_card_from_hand_next_update = nil
     end
 end
 

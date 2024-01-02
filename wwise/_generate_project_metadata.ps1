@@ -17,6 +17,7 @@ foreach ($row in $csvData) {
         Duration_Max  = $row.Duration_Max
         Duration_Type = $row.Duration_Type
 		Loop_Count    = $row.Loop_Count
+		Positioning   = $row.Positioning
     }
 	
 	if ([string]::IsNullOrEmpty($entry.Duration_Max)) {
@@ -27,6 +28,9 @@ foreach ($row in $csvData) {
 	}
 	if ($entry.Duration_Type -eq "Loop" -and [string]::IsNullOrEmpty($entry.Loop_Count)) {
 		$entry.Loop_Count = 0
+	}
+	if ([string]::IsNullOrEmpty($entry.Positioning)) {
+		$entry.Positioning = "2D"
 	}
 
     # Add the entry to the array
@@ -72,7 +76,7 @@ foreach ($entry in $dataArray) {
 	if ($entry.Duration_Type -eq "Loop") {
 	$output += "`t`tloop_count = " + $entry.Loop_Count + "`r`n"
 	}
-	$output += "`t`tpositioning = `"2D`"`r`n`t}`r`n"
+	$output += "`t`tpositioning = `"" + $entry.Positioning + "`"`r`n`t}`r`n"
 }
 
 $output += @"

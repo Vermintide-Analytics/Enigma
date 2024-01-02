@@ -289,6 +289,36 @@ pack_handle.register_attack_cards({
                 format = "description_draw_a_card"
             }
         }
+    },
+    slam = {
+        name = "base_slam",
+        rarity = EPIC,
+        cost = 1,
+        --texture = "enigma_base_slam",
+        damage_enemies = function(card)
+            local us = card.context.unit
+            local nearby_ai_units = enigma:get_ai_units_around_unit(us, 8)
+            for _,unit in ipairs(nearby_ai_units) do
+                card:hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_slashing_linesman, 5)
+            end
+        end,
+        on_play_local = function(card)
+            enigma:apply_no_clip(card.context.unit, "enigma_base_slam")
+            enigma:leap_forward(card.context.unit, 0.5, 0.1, 10, {
+                finished = function(this, aborted, final_position)
+                    card:rpc_server("damage_enemies")
+                    enigma:remove_no_clip(card.context.unit, "enigma_base_slam")
+                end
+            })
+        end,
+        condition_local = function(card)
+            return enigma:on_ground(card.context.unit)
+        end,
+        description_lines = {
+            {
+                format = "base_slam_description"
+            }
+        }
     }
 })
 
@@ -642,6 +672,51 @@ pack_handle.register_ability_cards({
         condition_descriptions = {
             {
                 format = "base_ubersreik_hero_condition"
+            }
+        }
+    },
+    vault = {
+        name = "base_vault",
+        rarity = COMMON,
+        cost = 0,
+        --texture = "enigma_base_vault"
+        charges = 3,
+        rotation_duration = 0.9,
+        rotation_progress = 0,
+        rotating = false,
+        update_local = function(card, dt)
+            if card.rotating then
+                card.rotation_progress = card.rotation_progress + dt
+                if card.rotation_progress > card.rotation_duration then
+                    card.rotating = false
+                end
+                enigma:lerp_first_person_rotation(card.context.unit, card.starting_yaw, card.starting_pitch, card.starting_roll, card.target_yaw, card.target_pitch, card.target_roll, card.rotation_progress / card.rotation_duration)
+            end
+        end,
+        on_play_local = function(card)
+            enigma:apply_no_clip(card.context.unit, "enigma_base_vault")
+            enigma:leap_forward(card.context.unit, 7, 7, 6, {
+                finished = function(this, aborted, final_position)
+                    enigma:remove_no_clip(card.context.unit, "enigma_base_vault")
+                end
+            })
+            local first_person = ScriptUnit.extension(card.context.unit, "first_person_system")
+            local starting_rotation = first_person:current_rotation()
+            card.starting_yaw = Quaternion.yaw(starting_rotation)
+            card.starting_pitch = Quaternion.pitch(starting_rotation)
+            card.starting_roll = Quaternion.roll(starting_rotation)
+            card.target_yaw = card.starting_yaw
+            card.target_pitch = card.starting_pitch + math.rad(-180)
+            card.target_roll = card.starting_roll + math.rad(180)
+            card.rotating = true
+            card.rotation_progress = 0
+        end,
+        condition_local = function(card)
+            return enigma:on_ground(card.context.unit)
+        end,
+        description_lines = {
+            {
+                format = "base_vault_description"
             }
         }
     },

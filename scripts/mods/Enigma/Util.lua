@@ -15,34 +15,7 @@ table.deep_copy = function(tbl, max_depth)
 end
 
 
-
-enigma.echo_bad_function_call = function(self, func_name, bad_param_name, details)
-    local params_details = "("
-    local first = true
-    for k,v in pairs(details) do
-        local name = tostring(k)
-        local val = tostring(v)
-        if not first then
-            params_details = params_details..","
-        end
-        params_details = params_details..name.."=\""..val.."\""
-        first = false
-    end
-    params_details = params_details..")"
-    enigma:echo("Enigma function call \""..func_name.."\" called with invalid parameter \""..bad_param_name.."\" "..params_details)
-end
-
-enigma.is_server = function(self)
-    return Managers.player and Managers.player.is_server
-end
-
-enigma.local_peer_id = function(self)
-    return Network and Network.peer_id()
-end
-enigma.is_peer_local = function(self, peer_id)
-    return peer_id == self:local_peer_id()
-end
-
+-- Retrieve Game State
 enigma.level_key = function(self)
     return Managers.state and Managers.state.game_mode:level_key() or Managers.level_transition_handler and Managers.level_transition_handler:get_current_level_key()
 end
@@ -73,7 +46,6 @@ enigma.traveling_to_morris_map = function(self)
     local level_key = Managers.level_transition_handler and Managers.level_transition_handler:get_current_level_key()
     return level_key == "dlc_morris_map"
 end
-
 enigma.game_mode = function(self)
     local level_key = self:level_key()
     local game_mode_key
@@ -87,24 +59,144 @@ end
 enigma.is_game_mode_supported = function(self, game_mode_key)
     return game_mode_key == "adventure" or game_mode_key == "deus"
 end
+enigma.is_server = function(self)
+    return Managers.player and Managers.player.is_server
+end
+enigma.local_peer_id = function(self)
+    return Network and Network.peer_id()
+end
+enigma.is_peer_local = function(self, peer_id)
+    return peer_id == self:local_peer_id()
+end
 
+-- Retrieve Unit/Player data
+enigma.distance_between_units = function(self, unit1, unit2)
+    if not unit1 or not unit2 then
+        enigma:warning("Cannot get the distance between units: "..tostring(unit1).." and "..tostring(unit2))
+        return
+    end
+    return Vector3.distance(Unit.world_position(unit1, 0), Unit.world_position(unit2, 0))
+end
+enigma.get_ammo_extension = function(self, unit)
+    if ScriptUnit.has_extension(unit, "ammo_system") then
+        return ScriptUnit.extension(unit, "ammo_system")
+    end
+    if ScriptUnit.has_extension(unit, "inventory_system") then
+        local weapon_slot = "slot_ranged"
+        local inv_ext = ScriptUnit.extension(unit, "inventory_system")
+        local slot_data = inv_ext:get_slot_data(weapon_slot)
+        local right_unit_1p = slot_data.right_unit_1p
+        local left_unit_1p = slot_data.left_unit_1p
+        local right_hand_ammo_extension = ScriptUnit.has_extension(right_unit_1p, "ammo_system")
+        local left_hand_ammo_extension = ScriptUnit.has_extension(left_unit_1p, "ammo_system")
+        return right_hand_ammo_extension or left_hand_ammo_extension
+    end
+end
 enigma.local_player = function(self)
     return Managers.player and Managers.player:local_human_player()
 end
-
-enigma.local_player_unit = function(self)
-    local player = self:local_player()
-    return player and player.player_unit
-end
-
 enigma.local_player_career_name = function(self)
     local player = self:local_player()
     return player and player:career_name()
 end
-
+enigma.local_player_unit = function(self)
+    local player = self:local_player()
+    return player and player.player_unit
+end
 enigma.player_and_bot_units = function(self)
     local side = Managers.state and Managers.state.side and Managers.state.side:get_side_from_name("heroes")
 	return side and side.PLAYER_AND_BOT_UNITS
+end
+enigma.on_ground = function(self, unit)
+    if not unit then
+        return false
+    end
+    if not ScriptUnit.has_extension(unit, "locomotion_system") then
+        enigma:warning("Cannot get "..tostring(unit).." on_ground. No locomotion extension attached to it")
+        return false
+    end
+    return ScriptUnit.extension(unit, "locomotion_system").on_ground
+end
+
+
+-- Affect Units/Players
+local adjust_direction_by_first_person_rotation = function(unit, direction, include_pitch_roll)
+    local first_person = ScriptUnit.extension(unit, "first_person_system")
+    local rotation = first_person:current_rotation()
+    rotation = not include_pitch_roll and Quaternion.flat_no_roll(rotation) or rotation
+    return Quaternion.rotate(rotation, direction)
+end
+
+enigma.lerp_first_person_rotation = function(self, unit, initial_yaw, initial_pitch, initial_roll, target_yaw, target_pitch, target_roll, t)
+    if not ScriptUnit.has_extension(unit, "first_person_system") then
+        enigma:warning("Cannot lerp "..tostring(unit).." first person rotation. No first person extension attached to it")
+        return
+    end
+    local first_person = ScriptUnit.extension(unit, "first_person_system")
+
+    local lerped_yaw = math.lerp(initial_yaw, target_yaw, t)
+    local lerped_pitch = math.lerp(initial_pitch, target_pitch, t)
+    local lerped_roll = math.lerp(initial_roll, target_roll, t)
+
+    local yaw_rot = Quaternion(Vector3.up(), lerped_yaw)
+    local pitch_rot = Quaternion(Vector3.right(), lerped_pitch)
+    local roll_rot = Quaternion(Vector3.forward(), lerped_roll)
+
+    local final_rotation = Quaternion.multiply(Quaternion.multiply(yaw_rot, pitch_rot), roll_rot)
+
+    first_person:set_rotation(final_rotation)
+end
+
+enigma.leap_first_person = function(self, unit, direction, distance, speed, initial_vertical_speed, leap_events)
+    if not ScriptUnit.has_extension(unit, "first_person_system") then
+        enigma:warning("Cannot leap "..tostring(unit).." first person. No first person extension attached to it")
+        return
+    end
+    if not ScriptUnit.has_extension(unit, "status_system") then
+        enigma:warning("Cannot leap "..tostring(unit).." first person. No status extension attached to it")
+        return
+    end
+    local first_person = ScriptUnit.extension(unit, "first_person_system")
+    direction = adjust_direction_by_first_person_rotation(unit, direction, false)
+
+    local direction_normalized = Vector3.normalize(direction)
+    local status = ScriptUnit.extension(unit, "status_system")
+    local world = Managers.world:world("level_world")
+	local physics_world = World.get_data(world, "physics_world")
+    local result, landing_position = WeaponHelper:ground_target(physics_world, unit, first_person:current_position(), direction_normalized * distance, Vector3(0, 0, -10), "filter_slayer_leap")
+    status.do_leap = {
+        move_function = "leap",
+        direction = Vector3Box(direction_normalized),
+        speed = speed,
+        initial_vertical_speed = initial_vertical_speed or 10,
+        projected_hit_pos = Vector3Box(landing_position),
+        leap_events = leap_events
+    }
+end
+enigma.leap_forward = function(self, player_unit, distance, speed, initial_vertical_speed, leap_events)
+    enigma:leap_first_person(player_unit, Vector3(0, 1, 1), distance, speed, initial_vertical_speed, leap_events)
+end
+enigma.apply_no_clip = function(self, unit, reason)
+    self:apply_no_clip_filter(unit, reason, true, true, true, true, true, true)
+end
+enigma.apply_no_clip_filter = function(self, unit, reason, infantry, armored, monster, hero, berserker, super_armor)
+    if not ScriptUnit.has_extension(unit, "locomotion_system") then
+        enigma:warning("Cannot add "..tostring(unit).." no clip filter \""..tostring(reason).."\". No locomotion extension attached to it")
+        return
+    end
+    local locomotion = ScriptUnit.extension(unit, "locomotion_system")
+    if not locomotion.apply_no_clip_filter then
+        enigma:warning("Cannot add "..tostring(unit).." no clip filter \""..tostring(reason).."\". No apply_no_clip_filter function in its locomotion extension")
+        return
+    end
+    locomotion:apply_no_clip_filter({
+        not not infantry,
+        not not armored,
+        not not monster,
+        not not hero,
+        not not berserker,
+        not not super_armor
+    }, reason)
 end
 enigma.force_damage = function(self, unit, damage, damager, damage_source)
     if not enigma:is_server() then
@@ -136,23 +228,49 @@ enigma.heal = function(self, unit, heal, healer, heal_type)
 
     DamageUtils.heal_network(unit, healer, heal, heal_type)
 end
+enigma._hit_enemy = function(self, hit_unit, attacker_unit, hit_zone_name, hit_position, attack_direction, damage_source, power_level, damage_profile, target_index, boost_curve_multiplier, is_critical_strike, can_damage, can_stagger, blocking, shield_breaking_hit, backstab_multiplier, first_hit, total_hits)
+    local hit_ragdoll_actor = nil
+    DamageUtils.server_apply_hit(Managers.time:time("game"), attacker_unit, hit_unit, hit_zone_name, hit_position, attack_direction, hit_ragdoll_actor, damage_source, power_level, damage_profile, target_index, boost_curve_multiplier, is_critical_strike, can_damage, can_stagger, blocking, shield_breaking_hit, backstab_multiplier, first_hit, total_hits)
+end
+enigma.hit_enemy = function(self, hit_unit, attacking_player_unit, hit_zone_name, damage_profile, power_multiplier, is_critical_strike, break_shields)
+    power_multiplier = power_multiplier or 1
+    hit_zone_name = hit_zone_name or "full"
+    damage_profile = damage_profile or DamageProfileTemplates.default
+    local career_ext = ScriptUnit.extension(attacking_player_unit, "career_system")
+    local power_level = career_ext and career_ext:get_career_power_level() or 0
+    power_level = power_level * power_multiplier
+    local hit_position = Unit.world_position(hit_unit, 0)
+    local attacker_breed = career_ext._breed and career_ext._breed.name or "debug"
 
-enigma.get_ammo_extension = function(self, unit)
-    if ScriptUnit.has_extension(unit, "ammo_system") then
-        return ScriptUnit.extension(unit, "ammo_system")
+    enigma:_hit_enemy(hit_unit, attacking_player_unit, hit_zone_name, hit_position, Vector3.zero(), attacker_breed, power_level, damage_profile, 0, power_multiplier, is_critical_strike, true, true, false, break_shields, 1, false, 0)
+end
+enigma.remove_no_clip = function(self, unit, reason)
+    enigma:remove_no_clip_filter(unit, reason)
+end
+enigma.remove_no_clip_filter = function(self, unit, reason)
+    if not ScriptUnit.has_extension(unit, "locomotion_system") then
+        enigma:warning("Cannot remove "..tostring(unit).." no clip filter \""..tostring(reason).."\". No locomotion extension attached to it")
+        return
     end
-    if ScriptUnit.has_extension(unit, "inventory_system") then
-        local weapon_slot = "slot_ranged"
-        local inv_ext = ScriptUnit.extension(unit, "inventory_system")
-        local slot_data = inv_ext:get_slot_data(weapon_slot)
-        local right_unit_1p = slot_data.right_unit_1p
-        local left_unit_1p = slot_data.left_unit_1p
-        local right_hand_ammo_extension = ScriptUnit.has_extension(right_unit_1p, "ammo_system")
-        local left_hand_ammo_extension = ScriptUnit.has_extension(left_unit_1p, "ammo_system")
-        return right_hand_ammo_extension or left_hand_ammo_extension
+    local locomotion = ScriptUnit.extension(unit, "locomotion_system")
+    if not locomotion.remove_no_clip_filter then
+        enigma:warning("Cannot remove "..tostring(unit).." no clip filter \""..tostring(reason).."\". No remove_no_clip_filter function in its locomotion extension")
+        return
     end
+    locomotion:remove_no_clip_filter(reason)
+end
+enigma.set_ignore_next_fall_damage = function(self, unit, ignore)
+    if not ScriptUnit.has_extension(unit, "status_system") then
+        enigma:warning("Cannot set "..tostring(unit).." to ignore next fall damage. No status extension attached to it")
+        return
+    end
+    local status = ScriptUnit.extension(unit, "status_system")
+    status:set_ignore_next_fall_damage(ignore)
 end
 
+
+
+-- Execution
 enigma.execute_unit = function(self, to_execute, executor)
     if not HEALTH_ALIVE[to_execute] then
         return false
@@ -160,7 +278,6 @@ enigma.execute_unit = function(self, to_execute, executor)
     AiUtils.kill_unit(to_execute, executor, nil, "execute")
     return true
 end
-
 enigma.is_enemy_man_sized = function(self, unit)
     if not HEALTH_ALIVE[unit] then
         return false
@@ -175,14 +292,24 @@ enigma.execute_man_sized_enemy = function (self, to_execute, executor)
     return enigma:execute_unit(to_execute, executor)
 end
 
-enigma.distance_between_units = function(self, unit1, unit2)
-    if not unit1 or not unit2 then
-        enigma:warning("Cannot get the distance between units: "..tostring(unit1).." and "..tostring(unit2))
-        return
-    end
-    return Vector3.distance(Unit.world_position(unit1, 0), Unit.world_position(unit2, 0))
-end
 
+
+-- Misc
+enigma.echo_bad_function_call = function(self, func_name, bad_param_name, details)
+    local params_details = "("
+    local first = true
+    for k,v in pairs(details) do
+        local name = tostring(k)
+        local val = tostring(v)
+        if not first then
+            params_details = params_details..","
+        end
+        params_details = params_details..name.."=\""..val.."\""
+        first = false
+    end
+    params_details = params_details..")"
+    enigma:echo("Enigma function call \""..func_name.."\" called with invalid parameter \""..bad_param_name.."\" "..params_details)
+end
 enigma.get_level_progress = function(self)
     local conflict = Managers.state.conflict
 
@@ -194,6 +321,8 @@ enigma.get_level_progress = function(self)
 
     return nil
 end
+
+
 
 -- Shapecasting
 
@@ -276,22 +405,6 @@ end
 
 
 
-enigma._hit_enemy = function(self, hit_unit, attacker_unit, hit_zone_name, hit_position, attack_direction, damage_source, power_level, damage_profile, target_index, boost_curve_multiplier, is_critical_strike, can_damage, can_stagger, blocking, shield_breaking_hit, backstab_multiplier, first_hit, total_hits)
-    local hit_ragdoll_actor = nil
-    DamageUtils.server_apply_hit(Managers.time:time("game"), attacker_unit, hit_unit, hit_zone_name, hit_position, attack_direction, hit_ragdoll_actor, damage_source, power_level, damage_profile, target_index, boost_curve_multiplier, is_critical_strike, can_damage, can_stagger, blocking, shield_breaking_hit, backstab_multiplier, first_hit, total_hits)
-end
-enigma.hit_enemy = function(self, hit_unit, attacking_player_unit, hit_zone_name, damage_profile, power_multiplier, is_critical_strike, break_shields)
-    power_multiplier = power_multiplier or 1
-    hit_zone_name = hit_zone_name or "full"
-    damage_profile = damage_profile or DamageProfileTemplates.default
-    local career_ext = ScriptUnit.extension(attacking_player_unit, "career_system")
-    local power_level = career_ext and career_ext:get_career_power_level() or 0
-    power_level = power_level * power_multiplier
-    local hit_position = Unit.world_position(hit_unit, 0)
-    local attacker_breed = career_ext._breed and career_ext._breed.name or "debug"
-
-    enigma:_hit_enemy(hit_unit, attacking_player_unit, hit_zone_name, hit_position, Vector3.zero(), attacker_breed, power_level, damage_profile, 0, power_multiplier, is_critical_strike, true, true, false, break_shields, 1, false, 0)
-end
 
 enigma.wwise_event = function(self, event_name)
     if not event_name then

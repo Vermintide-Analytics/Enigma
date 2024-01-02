@@ -179,6 +179,17 @@ enigma._command_toggle = function(self, args)
             enigma:echo("Turning mega resource start ON")
         end
         enigma:set("mega_resource_start", not enigma.mega_resource_start, true)
+    elseif toggle_cmd == "noclip" then
+        local local_player_unit = enigma:local_player_unit()
+        if not local_player_unit then
+            return
+        end
+        enigma.debug_noclip = not enigma.debug_noclip
+        if enigma.debug_noclip then
+            enigma:apply_no_clip_filter(local_player_unit, "enigma_testing_noclip", true, true, true, true, true, true)
+        else
+            enigma:remove_no_clip_filter(local_player_unit, "enigma_testing_noclip")
+        end
     end
 end
 
