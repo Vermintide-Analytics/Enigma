@@ -1,186 +1,201 @@
 -- Image Source: ../../../../enigma%20resources/art/base
 return { 
+	enigma_base_avaricious_jar = { 
+		size = { 504, 304, },
+		uv00 = { 0.861328, 0.593750, },
+		uv11 = { 0.984375, 0.742188, },
+	},
 	enigma_base_blood_transfusion = { 
+		size = { 504, 304, },
+		uv00 = { 0.738281, 0.742188, },
+		uv11 = { 0.861328, 0.890625, },
+	},
+	enigma_base_caffeinated = { 
+		size = { 504, 304, },
+		uv00 = { 0.738281, 0.593750, },
+		uv11 = { 0.861328, 0.742188, },
+	},
+	enigma_base_collar_cage = { 
 		size = { 504, 304, },
 		uv00 = { 0.861328, 0.445313, },
 		uv11 = { 0.984375, 0.593750, },
 	},
-	enigma_base_caffeinated = { 
+	enigma_base_cyclone_strike = { 
 		size = { 504, 304, },
 		uv00 = { 0.738281, 0.445313, },
 		uv11 = { 0.861328, 0.593750, },
 	},
-	enigma_base_collar_cage = { 
+	enigma_base_divine_insurance = { 
 		size = { 504, 304, },
 		uv00 = { 0.615234, 0.742188, },
 		uv11 = { 0.738281, 0.890625, },
 	},
-	enigma_base_cyclone_strike = { 
+	enigma_base_dubious_insurance = { 
 		size = { 504, 304, },
 		uv00 = { 0.615234, 0.593750, },
 		uv11 = { 0.738281, 0.742188, },
 	},
-	enigma_base_divine_insurance = { 
+	enigma_base_eshin_counter_intelligence = { 
 		size = { 504, 304, },
 		uv00 = { 0.615234, 0.445313, },
 		uv11 = { 0.738281, 0.593750, },
 	},
-	enigma_base_dubious_insurance = { 
+	enigma_base_executioner = { 
 		size = { 504, 304, },
 		uv00 = { 0.861328, 0.296875, },
 		uv11 = { 0.984375, 0.445313, },
 	},
-	enigma_base_eshin_counter_intelligence = { 
+	enigma_base_expertise = { 
 		size = { 504, 304, },
 		uv00 = { 0.738281, 0.296875, },
 		uv11 = { 0.861328, 0.445313, },
 	},
-	enigma_base_executioner = { 
+	enigma_base_field_medicine = { 
 		size = { 504, 304, },
 		uv00 = { 0.615234, 0.296875, },
 		uv11 = { 0.738281, 0.445313, },
 	},
-	enigma_base_expertise = { 
+	enigma_base_gym_rat = { 
 		size = { 504, 304, },
 		uv00 = { 0.861328, 0.148438, },
 		uv11 = { 0.984375, 0.296875, },
 	},
-	enigma_base_field_medicine = { 
+	enigma_base_honorable_duel = { 
 		size = { 504, 304, },
 		uv00 = { 0.738281, 0.148438, },
 		uv11 = { 0.861328, 0.296875, },
 	},
-	enigma_base_gym_rat = { 
+	enigma_base_incompetence = { 
 		size = { 504, 304, },
 		uv00 = { 0.615234, 0.148438, },
 		uv11 = { 0.738281, 0.296875, },
 	},
-	enigma_base_honorable_duel = { 
+	enigma_base_injury = { 
 		size = { 504, 304, },
 		uv00 = { 0.492188, 0.742188, },
 		uv11 = { 0.615234, 0.890625, },
 	},
-	enigma_base_incompetence = { 
+	enigma_base_khornes_pact = { 
 		size = { 504, 304, },
 		uv00 = { 0.492188, 0.593750, },
 		uv11 = { 0.615234, 0.742188, },
 	},
-	enigma_base_injury = { 
+	enigma_base_life_sap = { 
 		size = { 504, 304, },
 		uv00 = { 0.492188, 0.445313, },
 		uv11 = { 0.615234, 0.593750, },
 	},
-	enigma_base_khornes_pact = { 
+	enigma_base_long_rest = { 
 		size = { 504, 304, },
 		uv00 = { 0.492188, 0.296875, },
 		uv11 = { 0.615234, 0.445313, },
 	},
-	enigma_base_life_sap = { 
+	enigma_base_parasite = { 
 		size = { 504, 304, },
 		uv00 = { 0.492188, 0.148438, },
 		uv11 = { 0.615234, 0.296875, },
 	},
-	enigma_base_long_rest = { 
+	enigma_base_plated_armor = { 
 		size = { 504, 304, },
 		uv00 = { 0.861328, 0.000000, },
 		uv11 = { 0.984375, 0.148438, },
 	},
-	enigma_base_parasite = { 
+	enigma_base_quick_stab = { 
 		size = { 504, 304, },
 		uv00 = { 0.738281, 0.000000, },
 		uv11 = { 0.861328, 0.148438, },
 	},
-	enigma_base_plated_armor = { 
+	enigma_base_quick_stimulants = { 
 		size = { 504, 304, },
 		uv00 = { 0.615234, 0.000000, },
 		uv11 = { 0.738281, 0.148438, },
 	},
-	enigma_base_quick_stab = { 
+	enigma_base_ranalds_play = { 
 		size = { 504, 304, },
 		uv00 = { 0.492188, 0.000000, },
 		uv11 = { 0.615234, 0.148438, },
 	},
-	enigma_base_quick_stimulants = { 
+	enigma_base_rat_banker = { 
 		size = { 504, 304, },
 		uv00 = { 0.369141, 0.742188, },
 		uv11 = { 0.492188, 0.890625, },
 	},
-	enigma_base_ranalds_play = { 
+	enigma_base_retreat = { 
 		size = { 504, 304, },
 		uv00 = { 0.369141, 0.593750, },
 		uv11 = { 0.492188, 0.742188, },
 	},
-	enigma_base_rat_banker = { 
+	enigma_base_silence = { 
 		size = { 504, 304, },
 		uv00 = { 0.369141, 0.445313, },
 		uv11 = { 0.492188, 0.593750, },
 	},
-	enigma_base_retreat = { 
+	enigma_base_slam = { 
 		size = { 504, 304, },
 		uv00 = { 0.369141, 0.296875, },
 		uv11 = { 0.492188, 0.445313, },
 	},
-	enigma_base_silence = { 
+	enigma_base_slow = { 
 		size = { 504, 304, },
 		uv00 = { 0.369141, 0.148438, },
 		uv11 = { 0.492188, 0.296875, },
 	},
-	enigma_base_slow = { 
+	enigma_base_soul_safe = { 
 		size = { 504, 304, },
 		uv00 = { 0.369141, 0.000000, },
 		uv11 = { 0.492188, 0.148438, },
 	},
-	enigma_base_soul_safe = { 
+	enigma_base_spare_engine = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.742188, },
 		uv11 = { 0.369141, 0.890625, },
 	},
-	enigma_base_spare_engine = { 
+	enigma_base_spartan = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.593750, },
 		uv11 = { 0.369141, 0.742188, },
 	},
-	enigma_base_spartan = { 
+	enigma_base_stolen_bell = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.445313, },
 		uv11 = { 0.369141, 0.593750, },
 	},
-	enigma_base_stolen_bell = { 
+	enigma_base_thermal_suit = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.296875, },
 		uv11 = { 0.369141, 0.445313, },
 	},
-	enigma_base_thermal_suit = { 
+	enigma_base_the_gas_mask = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.148438, },
 		uv11 = { 0.369141, 0.296875, },
 	},
-	enigma_base_the_gas_mask = { 
+	enigma_base_the_mill = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.000000, },
 		uv11 = { 0.369141, 0.148438, },
 	},
-	enigma_base_the_mill = { 
+	enigma_base_thorn = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.742188, },
 		uv11 = { 0.246094, 0.890625, },
 	},
-	enigma_base_thorn = { 
+	enigma_base_tough_skin = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.593750, },
 		uv11 = { 0.246094, 0.742188, },
 	},
-	enigma_base_tough_skin = { 
+	enigma_base_training_weights = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.445313, },
 		uv11 = { 0.246094, 0.593750, },
 	},
-	enigma_base_training_weights = { 
+	enigma_base_ubersreik_hero = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.296875, },
 		uv11 = { 0.246094, 0.445313, },
 	},
-	enigma_base_ubersreik_hero = { 
+	enigma_base_vault = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.148438, },
 		uv11 = { 0.246094, 0.296875, },

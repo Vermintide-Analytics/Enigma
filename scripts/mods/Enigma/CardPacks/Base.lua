@@ -294,7 +294,7 @@ pack_handle.register_attack_cards({
         name = "base_slam",
         rarity = EPIC,
         cost = 1,
-        --texture = "enigma_base_slam",
+        texture = "enigma_base_slam",
         damage_enemies = function(card)
             local us = card.context.unit
             local nearby_ai_units = enigma:get_ai_units_around_unit(us, 8)
@@ -323,6 +323,22 @@ pack_handle.register_attack_cards({
 })
 
 pack_handle.register_ability_cards({
+    avaricious_jar = {
+        name = "base_avaricious_jar",
+        rarity = RARE,
+        cost = 1,
+        texture = "enigma_base_avaricious_jar",
+        on_play_local = function(card)
+            game:draw_card(true)
+            game:draw_card(true)
+        end,
+        description_lines = {
+            {
+                format = "description_draw_cards",
+                parameters = { 2 }
+            }
+        }
+    },
     blood_transfusion = {
         name = "base_blood_transfusion",
         rarity = COMMON,
@@ -679,7 +695,7 @@ pack_handle.register_ability_cards({
         name = "base_vault",
         rarity = COMMON,
         cost = 0,
-        --texture = "enigma_base_vault"
+        texture = "enigma_base_vault",
         charges = 3,
         rotation_duration = 0.9,
         rotation_progress = 0,

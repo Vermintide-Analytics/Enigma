@@ -29,6 +29,9 @@ return {
     description_draw_a_card = {
         en = "Draw a card"
     },
+    description_draw_cards = {
+        en = "Draw %i cards"
+    },
     description_execute_man_sized_enemy = {
         en = "%+.1f%% Chance to Instantly Slay Man-Sized Enemies"
     },
@@ -175,6 +178,10 @@ return {
 
 
     -- Ability cards
+    base_avaricious_jar = {
+        en = "Avaricious Jar"
+    },
+
     base_blood_transfusion = {
         en = "Blood Transfusion"
     },
