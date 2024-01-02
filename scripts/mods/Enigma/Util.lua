@@ -126,27 +126,6 @@ local adjust_direction_by_first_person_rotation = function(unit, direction, incl
     rotation = not include_pitch_roll and Quaternion.flat_no_roll(rotation) or rotation
     return Quaternion.rotate(rotation, direction)
 end
-
-enigma.lerp_first_person_rotation = function(self, unit, initial_yaw, initial_pitch, initial_roll, target_yaw, target_pitch, target_roll, t)
-    if not ScriptUnit.has_extension(unit, "first_person_system") then
-        enigma:warning("Cannot lerp "..tostring(unit).." first person rotation. No first person extension attached to it")
-        return
-    end
-    local first_person = ScriptUnit.extension(unit, "first_person_system")
-
-    local lerped_yaw = math.lerp(initial_yaw, target_yaw, t)
-    local lerped_pitch = math.lerp(initial_pitch, target_pitch, t)
-    local lerped_roll = math.lerp(initial_roll, target_roll, t)
-
-    local yaw_rot = Quaternion(Vector3.up(), lerped_yaw)
-    local pitch_rot = Quaternion(Vector3.right(), lerped_pitch)
-    local roll_rot = Quaternion(Vector3.forward(), lerped_roll)
-
-    local final_rotation = Quaternion.multiply(Quaternion.multiply(yaw_rot, pitch_rot), roll_rot)
-
-    first_person:set_rotation(final_rotation)
-end
-
 enigma.leap_first_person = function(self, unit, direction, distance, speed, initial_vertical_speed, leap_events)
     if not ScriptUnit.has_extension(unit, "first_person_system") then
         enigma:warning("Cannot leap "..tostring(unit).." first person. No first person extension attached to it")
@@ -259,6 +238,14 @@ enigma.remove_no_clip_filter = function(self, unit, reason)
     end
     locomotion:remove_no_clip_filter(reason)
 end
+enigma.set_first_person_rotation = function(self, unit, rotation)
+    if not ScriptUnit.has_extension(unit, "first_person_system") then
+        enigma:warning("Cannot lerp "..tostring(unit).." first person rotation. No first person extension attached to it")
+        return
+    end
+    local first_person = ScriptUnit.extension(unit, "first_person_system")
+    first_person:set_rotation(rotation)
+end
 enigma.set_ignore_next_fall_damage = function(self, unit, ignore)
     if not ScriptUnit.has_extension(unit, "status_system") then
         enigma:warning("Cannot set "..tostring(unit).." to ignore next fall damage. No status extension attached to it")
@@ -320,6 +307,17 @@ enigma.get_level_progress = function(self)
     end
 
     return nil
+end
+enigma.lerp_yaw_pitch_roll = function(self, initial_yaw, initial_pitch, initial_roll, target_yaw, target_pitch, target_roll, t)
+    local lerped_yaw = math.lerp(initial_yaw, target_yaw, t)
+    local lerped_pitch = math.lerp(initial_pitch, target_pitch, t)
+    local lerped_roll = math.lerp(initial_roll, target_roll, t)
+
+    local yaw_rot = Quaternion(Vector3.up(), lerped_yaw)
+    local pitch_rot = Quaternion(Vector3.right(), lerped_pitch)
+    local roll_rot = Quaternion(Vector3.forward(), lerped_roll)
+
+    return Quaternion.multiply(Quaternion.multiply(yaw_rot, pitch_rot), roll_rot)
 end
 
 

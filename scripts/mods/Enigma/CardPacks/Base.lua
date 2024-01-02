@@ -706,7 +706,8 @@ pack_handle.register_ability_cards({
                 if card.rotation_progress > card.rotation_duration then
                     card.rotating = false
                 end
-                enigma:lerp_first_person_rotation(card.context.unit, card.starting_yaw, card.starting_pitch, card.starting_roll, card.target_yaw, card.target_pitch, card.target_roll, card.rotation_progress / card.rotation_duration)
+                local player_rotation = enigma:lerp_yaw_pitch_roll(card.starting_yaw, card.starting_pitch, card.starting_roll, card.target_yaw, card.target_pitch, card.target_roll, card.rotation_progress / card.rotation_duration)
+                enigma:set_first_person_rotation(card.context.unit, player_rotation)
             end
         end,
         on_play_local = function(card)
