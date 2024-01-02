@@ -586,25 +586,34 @@ enigma:register_mod_event_callback("update", bm, "update")
 
 
 -- Util
-bm.get_final_warpstone_cost = function(self, card)
-    local cost = card.cost
+bm.get_warpstone_cost_modifier_from_buffs = function(self, card)
+    local unit = card.context.unit
+    local modifier = 0
     local card_type = card.card_type
-    local local_player_unit = enigma:local_player_unit()
-    if not local_player_unit or not self.unit_custom_buffs[local_player_unit] then
-        return math.max(0, cost)
+    if not unit or not self.unit_custom_buffs[unit] then
+        return 0
     end
-    local custom_buffs = self.unit_custom_buffs[local_player_unit]
-    cost = cost + custom_buffs.added_card_cost
+    local custom_buffs = self.unit_custom_buffs[unit]
+    modifier = modifier + custom_buffs.added_card_cost
     if card_type == enigma.CARD_TYPE.ability then
-        cost = cost + custom_buffs.added_card_cost_ability
+        modifier = modifier + custom_buffs.added_card_cost_ability
     elseif card_type == enigma.CARD_TYPE.attack then
-        cost = cost + custom_buffs.added_card_cost_attack
+        modifier = modifier + custom_buffs.added_card_cost_attack
     elseif card_type == enigma.CARD_TYPE.chaos then
-        cost = cost + custom_buffs.added_card_cost_chaos
+        modifier = modifier + custom_buffs.added_card_cost_chaos
     elseif card_type == enigma.CARD_TYPE.passive then
-        cost = cost + custom_buffs.added_card_cost_passive
+        modifier = modifier + custom_buffs.added_card_cost_passive
     end
-    return math.max(0, cost)
+    return modifier
+end
+bm.get_final_warpstone_cost = function(self, card)
+    local modifier_from_buffs = self:get_warpstone_cost_modifier_from_buffs(card)
+    local cost = card.cost
+    if cost == "X" then
+        cost = card.cost_modifier + modifier_from_buffs
+        return "X", cost
+    end
+    return math.max(0, cost + modifier_from_buffs)
 end
 
 

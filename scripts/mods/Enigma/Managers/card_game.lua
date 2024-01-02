@@ -48,8 +48,8 @@ end
 local format_drawing_card = function(card, remote_peer_id)
     return format_card_event_log(card, "DRAWING", remote_peer_id)
 end
-local format_playing_card = function(card, remote_peer_id)
-    return format_card_event_log(card, "PLAYING", remote_peer_id)
+local format_playing_card = function(card, remote_peer_id, warpstone_payed)
+    return format_card_event_log(card, "PLAYING", remote_peer_id).." Warpstone payed: "..tostring(warpstone_payed)
 end
 local format_discarding_card = function(card, remote_peer_id)
     return format_card_event_log(card, "DISCARDING", remote_peer_id)
@@ -199,8 +199,8 @@ local invoke_card_event_callbacks_for_all_piles = function(data, func_name, ...)
 end
 
 local set_card_can_pay_warpstone = function(card)
-    local final_card_cost = enigma.managers.buff:get_final_warpstone_cost(card)
-    local can_pay = enigma.managers.warp:can_pay_cost(final_card_cost)
+    local final_card_cost, card_cost_modifier = enigma.managers.buff:get_final_warpstone_cost(card)
+    local can_pay = enigma.managers.warp:can_pay_cost(final_card_cost, card_cost_modifier)
     if card.can_pay_warpstone ~= can_pay then
         card:set_dirty()
     end
@@ -615,10 +615,10 @@ end
 ----------
 -- PLAY --
 ----------
-local handle_card_played = function(context, data, card, play_type, destination_index)
+local handle_card_played = function(context, data, card, play_type, destination_index, net_x_cost)
     local location = card.location
 
-    enigma:info(format_playing_card(card, data.peer_id))
+    enigma:info(format_playing_card(card, data.peer_id, net_x_cost))
 
     local can_expend_charge = card.charges and card.charges > 1
     if not can_expend_charge then
@@ -626,11 +626,11 @@ local handle_card_played = function(context, data, card, play_type, destination_
     end
 
     if cgm.is_server and card.on_play_server then
-        safe(card.on_play_server, card, play_type)
+        safe(card.on_play_server, card, play_type, net_x_cost)
     end
     local on_play_func_name = "on_play_"..context
     if card[on_play_func_name] then
-        safe(card[on_play_func_name], card, play_type)
+        safe(card[on_play_func_name], card, play_type, net_x_cost)
     end
     if cgm.is_server then
         invoke_card_event_callbacks_for_all_piles(data, "on_any_card_played_server", card)
@@ -681,12 +681,17 @@ local handle_card_played = function(context, data, card, play_type, destination_
     end
 end
 local handle_local_card_played = function(card, location, index, skip_warpstone_cost, play_type)
-    local final_card_cost = enigma.managers.buff:get_final_warpstone_cost(card)
-    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(final_card_cost) then
+    local final_card_cost, card_cost_modifier = enigma.managers.buff:get_final_warpstone_cost(card)
+    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(final_card_cost, card_cost_modifier) then
         if play_type == "manual" then
             enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
         end
         return
+    end
+    local net_x_cost = nil
+    if final_card_cost == "X" then
+        final_card_cost = enigma.managers.warp.warpstone
+        net_x_cost = final_card_cost - card_cost_modifier
     end
     if not skip_warpstone_cost then
         enigma.managers.warp:pay_cost(final_card_cost, "playing "..tostring(card.id))
@@ -694,7 +699,7 @@ local handle_local_card_played = function(card, location, index, skip_warpstone_
         enigma:info("Skipping warpstone cost for playing "..tostring(card.id))
     end
     
-    local new_location, inserted_index = handle_card_played("local", cgm.local_data, card, play_type)
+    local new_location, inserted_index = handle_card_played("local", cgm.local_data, card, play_type, nil, net_x_cost)
     if location == enigma.CARD_LOCATION.hand and location ~= new_location then
         enigma.managers.ui.hud_data.hand_indexes_just_removed[index] = true
         enigma.managers.ui.card_mode_ui_data.hand_indexes_just_removed[index] = true
@@ -707,11 +712,11 @@ local handle_local_card_played = function(card, location, index, skip_warpstone_
     end
 
     sound:trigger("play_card")
-    enigma:network_send(net.event_card_played, "others", card.local_id, play_type, inserted_index)
+    enigma:network_send(net.event_card_played, "others", card.local_id, play_type, inserted_index, net_x_cost)
     cgm.statistics.cards_played[play_type] = cgm.statistics.cards_played[play_type] + 1
     return true
 end
-enigma:network_register(net.event_card_played, function(peer_id, card_local_id, play_type, destination_index)
+enigma:network_register(net.event_card_played, function(peer_id, card_local_id, play_type, destination_index, net_x_cost)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
         enigma:warning(tostring(peer_id).." TOLD US OF A CARD PLAYED EVENT, BUT WE DON'T HAVE DATA FOR THAT PEER")
@@ -722,7 +727,7 @@ enigma:network_register(net.event_card_played, function(peer_id, card_local_id, 
         enigma:warning("Could not find a card to be played with local ID "..format_card_identification(peer_id, card_local_id))
         return
     end
-    handle_card_played("remote", peer_data, card, play_type, destination_index)
+    handle_card_played("remote", peer_data, card, play_type, destination_index, net_x_cost)
 end)
 cgm._play_card_at_index_from_location = function(self, location, index, skip_warpstone_cost, play_type)
     play_type = play_type or "auto"
@@ -762,8 +767,8 @@ cgm._play_card_at_index_from_location = function(self, location, index, skip_war
         return false, "card_condition_not_met"
     end
 
-    local final_card_cost = enigma.managers.buff:get_final_warpstone_cost(card)
-    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(final_card_cost) then
+    local final_card_cost, card_cost_modifier = enigma.managers.buff:get_final_warpstone_cost(card)
+    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(final_card_cost, card_cost_modifier) then
         if play_type == "manual" then
             enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
         end
@@ -1513,6 +1518,7 @@ end
 
 cgm.card_cost_changed = function(self, card)
     set_card_can_pay_warpstone(card)
+    card:_card_cost_changed()
 end
 cgm.change_card_cost = function(self, card, new_cost)
     if type(card) ~= "table" then
@@ -1523,22 +1529,37 @@ cgm.change_card_cost = function(self, card, new_cost)
         enigma:warning("Attempted to set card cost for someone else's card, this is not allowed.")
         return
     end
-    if type(new_cost) ~= "number" then
-        enigma:warning("Could not change card cost to non-number value: "..tostring(new_cost))
-    end
-    local floor = math.floor(new_cost)
-    if floor < 0 then
-        enigma:warning("Cannot set card cost to less than 0 (attempted to set to"..tostring(new_cost)..")")
+    if card.cost == "X" then
+        enigma:warning("Cannot directly set card cost of an X-cost card ["..tostring(card.id).."]")
         return
     end
-    card.cost = new_cost
+    if type(new_cost) ~= "number" then
+        enigma:warning("Could not change card cost to non-number value: "..tostring(new_cost))
+        return
+    end
+    local floor = math.floor(new_cost)
+    card.cost = floor
     self:card_cost_changed(card)
 end
 cgm.add_card_cost = function(self, card, cost_to_add)
+    if type(card) ~= "table" then
+        enigma:warning("Could not change card cost, invalid card")
+        return
+    end
+    if card.owner ~= enigma:local_peer_id() then
+        enigma:warning("Attempted to set card cost for someone else's card, this is not allowed.")
+        return
+    end
+    if type(cost_to_add) ~= "number" then
+        enigma:warning("Could not add non-number value to card cost: "..tostring(cost_to_add))
+        return
+    end
+    if card.cost == "X" then
+        card.cost_modifier = card.cost_modifier + cost_to_add
+        self:card_cost_changed(card)
+        return
+    end
     self:change_card_cost(card, card.cost + cost_to_add)
-end
-cgm.multiply_card_cost = function(self, card, multiplier)
-    self:change_card_cost(card, card.cost * multiplier)
 end
 
 cgm.on_warpstone_amount_changed = function(self)

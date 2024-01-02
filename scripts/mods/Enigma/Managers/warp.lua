@@ -140,9 +140,11 @@ wm._add_warp_dust_from_multiple_sources = function(self, data, raw)
     end
 end
 
-wm.can_pay_cost = function(self, cost)
-    local floor = math.floor(cost)
-    return self.warpstone >= floor
+wm.can_pay_cost = function(self, cost, cost_modifier)
+    if cost == "X" then
+        return self.warpstone > math.floor(cost_modifier)
+    end
+    return self.warpstone >= math.floor(cost)
 end
 
 wm.pay_cost = function(self, cost, reason)
