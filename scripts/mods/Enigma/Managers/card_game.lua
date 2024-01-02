@@ -1122,6 +1122,17 @@ enigma:network_register(net.sync_level_progress, function(peer_id, progress)
 
 end)
 
+cgm._handle_requested_card_play_from_ui = function(self, dt)
+    local index_from_hand_to_play = enigma.managers.user_interaction.request_play_card_from_hand_next_update
+    if index_from_hand_to_play then
+        local played = enigma.managers.game:play_card_from_hand(index_from_hand_to_play, false, "manual")
+        if played and enigma.managers.user_interaction.hide_card_mode_on_card_play then
+            enigma.card_mode = false
+        end
+        enigma.managers.user_interaction.request_play_card_from_hand_next_update = nil
+    end
+end
+
 cgm._update_active_channel = function(self, dt)
     if not self.local_data.active_channel then
         return
@@ -1468,6 +1479,8 @@ cgm._update_card_draw_gain_rate = function(self)
 end
 cgm.update = function(self, dt)
     if self.game_state == "in_progress" then
+
+        self:_handle_requested_card_play_from_ui(dt)
 
         self:_update_active_channel(dt)
         

@@ -91,10 +91,7 @@ EnigmaCardModeUI._handle_input = function(self, dt, t)
 	for i=1,hand_size do
 		local interaction_widget = self._widgets_by_name["hand_card_"..i.."_interaction"]
 		if interaction_widget.content.hotspot.on_pressed then
-			local played = enigma.managers.game:play_card_from_hand(i, false, "manual")
-			if played and enigma.managers.user_interaction.hide_card_mode_on_card_play then
-				enigma.card_mode = false
-			end
+			enigma.managers.user_interaction.request_play_card_from_hand_next_update = i
 		end
 	end
 end
