@@ -178,17 +178,12 @@ return {
 
 
     -- Ability cards
-    base_avaricious_jar = {
-        en = "Avaricious Jar"
-    },
-
     base_blood_transfusion = {
         en = "Blood Transfusion"
     },
     base_blood_transfusion_description = {
         en = "Evenly distribute a Heal of %i among Allied Heroes"
     },
-
 
     base_divine_insurance = {
         en = "Divine Insurance"
@@ -212,6 +207,10 @@ return {
 
     base_field_medicine = {
         en = "Field Medicine"
+    },
+    
+    base_gluttonous_jug = {
+        en = "Gluttonous Jug"
     },
 
     base_long_rest = {

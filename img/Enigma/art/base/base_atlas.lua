@@ -1,56 +1,56 @@
 -- Image Source: ../../../../enigma%20resources/art/base
 return { 
-	enigma_base_avaricious_jar = { 
+	enigma_base_blood_transfusion = { 
 		size = { 504, 304, },
 		uv00 = { 0.861328, 0.593750, },
 		uv11 = { 0.984375, 0.742188, },
 	},
-	enigma_base_blood_transfusion = { 
+	enigma_base_caffeinated = { 
 		size = { 504, 304, },
 		uv00 = { 0.738281, 0.742188, },
 		uv11 = { 0.861328, 0.890625, },
 	},
-	enigma_base_caffeinated = { 
+	enigma_base_collar_cage = { 
 		size = { 504, 304, },
 		uv00 = { 0.738281, 0.593750, },
 		uv11 = { 0.861328, 0.742188, },
 	},
-	enigma_base_collar_cage = { 
+	enigma_base_cyclone_strike = { 
 		size = { 504, 304, },
 		uv00 = { 0.861328, 0.445313, },
 		uv11 = { 0.984375, 0.593750, },
 	},
-	enigma_base_cyclone_strike = { 
+	enigma_base_divine_insurance = { 
 		size = { 504, 304, },
 		uv00 = { 0.738281, 0.445313, },
 		uv11 = { 0.861328, 0.593750, },
 	},
-	enigma_base_divine_insurance = { 
+	enigma_base_dubious_insurance = { 
 		size = { 504, 304, },
 		uv00 = { 0.615234, 0.742188, },
 		uv11 = { 0.738281, 0.890625, },
 	},
-	enigma_base_dubious_insurance = { 
+	enigma_base_eshin_counter_intelligence = { 
 		size = { 504, 304, },
 		uv00 = { 0.615234, 0.593750, },
 		uv11 = { 0.738281, 0.742188, },
 	},
-	enigma_base_eshin_counter_intelligence = { 
+	enigma_base_executioner = { 
 		size = { 504, 304, },
 		uv00 = { 0.615234, 0.445313, },
 		uv11 = { 0.738281, 0.593750, },
 	},
-	enigma_base_executioner = { 
+	enigma_base_expertise = { 
 		size = { 504, 304, },
 		uv00 = { 0.861328, 0.296875, },
 		uv11 = { 0.984375, 0.445313, },
 	},
-	enigma_base_expertise = { 
+	enigma_base_field_medicine = { 
 		size = { 504, 304, },
 		uv00 = { 0.738281, 0.296875, },
 		uv11 = { 0.861328, 0.445313, },
 	},
-	enigma_base_field_medicine = { 
+	enigma_base_gluttonous_jug = { 
 		size = { 504, 304, },
 		uv00 = { 0.615234, 0.296875, },
 		uv11 = { 0.738281, 0.445313, },

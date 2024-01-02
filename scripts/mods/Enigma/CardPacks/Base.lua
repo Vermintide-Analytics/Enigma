@@ -323,22 +323,6 @@ pack_handle.register_attack_cards({
 })
 
 pack_handle.register_ability_cards({
-    avaricious_jar = {
-        name = "base_avaricious_jar",
-        rarity = RARE,
-        cost = 1,
-        texture = "enigma_base_avaricious_jar",
-        on_play_local = function(card)
-            game:draw_card(true)
-            game:draw_card(true)
-        end,
-        description_lines = {
-            {
-                format = "description_draw_cards",
-                parameters = { 2 }
-            }
-        }
-    },
     blood_transfusion = {
         name = "base_blood_transfusion",
         rarity = COMMON,
@@ -469,6 +453,22 @@ pack_handle.register_ability_cards({
                 format = "description_restore_health",
                 parameters = { 20 }
             },
+        }
+    },
+    gluttonous_jug = {
+        name = "base_gluttonous_jug",
+        rarity = RARE,
+        cost = 1,
+        texture = "enigma_base_gluttonous_jug",
+        on_play_local = function(card)
+            game:draw_card(true)
+            game:draw_card(true)
+        end,
+        description_lines = {
+            {
+                format = "description_draw_cards",
+                parameters = { 2 }
+            }
         }
     },
     long_rest = {
