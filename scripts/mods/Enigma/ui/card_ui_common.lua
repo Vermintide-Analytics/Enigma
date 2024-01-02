@@ -1226,6 +1226,9 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	card_cost_widget.style.background.texture_size[2] = sizes.card_cost_circle_diameter
 	card_cost_widget.style.cost.font_size = sizes.card_cost_font_size
 	card_cost_widget.content.cost = card.cost
+	if card.local_id then
+		card_cost_widget.content.cost = enigma.managers.buff:get_final_warpstone_cost(card)
+	end
 	
 	card_duration_widget.style.background.texture_size[1] = sizes.card_cost_circle_diameter
 	card_duration_widget.style.background.texture_size[2] = sizes.card_cost_circle_diameter

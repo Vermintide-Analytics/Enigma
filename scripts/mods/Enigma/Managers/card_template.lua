@@ -127,6 +127,11 @@ local set_common_card_properties = function(template, type, pack, id)
     template.card_type = type
     template.card_pack = pack
     template.id = tostring(template.card_pack.id) .. "/" .. id
+    
+    if template.cost < 0 then
+        enigma:warning("Card ["..tostring(template.id).."] is defined with a cost less than 0. Cards cannot cost less than 0")
+        template.cost = 0
+    end
 end
 
 local template_template = {

@@ -198,8 +198,9 @@ local invoke_card_event_callbacks_for_all_piles = function(data, func_name, ...)
     invoke_card_event_callbacks(data.discard_pile, func_name, ...)
 end
 
-local set_card_can_pay_warpstone = function(card, cost)
-    local can_pay = enigma.managers.warp:can_pay_cost(cost)
+local set_card_can_pay_warpstone = function(card)
+    local final_card_cost = enigma.managers.buff:get_final_warpstone_cost(card)
+    local can_pay = enigma.managers.warp:can_pay_cost(final_card_cost)
     if card.can_pay_warpstone ~= can_pay then
         card:set_dirty()
     end
@@ -207,7 +208,7 @@ local set_card_can_pay_warpstone = function(card, cost)
 end
 
 cgm.init_game = function(self, game_init_data, debug)
-    enigma:echo("Initializing Enigma game")
+    enigma:info("Initializing Enigma game")
     self.is_server = game_init_data.is_server
     self.debug = debug
     self.game_state = "initializing"
@@ -416,14 +417,14 @@ cgm.start_game = function(self)
         enigma:echo("Enigma attempted to start a game before initialization and syncing with other players")
         return
     end
-    enigma:echo("Starting Enigma game")
+    enigma:info("Starting Enigma game")
     self.game_state = "in_progress"
     self.game_mode = enigma:game_mode()
     
     enigma.managers.sound:start_game()
     enigma.managers.warp:start_game(self.game_mode)
     for _,card in ipairs(self.local_data.draw_pile) do
-        set_card_can_pay_warpstone(card, card.cost)
+        set_card_can_pay_warpstone(card)
     end
 
     self.server_peer_id = Managers.mechanism:server_peer_id()
@@ -680,14 +681,15 @@ local handle_card_played = function(context, data, card, play_type, destination_
     end
 end
 local handle_local_card_played = function(card, location, index, skip_warpstone_cost, play_type)
-    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(card.cost) then
+    local final_card_cost = enigma.managers.buff:get_final_warpstone_cost(card)
+    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(final_card_cost) then
         if play_type == "manual" then
             enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
         end
         return
     end
     if not skip_warpstone_cost then
-        enigma.managers.warp:pay_cost(card.cost, "playing "..tostring(card.id))
+        enigma.managers.warp:pay_cost(final_card_cost, "playing "..tostring(card.id))
     else
         enigma:info("Skipping warpstone cost for playing "..tostring(card.id))
     end
@@ -760,7 +762,8 @@ cgm._play_card_at_index_from_location = function(self, location, index, skip_war
         return false, "card_condition_not_met"
     end
 
-    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(card.cost) then
+    local final_card_cost = enigma.managers.buff:get_final_warpstone_cost(card)
+    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(final_card_cost) then
         if play_type == "manual" then
             enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
         end
@@ -1495,7 +1498,9 @@ cgm.update = function(self, dt)
     end
 end
 
-
+cgm.card_cost_changed = function(self, card)
+    set_card_can_pay_warpstone(card)
+end
 cgm.change_card_cost = function(self, card, new_cost)
     if type(card) ~= "table" then
         enigma:warning("Could not change card cost, invalid card")
@@ -1514,7 +1519,7 @@ cgm.change_card_cost = function(self, card, new_cost)
         return
     end
     card.cost = new_cost
-    set_card_can_pay_warpstone(card, card.cost)
+    self:card_cost_changed(card)
 end
 cgm.add_card_cost = function(self, card, cost_to_add)
     self:change_card_cost(card, card.cost + cost_to_add)
@@ -1524,11 +1529,8 @@ cgm.multiply_card_cost = function(self, card, multiplier)
 end
 
 cgm.on_warpstone_amount_changed = function(self)
-    for _,card in ipairs(self.local_data.hand) do
-        set_card_can_pay_warpstone(card, card.cost)
-    end
-    for _,card in ipairs(self.local_data.draw_pile) do
-        set_card_can_pay_warpstone(card, card.cost)
+    for _,card in ipairs(self.local_data.all_cards) do
+        set_card_can_pay_warpstone(card)
     end
 end
 

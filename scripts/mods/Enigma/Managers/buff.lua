@@ -25,6 +25,11 @@ local bm = {
 enigma.managers.buff = bm
 
 local custom_buff_definitions = {
+    added_card_cost = 0,
+    added_card_cost_ability = 0,
+    added_card_cost_attack = 0,
+    added_card_cost_chaos = 0,
+    added_card_cost_passive = 0,
     attack_card_power_multiplier = 1.0,
     cannot_use_career_skill = 0,
     card_draw_multiplier = 1.0,
@@ -95,6 +100,58 @@ bm.global_stat_updated_callbacks.dodge_range = {
 }
 bm.global_stat_updated_callbacks.dodge_speed = {
     update_dodge_speed
+}
+
+-- Set card UI dirty when cost modifier has updated
+local set_all_ingame_card_ui_dirty = function(card_predicate)
+    if not enigma.managers.game:is_in_game() then
+        return
+    end
+    for _,card in ipairs(enigma.managers.game.local_data.all_cards) do
+        if not card_predicate or card_predicate(card) then
+            enigma.managers.game:card_cost_changed(card)
+            card:set_dirty()
+        end
+    end
+end
+local card_cost_stat_updated = function(unit, stat, new, old, card_type)
+    if unit ~= enigma:local_player_unit() then
+        return
+    end
+    local predicate = nil
+    if card_type then
+        predicate = function(card)
+            return card.card_type == card_type
+        end
+    end
+    set_all_ingame_card_ui_dirty(predicate)
+end
+local ability_card_cost_updated = function(unit, stat, new, old)
+    card_cost_stat_updated(unit, stat, new, old, enigma.CARD_TYPE.ability)
+end
+local attack_card_cost_updated = function(unit, stat, new, old)
+    card_cost_stat_updated(unit, stat, new, old, enigma.CARD_TYPE.attack)
+end
+local chaos_card_cost_updated = function(unit, stat, new, old)
+    card_cost_stat_updated(unit, stat, new, old, enigma.CARD_TYPE.chaos)
+end
+local passive_card_cost_updated = function(unit, stat, new, old)
+    card_cost_stat_updated(unit, stat, new, old, enigma.CARD_TYPE.passive)
+end
+bm.global_stat_updated_callbacks.added_card_cost = {
+    card_cost_stat_updated
+}
+bm.global_stat_updated_callbacks.added_card_cost_ability = {
+    ability_card_cost_updated
+}
+bm.global_stat_updated_callbacks.added_card_cost_attack = {
+    attack_card_cost_updated
+}
+bm.global_stat_updated_callbacks.added_card_cost_chaos = {
+    chaos_card_cost_updated
+}
+bm.global_stat_updated_callbacks.added_card_cost_passive = {
+    passive_card_cost_updated
 }
 
 bm._update_proc_buff = function(self, buff_extension, stat, difference, index)
@@ -228,7 +285,7 @@ bm._register_player_unit = function(self, player, unit)
     local breed = Unit.get_data(unit, "breed")
 
     if previous_player_unit and previous_player_unit ~= unit then
-        enigma:echo("Persisting buff data for "..tostring(unit).." ("..tostring(breed and breed.name)..")")
+        enigma:info("Persisting buff data for "..tostring(unit).." ("..tostring(breed and breed.name)..")")
         bm.unit_custom_buffs[unit] = bm.unit_custom_buffs[previous_player_unit]
         bm.unit_builtin_buffs[unit] = bm.unit_builtin_buffs[previous_player_unit]
         bm.unit_stat_surges[unit] = bm.unit_stat_surges[previous_player_unit]
@@ -254,7 +311,7 @@ bm._register_player_unit = function(self, player, unit)
             end
         end
     else
-        enigma:echo("Adding buff data for "..tostring(unit).." ("..tostring(breed and breed.name)..")")
+        enigma:info("Adding buff data for "..tostring(unit).." ("..tostring(breed and breed.name)..")")
         bm.unit_custom_buffs[unit] = table.shallow_copy(custom_buff_definitions)
         bm.unit_builtin_buffs[unit] = table.shallow_copy(builtin_buff_definitions)
         bm.unit_stat_surges[unit] = {}
@@ -525,6 +582,31 @@ bm.update = function(self, dt)
     end
 end
 enigma:register_mod_event_callback("update", bm, "update")
+
+
+
+-- Util
+bm.get_final_warpstone_cost = function(self, card)
+    local cost = card.cost
+    local card_type = card.card_type
+    local local_player_unit = enigma:local_player_unit()
+    if not local_player_unit or not self.unit_custom_buffs[local_player_unit] then
+        return math.max(0, cost)
+    end
+    local custom_buffs = self.unit_custom_buffs[local_player_unit]
+    cost = cost + custom_buffs.added_card_cost
+    if card_type == enigma.CARD_TYPE.ability then
+        cost = cost + custom_buffs.added_card_cost_ability
+    elseif card_type == enigma.CARD_TYPE.attack then
+        cost = cost + custom_buffs.added_card_cost_attack
+    elseif card_type == enigma.CARD_TYPE.chaos then
+        cost = cost + custom_buffs.added_card_cost_chaos
+    elseif card_type == enigma.CARD_TYPE.passive then
+        cost = cost + custom_buffs.added_card_cost_passive
+    end
+    return math.max(0, cost)
+end
+
 
 -- Debug
 enigma:command("enigma_buff_self", "", function(stat, value)
