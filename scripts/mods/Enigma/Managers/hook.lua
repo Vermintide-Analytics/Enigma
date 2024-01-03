@@ -2,7 +2,8 @@ local enigma = get_mod("Enigma")
 
 local hm = {
     prehooks = {},
-    hooks = {}
+    hooks = {},
+    complex_hooks = {}
 }
 enigma.managers.hook = hm
 
@@ -97,3 +98,49 @@ hm.unhook_safe = function(self, mod_id, object, func_name, hook_id)
         table.remove(hook_target_table, index)
     end
 end
+
+local add_complex_hook = function(object, func_name, func)
+    local hook_target_key = hook_target(object, func_name)
+    hm.prehooks[hook_target_key] = {}
+    hm.hooks[hook_target_key] = {}
+
+    enigma:hook(object, func_name, function(orig_func, ...)
+        for _,hook in ipairs(hm.prehooks[hook_target_key]) do
+            enigma:pcall(hook.func, ...)
+        end
+        local _1,_2,_3,_4,_5,_6,_7,_8,_9,_10 = func(orig_func, ...)
+        for _,hook in ipairs(hm.hooks[hook_target_key]) do
+            enigma:pcall(hook.func, ...)
+        end
+        -- Guess I'll have to find out the hard way if someone ever hooks a function that returns more than 10 values
+        -- But it's probably not worth it to always pack and unpack the return value
+        return _1,_2,_3,_4,_5,_6,_7,_8,_9,_10
+    end)
+end
+
+add_complex_hook(PlayerUnitHealthExtension, "add_damage", function(func, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+    local player_unit = self.unit
+    local custom_buffs = player_unit and enigma.managers.buff.unit_custom_buffs[player_unit]
+    local attacker = attacker_unit or source_attacker_unit
+
+    if custom_buffs then
+        if (attack_type == "warpfire" or damage_type == "warpfire_ground") then
+            if custom_buffs.chance_ignore_fire_rat > 0 and enigma:test_chance(custom_buffs.chance_ignore_fire_rat) then
+                return -- Ignore the damage entirely
+            end
+        elseif damage_source_name == "skaven_poison_wind_globadier" then
+            if custom_buffs.chance_ignore_globadier > 0 and enigma:test_chance(custom_buffs.chance_ignore_globadier) then
+                return -- Ignore the damage entirely
+            end
+        elseif damage_source_name == "chaos_vortex_sorcerer" then
+            if custom_buffs.chance_ignore_blightstormer > 0 and enigma:test_chance(custom_buffs.chance_ignore_blightstormer) or
+            custom_buffs.chance_ignore_blightstorm_damage > 0 and enigma:test_chance(custom_buffs.chance_ignore_blightstorm_damage) then
+                return -- Ignore the damage entirely
+            end
+        end
+    end
+
+    enigma:info("DAMAGE SOURCE: "..tostring(damage_source_name))
+
+    func(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+end)

@@ -40,6 +40,7 @@ local custom_buff_definitions = {
     cannot_use_career_skill = 0,
     card_draw_multiplier = 1.0,
     chance_ignore_assassin = 0,
+    chance_ignore_blightstorm_damage = 0,
     chance_ignore_blightstormer = 0,
     chance_ignore_fire_rat = 0,
     chance_ignore_globadier = 0,
@@ -530,6 +531,7 @@ end)
 
 enigma:hook(DamageUtils, "_projectile_hit_character", function(func, current_action, owner_unit, owner_player, owner_buff_extension, target_settings, hit_unit, hit_actor, hit_position, hit_rotation, hit_normal, is_husk, breed, is_server, check_buffs, is_critical_strike, difficulty_rank, power_level, ranged_boost_curve_multiplier, damage_profile, damage_source, critical_hit_effect, world, hit_effect, attack_direction, damage_source_id, damage_profile_id, max_targets, current_num_penetrations, current_amount_of_mass_hit, target_number)
     local shooter_breed = owner_unit and Unit.get_data(owner_unit, "breed")
+    enigma:info("Projectile hit character from: "..tostring(shooter_breed and shooter_breed.name))
     if shooter_breed and shooter_breed.name == "skaven_ratling_gunner" then
         local custom_buffs = hit_unit and bm.unit_custom_buffs[hit_unit]
         if custom_buffs and enigma:test_chance(custom_buffs.chance_ignore_gunner) then
@@ -537,6 +539,16 @@ enigma:hook(DamageUtils, "_projectile_hit_character", function(func, current_act
         end
     end
     return func(current_action, owner_unit, owner_player, owner_buff_extension, target_settings, hit_unit, hit_actor, hit_position, hit_rotation, hit_normal, is_husk, breed, is_server, check_buffs, is_critical_strike, difficulty_rank, power_level, ranged_boost_curve_multiplier, damage_profile, damage_source, critical_hit_effect, world, hit_effect, attack_direction, damage_source_id, damage_profile_id, max_targets, current_num_penetrations, current_amount_of_mass_hit, target_number)
+end)
+
+enigma:hook(GenericStatusExtension, "is_valid_vortex_target", function(func, self)
+    local custom_buffs = self.unit and bm.unit_custom_buffs and bm.unit_custom_buffs[self.unit]
+    if custom_buffs and custom_buffs.chance_ignore_blightstormer > 0 then
+        if enigma:test_chance(custom_buffs.chance_ignore_blightstormer) then
+            return false
+        end
+    end
+    return func(self)
 end)
 
 reg_hook_safe(GenericHealthExtension, "add_damage", function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)

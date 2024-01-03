@@ -171,6 +171,22 @@ pack_handle.register_passive_cards({
             }
         }
     },
+    the_gas_mask = {
+        rarity = LEGENDARY,
+        cost = 2,
+        texture = "enigma_base_the_gas_mask",
+        on_play_server = function(card)
+            buff:update_stat(card.context.unit, "chance_ignore_globadier", 1.0)
+        end,
+        sounds_2D = {
+            on_play = "legendary_buff"
+        },
+        description_lines = {
+            {
+                format = "base_the_gas_mask_description"
+            }
+        },
+    },
     the_mill = {
         rarity = LEGENDARY,
         cost = 3,
@@ -212,6 +228,22 @@ pack_handle.register_passive_cards({
             }
         }
     },
+    thermal_suit = {
+        rarity = LEGENDARY,
+        cost = 2,
+        texture = "enigma_base_thermal_suit",
+        on_play_server = function(card)
+            buff:update_stat(card.context.unit, "chance_ignore_fire_rat", 1.0)
+        end,
+        sounds_2D = {
+            on_play = "legendary_buff"
+        },
+        description_lines = {
+            {
+                format = "base_thermal_suit_description"
+            }
+        },
+    },
     tough_skin = {
         rarity = COMMON,
         cost = 0,
@@ -225,6 +257,47 @@ pack_handle.register_passive_cards({
                 parameters = { -2 }
             }
         }
+    },
+    training_weights = {
+        rarity = LEGENDARY,
+        cost = 2,
+        texture = "enigma_base_training_weights",
+        on_play_server = function(card)
+            buff:update_stat(card.context.unit, "chance_ignore_blightstorm_damage", 1.0)
+            
+            local status = ScriptUnit.extension(card.context.unit, "status_system")
+            if status:is_in_vortex() and status.in_vortex_unit then
+                local vortex_ext = ScriptUnit.has_extension(status.in_vortex_unit, "ai_supplementary_system") and ScriptUnit.extension(status.in_vortex_unit, "ai_supplementary_system")
+                if vortex_ext and vortex_ext._owner_unit then
+                    enigma:execute_unit(vortex_ext._owner_unit, card.context.unit)
+                end
+                card.update_server = function(card, dt)
+                    if not status:is_in_vortex() then
+                        if not card.out_of_vortex_seconds then
+                            card.out_of_vortex_seconds = 0
+                        else
+                            card.out_of_vortex_seconds = card.out_of_vortex_seconds + dt
+                            if card.out_of_vortex_seconds > 2 then
+                                card.update_server = nil
+                                buff:update_stat(card.context.unit, "chance_ignore_blightstormer", 1.0)
+                            end
+                        end
+                    else
+                        card.out_of_vortex_seconds = 0
+                    end
+                end
+            else
+                buff:update_stat(card.context.unit, "chance_ignore_blightstormer", 1.0)
+            end
+        end,
+        sounds_2D = {
+            on_play = "legendary_buff"
+        },
+        description_lines = {
+            {
+                format = "base_training_weights_description"
+            }
+        },
     },
     veteran = {
         rarity = EPIC,

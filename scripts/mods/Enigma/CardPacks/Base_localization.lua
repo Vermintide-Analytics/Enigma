@@ -138,6 +138,13 @@ return {
         en = "Spartan"
     },
 
+    base_the_gas_mask = {
+        en = "The Gas Mask",
+    },
+    base_the_gas_mask_description = {
+        en = "Gain immunity to globadiers"
+    },
+
     base_the_mill = {
         en = "The Mill"
     },
@@ -145,8 +152,22 @@ return {
         en = "Every %i seconds:\n- If your hand is full, discard a random card\n- Draw a card"
     },
 
+    base_thermal_suit = {
+        en = "Thermal Suit"
+    },
+    base_thermal_suit_description = {
+        en = "Gain immunity to warpfire throwers"
+    },
+
     base_tough_skin = {
         en = "Tough Skin"
+    },
+
+    base_training_weights = {
+        en = "Training Weights",
+    },
+    base_training_weights_description = {
+        en = "Gain immunity to blightstormers"
     },
 
     base_veteran = {
