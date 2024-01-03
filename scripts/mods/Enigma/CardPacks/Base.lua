@@ -170,6 +170,47 @@ pack_handle.register_passive_cards({
             }
         }
     },
+    the_mill = {
+        rarity = LEGENDARY,
+        cost = 3,
+        texture = "enigma_base_the_mill",
+        effect_interval = 60,
+        time_until_next_effect = 0,
+        update_always = function(card, dt)
+            if card.times_played > 0 then
+                card.time_until_next_effect = card.time_until_next_effect - dt
+                if card.time_until_next_effect <= 0 then
+                    card.time_until_next_effect = card.time_until_next_effect + card.effect_interval
+                    for i=1,card.times_played do
+                        if #game.local_data.hand > 4 then
+                            local random_hand_index = enigma:random_range_int(1, 5)
+                            local random_card_to_discard = game.local_data.hand[random_hand_index]
+                            game:discard_card(random_card_to_discard)
+                        end
+                        game:draw_card(true)
+                    end
+                end
+            end
+        end,
+        update_local = function(card, dt)
+            card:update_always(dt)
+        end,
+        out_of_play_update_local = function(card, dt)
+            card:update_always(dt)
+        end,
+        on_play_local = function(card)
+            if card.times_played < 1 then
+                card.time_until_next_effect = card.effect_interval
+            end
+        end,
+        ephemeral = true,
+        description_lines = {
+            {
+                format = "base_the_mill_description",
+                parameters = { 60 }
+            }
+        }
+    },
     tough_skin = {
         rarity = COMMON,
         cost = 0,

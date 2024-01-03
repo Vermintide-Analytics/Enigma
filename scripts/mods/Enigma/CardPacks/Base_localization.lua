@@ -138,6 +138,13 @@ return {
         en = "Spartan"
     },
 
+    base_the_mill = {
+        en = "The Mill"
+    },
+    base_the_mill_description = {
+        en = "Every %i seconds:\n- If your hand is full, discard a random card\n- Draw a card"
+    },
+
     base_tough_skin = {
         en = "Tough Skin"
     },

@@ -883,7 +883,7 @@ local handle_card_discarded = function(context, data, card, discard_type)
     end
     local on_any_card_discarded_func_name = "on_any_card_discarded_"..context
     invoke_card_event_callbacks_for_all_piles(data, on_any_card_discarded_func_name, card)
-    
+
     if card.sounds_3D.on_discard then
         sound:trigger_at_unit(card.sounds_3D.on_discard, data.unit)
     end
@@ -1267,6 +1267,11 @@ cgm._run_local_card_updates = function(self, dt)
             safe(card.update_local, card, dt)
         end
     end
+    for _,card in ipairs(self.local_data.out_of_play_pile) do
+        if card.out_of_play_update_local then
+            safe(card.out_of_play_update_local, card, dt)
+        end
+    end
 end
 cgm._run_remote_card_updates = function(self, dt)
     if self.is_server then
@@ -1287,6 +1292,11 @@ cgm._run_remote_card_updates = function(self, dt)
                         safe(card.update_server, card, dt)
                     end
                 end
+                for _,card in ipairs(peer_data.out_of_play_pile) do
+                    if card.out_of_play_update_server then
+                        safe(card.out_of_play_update_server, card, dt)
+                    end
+                end
             end
         end
     end
@@ -1305,6 +1315,11 @@ cgm._run_remote_card_updates = function(self, dt)
             for _,card in ipairs(peer_data.discard_pile) do
                 if card.update_remote then
                     safe(card.update_remote, card, dt)
+                end
+            end
+            for _,card in ipairs(peer_data.out_of_play_pile) do
+                if card.out_of_play_update_remote then
+                    safe(card.out_of_play_update_remote, card, dt)
                 end
             end
         end
