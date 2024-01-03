@@ -533,7 +533,7 @@ local handle_card_drawn = function(context, data)
     end
     local on_draw_func_name = "on_draw_"..context
     if card[on_draw_func_name] then
-        card[on_draw_func_name](card)
+        safe(card[on_draw_func_name], card)
     end
     add_card_to_pile(data, enigma.CARD_LOCATION.hand, card)
     if cgm.is_server then
@@ -546,7 +546,7 @@ local handle_card_drawn = function(context, data)
     end
     local on_location_changed_func_name = "on_location_changed_"..context
     if card[on_location_changed_func_name] then
-        card[on_location_changed_func_name](card, enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
+        safe(card[on_location_changed_func_name], card, enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
     end
     
     if card.sounds_3D.on_draw then
@@ -675,7 +675,7 @@ local handle_card_played = function(context, data, card, play_type, destination_
         end
         local on_location_changed_func_name = "on_location_changed_"..context
         if card[on_location_changed_func_name] then
-            card[on_location_changed_func_name](card, location, destination_pile)
+            safe(card[on_location_changed_func_name], card, location, destination_pile)
         end
         return destination_pile, inserted_index
     end
@@ -876,7 +876,7 @@ local handle_card_discarded = function(context, data, card, discard_type)
     end
     local on_location_changed_func_name = "on_location_changed_"..context
     if card[on_location_changed_func_name] then
-        card[on_location_changed_func_name](card, location, destination_pile)
+        safe(card[on_location_changed_func_name], card, location, destination_pile)
     end
     if card.sounds_3D.on_discard then
         sound:trigger_at_unit(card.sounds_3D.on_discard, data.unit)
@@ -1017,7 +1017,7 @@ local handle_shuffle_card_into_draw_pile = function(context, data, card, new_ind
     end
     local on_shuffle_into_draw_pile_func_name = "on_shuffle_into_draw_pile_"..context
     if card[on_shuffle_into_draw_pile_func_name] then
-        card[on_shuffle_into_draw_pile_func_name](card)
+        safe(card[on_shuffle_into_draw_pile_func_name], card)
     end
 
     add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, card)
@@ -1026,7 +1026,7 @@ local handle_shuffle_card_into_draw_pile = function(context, data, card, new_ind
     end
     local on_location_changed_func_name = "on_location_changed_"..context
     if card[on_location_changed_func_name] then
-        card[on_location_changed_func_name](card, location, enigma.CARD_LOCATION.draw_pile)
+        safe(card[on_location_changed_func_name], card, location, enigma.CARD_LOCATION.draw_pile)
     end
 end
 local handle_local_shuffle_card_into_draw_pile = function(card)
