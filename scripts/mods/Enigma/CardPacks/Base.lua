@@ -652,10 +652,12 @@ pack_handle.register_ability_cards({
         rarity = RARE,
         cost = 1,
         duration = 100,
+        skaven_aggro_modifier = 50,
+        power_level_skaven_modifier = 0.35,
         texture = "enigma_base_stolen_bell",
-        on_play_local = function(card)
-            -- TODO implement card
-            enigma:echo(card.name.." "..enigma:localize("not_yet_implemented"))
+        on_play_server = function(card)
+            buff:surge_stat(card.context.unit, "aggro_skaven", card.skaven_aggro_modifier, card.duration)
+            buff:surge_stat(card.context.unit, "power_level_skaven", card.power_level_skaven_modifier, card.duration)
         end,
         description_lines = {
             {

@@ -59,6 +59,8 @@ dofile("scripts/mods/Enigma/Managers/card_game")
 dofile("scripts/mods/Enigma/Managers/ui")
 dofile("scripts/mods/Enigma/Managers/debug")
 
+dofile("scripts/mods/Enigma/GameLogic/target_selection_utils")
+
 enigma.queued_prebuilt_decks = {}
 local process_prebuilt_deck_registrations = function()
     if not enigma.queued_prebuilt_decks then
