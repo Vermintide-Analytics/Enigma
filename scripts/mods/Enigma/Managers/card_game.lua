@@ -861,7 +861,7 @@ local handle_card_discarded = function(context, data, card, discard_type)
     end
     local on_discard_func_name = "on_discard_"..context
     if card[on_discard_func_name] then
-        card[on_discard_func_name](card, data, discard_type)
+        safe(card[on_discard_func_name], card, discard_type)
     end
     if cgm.is_server then
         invoke_card_event_callbacks_for_all_piles(data, "on_any_card_discarded_server", card)
