@@ -95,40 +95,6 @@ local add_card_instance_functions = function(inst)
         self.dirty_hud_ui = true
         self.dirty_card_mode_ui = true
     end
-    inst._card_cost_changed = function(self)
-        if self.cost == "X" then
-            local any_description_changed = false
-            local description_tables = {
-                self.description_lines,
-                self.auto_descriptions,
-                self.condition_descriptions,
-                self.retain_descriptions
-            }
-            for _,description_table in ipairs(description_tables) do
-                for _,line in ipairs(description_table) do
-                    if line.x_cost_parameters then
-                        for i,_ in ipairs(line.parameters) do
-                            if line.x_cost_parameters[i] then
-                                local x_cost_string = "X"
-                                local total_modifier = self.cost_modifier + line.x_cost_parameters[i] + enigma.managers.buff:get_warpstone_cost_modifier_from_buffs(self)
-                                if total_modifier > 0 then
-                                    x_cost_string = "(X-"..tostring(total_modifier)..")"
-                                elseif total_modifier < 0 then
-                                    x_cost_string = "(X+"..tostring(total_modifier*-1)..")"
-                                end
-                                line.parameters[i] = x_cost_string
-                                any_description_changed = true
-                                enigma:info("Changed description parameter to "..tostring(x_cost_string))
-                            end
-                        end
-                    end
-                end
-            end
-            if any_description_changed then
-                self:set_dirty()
-            end
-        end
-    end
 end
 
 local add_card_type_specific_properties = function(inst)
@@ -161,7 +127,7 @@ local set_common_card_properties = function(template, type, pack, id)
     template.card_type = type
     template.card_pack = pack
     template.id = tostring(template.card_pack.id) .. "/" .. id
-    
+
     if template.cost == "x" or template.cost == "X" then
         template.cost = "X" -- Standardize to capital X
         template.cost_modifier = 0

@@ -1518,7 +1518,39 @@ end
 
 cgm.card_cost_changed = function(self, card)
     set_card_can_pay_warpstone(card)
-    card:_card_cost_changed()
+
+    if card.cost == "X" then
+        local any_description_changed = false
+        local description_tables = {
+            card.description_lines,
+            card.auto_descriptions,
+            card.condition_descriptions,
+            card.retain_descriptions
+        }
+        for _,description_table in ipairs(description_tables) do
+            for _,line in ipairs(description_table) do
+                if line.x_cost_parameters then
+                    for i,_ in ipairs(line.parameters) do
+                        if line.x_cost_parameters[i] then
+                            local x_cost_string = "X"
+                            local total_modifier = card.cost_modifier + line.x_cost_parameters[i] + enigma.managers.buff:get_warpstone_cost_modifier_from_buffs(card)
+                            if total_modifier > 0 then
+                                x_cost_string = "(X-"..tostring(total_modifier)..")"
+                            elseif total_modifier < 0 then
+                                x_cost_string = "(X+"..tostring(total_modifier*-1)..")"
+                            end
+                            line.parameters[i] = x_cost_string
+                            any_description_changed = true
+                            enigma:info("Changed description parameter to "..tostring(x_cost_string))
+                        end
+                    end
+                end
+            end
+        end
+        if any_description_changed then
+            card:set_dirty()
+        end
+    end
 end
 cgm.change_card_cost = function(self, card, new_cost)
     if type(card) ~= "table" then
