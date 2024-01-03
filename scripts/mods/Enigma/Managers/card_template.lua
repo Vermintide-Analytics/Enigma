@@ -129,9 +129,6 @@ local add_card_instance_functions = function(inst)
             end
         end
     end
-    inst.x_cost_modifier = function(self)
-
-    end
 end
 
 local add_card_type_specific_properties = function(inst)
