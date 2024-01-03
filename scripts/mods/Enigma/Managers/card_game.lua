@@ -539,11 +539,6 @@ local handle_card_drawn = function(context, data)
     if card[on_draw_func_name] then
         safe(card[on_draw_func_name], card)
     end
-    if cgm.is_server then
-        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_drawn_server", card)
-    end
-    local on_any_card_drawn_func_name = "on_any_card_drawn_"..context
-    invoke_card_event_callbacks_for_all_piles(data, on_any_card_drawn_func_name, card)
     add_card_to_pile(data, enigma.CARD_LOCATION.hand, card)
     if cgm.is_server and card.on_location_changed_server then
         safe(card.on_location_changed_server, card, enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
@@ -552,6 +547,11 @@ local handle_card_drawn = function(context, data)
     if card[on_location_changed_func_name] then
         safe(card[on_location_changed_func_name], card, enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
     end
+    if cgm.is_server then
+        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_drawn_server", card)
+    end
+    local on_any_card_drawn_func_name = "on_any_card_drawn_"..context
+    invoke_card_event_callbacks_for_all_piles(data, on_any_card_drawn_func_name, card)
     
     if card.sounds_3D.on_draw then
         sound:trigger_at_unit(card.sounds_3D.on_draw, data.unit)
@@ -636,11 +636,6 @@ local handle_card_played = function(context, data, card, play_type, destination_
     if card[on_play_func_name] then
         safe(card[on_play_func_name], card, play_type, net_x_cost)
     end
-    if cgm.is_server then
-        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_played_server", card)
-    end
-    local any_card_played_func = "on_any_card_played_"..context
-    invoke_card_event_callbacks_for_all_piles(data, any_card_played_func, card)
 
     card.times_played = card.times_played + 1
     if card.duration then
@@ -650,13 +645,14 @@ local handle_card_played = function(context, data, card, play_type, destination_
     if card.sounds_3D.on_play then
         sound:trigger_at_unit(card.sounds_3D.on_play, data.unit)
     end
+    local destination_pile = nil
+    local inserted_index = nil
     if can_expend_charge then
         card.charges = card.charges - 1
         card:set_dirty()
-        return enigma.CARD_LOCATION.hand
+        destination_pile = enigma.CARD_LOCATION.hand
     else
-        local destination_pile = enigma.CARD_LOCATION.discard_pile
-        local inserted_index = nil
+        destination_pile = enigma.CARD_LOCATION.discard_pile
         if card.ephemeral then
             destination_pile = enigma.CARD_LOCATION.out_of_play_pile
         end
@@ -681,8 +677,13 @@ local handle_card_played = function(context, data, card, play_type, destination_
         if card[on_location_changed_func_name] then
             safe(card[on_location_changed_func_name], card, location, destination_pile)
         end
-        return destination_pile, inserted_index
     end
+    if cgm.is_server then
+        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_played_server", card)
+    end
+    local any_card_played_func = "on_any_card_played_"..context
+    invoke_card_event_callbacks_for_all_piles(data, any_card_played_func, card)
+    return destination_pile, inserted_index
 end
 local handle_local_card_played = function(card, location, index, skip_warpstone_cost, play_type)
     local final_card_cost, card_cost_modifier = enigma.managers.buff:get_final_warpstone_cost(card)
@@ -867,11 +868,6 @@ local handle_card_discarded = function(context, data, card, discard_type)
     if card[on_discard_func_name] then
         safe(card[on_discard_func_name], card, discard_type)
     end
-    if cgm.is_server then
-        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_discarded_server", card)
-    end
-    local on_any_card_discarded_func_name = "on_any_card_discarded_"..context
-    invoke_card_event_callbacks_for_all_piles(data, on_any_card_discarded_func_name, card)
 
     local destination_pile = enigma.CARD_LOCATION.discard_pile
     add_card_to_pile(data, destination_pile, card)
@@ -882,6 +878,12 @@ local handle_card_discarded = function(context, data, card, discard_type)
     if card[on_location_changed_func_name] then
         safe(card[on_location_changed_func_name], card, location, destination_pile)
     end
+    if cgm.is_server then
+        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_discarded_server", card)
+    end
+    local on_any_card_discarded_func_name = "on_any_card_discarded_"..context
+    invoke_card_event_callbacks_for_all_piles(data, on_any_card_discarded_func_name, card)
+    
     if card.sounds_3D.on_discard then
         sound:trigger_at_unit(card.sounds_3D.on_discard, data.unit)
     end
