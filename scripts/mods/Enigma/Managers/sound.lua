@@ -32,7 +32,7 @@ sm.end_game = function(self)
 end
 
 sm.trigger = function(self, event_name) -- Shorthand for trigger_2D
-    self:trigger_2D(event_name)
+    return self:trigger_2D(event_name)
 end
 sm.trigger_2D = function(self, event_name)
     if not self.wwise_world then
