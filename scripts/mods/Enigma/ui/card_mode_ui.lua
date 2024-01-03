@@ -33,6 +33,12 @@ EnigmaCardModeUI.create_ui_elements = function (self)
 	self.ui_scenegraph = UISceneGraph.init_scenegraph(definitions.scenegraph_definition)
 	self._widgets, self._widgets_by_name = UIUtils.create_widgets(definitions.widgets)
 
+	for id,widget in pairs(self._widgets_by_name) do
+		if id:find("hand_") then
+			widget.cached_card = 1
+		end
+	end
+
 	UIRenderer.clear_scenegraph_queue(self.ui_renderer)
 end
 

@@ -233,13 +233,6 @@ EnigmaDeckEditorUI.update = function (self, dt, t)
 		return
 	end
 
-	local start_offset = (self.current_page - 1) * TOTAL_CARD_TILES
-	for i=1, TOTAL_CARD_TILES do
-		local card_scenegraph_id = "card_"..i
-		local card = self.filtered_cards[start_offset + i]
-		card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, card_scenegraph_id, card, CARD_TILE_WIDTH)
-	end
-
 	self:_handle_input(dt, t)
 
 	self:draw(dt)

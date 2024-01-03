@@ -13,6 +13,7 @@ local net = {
     event_card_discarded = "event_card_discarded",
     event_card_shuffled_into_draw_pile = "event_card_shuffled_into_draw_pile",
     event_new_card_shuffled_into_draw_pile = "event_new_card_shuffled_into_draw_pile",
+    event_new_card_added_to_hand = "event_new_card_added_to_hand",
     broadcast_pacing_intensity = "broadcast_pacing_intensity",
     notify_card_condition_met_changed = "notify_card_condition_met_changed",
     notify_card_auto_condition_met_changed = "notify_card_auto_condition_met_changed",
@@ -56,6 +57,9 @@ local format_discarding_card = function(card, remote_peer_id)
 end
 local format_shuffling_card_into_draw_pile = function(card, remote_peer_id)
     return format_card_event_log(card, "SHUFFLING INTO DRAW PILE", remote_peer_id)
+end
+local format_adding_new_card_to_hand = function(card, remote_peer_id)
+    return format_card_event_log(card, "ADDING NEW CARD TO HAND", remote_peer_id)
 end
 
 local format_card_identification = function(peer_id, id)
@@ -974,6 +978,13 @@ local handle_shuffle_new_card_into_draw_pile = function(context, data, card_id, 
     local card = template:instance(data)
     enigma:info(format_shuffling_card_into_draw_pile(card, data.peer_id))
     add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, card, index)
+    if cgm.is_server and card.on_created_in_game_server then
+        safe(card.on_created_in_game_server, card)
+    end
+    local on_created_in_game_func_name = "on_created_in_game_"..context
+    if card[on_created_in_game_func_name] then
+        safe(card[on_created_in_game_func_name], card)
+    end
     if cgm.is_server and card.on_shuffle_into_draw_pile_server then
         safe(card.on_shuffle_into_draw_pile_server, card)
     end
@@ -981,6 +992,7 @@ local handle_shuffle_new_card_into_draw_pile = function(context, data, card_id, 
     if card[on_shuffle_into_draw_pile_func_name] then
         safe(card[on_shuffle_into_draw_pile_func_name], card)
     end
+    return card
 end
 local handle_local_shuffle_new_card_into_draw_pile = function(card_id)
     local draw_pile_size = #cgm.local_data.draw_pile
@@ -989,7 +1001,10 @@ local handle_local_shuffle_new_card_into_draw_pile = function(card_id)
     -- Need to send the RPC which creates the new card in other players' games, otherwise we risk
     -- sending other RPCs specific to this card before they even know about it.
     enigma:network_send(net.event_new_card_shuffled_into_draw_pile, "others", card_id, index)
-    handle_shuffle_new_card_into_draw_pile("local", cgm.local_data, card_id, index)
+    local added_card = handle_shuffle_new_card_into_draw_pile("local", cgm.local_data, card_id, index)
+    if added_card then
+        set_card_can_pay_warpstone(added_card)
+    end
 end
 enigma:network_register(net.event_new_card_shuffled_into_draw_pile, function(peer_id, card_id, index)
     local peer_data = cgm.peer_data[peer_id]
@@ -1061,6 +1076,59 @@ cgm.shuffle_card_into_draw_pile = function(self, card)
     
     return true
 end
+
+
+-----------------
+-- ADD TO HAND --
+-----------------
+local handle_add_new_card_to_hand = function(context, data, card_id)
+    local template = enigma.managers.card_template:get_card_from_id(card_id)
+    if not template then
+        enigma:warning("Could not add new card to hand, card not defined. ("..card_id..")")
+        return false, "invalid_card_id"
+    end
+    local card = template:instance(data)
+    enigma:info(format_adding_new_card_to_hand(card, data.peer_id))
+    add_card_to_pile(data, enigma.CARD_LOCATION.hand, card)
+    if cgm.is_server and card.on_created_in_game_server then
+        safe(card.on_created_in_game_server, card)
+    end
+    local on_created_in_game_func_name = "on_created_in_game_"..context
+    if card[on_created_in_game_func_name] then
+        safe(card[on_created_in_game_func_name], card)
+    end
+    return card
+end
+local handle_local_add_new_card_to_hand = function(card_id)
+    -- Need to send the RPC which creates the new card in other players' games, otherwise we risk
+    -- sending other RPCs specific to this card before they even know about it.
+    enigma:network_send(net.event_new_card_added_to_hand, "others", card_id)
+    local added_card = handle_add_new_card_to_hand("local", cgm.local_data, card_id)
+    if added_card then
+        set_card_can_pay_warpstone(added_card)
+    end
+end
+enigma:network_register(net.event_new_card_added_to_hand, function(peer_id, card_id)
+    local peer_data = cgm.peer_data[peer_id]
+    if not peer_data then
+        enigma:warning(tostring(peer_id).." TOLD US OF A NEW CARD ADDED TO HAND EVENT, BUT WE DON'T HAVE DATA FOR THAT PEER")
+        return
+    end
+    handle_add_new_card_to_hand("remote", peer_data, card_id)
+end)
+cgm.add_new_card_to_hand = function(self, card_id)
+    if not self:is_in_game() then
+        return false, "not_in_game"
+    end
+    if #self.local_data.hand > 4 then
+        enigma.managers.ui.time_since_hand_size_action_invalid = 0
+        return false, "hand_full"
+    end
+    handle_local_add_new_card_to_hand(card_id)
+    return true
+end
+
+
 
 ------------
 -- UPDATE --

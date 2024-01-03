@@ -328,6 +328,21 @@ pack_handle.register_attack_cards({
 })
 
 pack_handle.register_ability_cards({
+    test_ability = {
+        rarity = COMMON,
+        cost = 0,
+        --texture = "enigma_base_"..TEXTURE,
+        on_play_local = function(card)
+            game:add_new_card_to_hand("base/vault")
+        end,
+        description_lines = {
+            {
+                format = "description_take_damage",
+                parameters = { 40 }
+            },
+        }
+    },
+
     blood_transfusion = {
         rarity = COMMON,
         cost = 1,

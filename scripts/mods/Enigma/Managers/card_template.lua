@@ -143,6 +143,10 @@ local template_template = {
     on_location_changed_server = nil,
     on_location_changed_remote = nil,
 
+    on_shuffle_into_draw_pile_local = nil,
+    on_shuffle_into_draw_pile_server = nil,
+    on_shuffle_into_draw_pile_remote = nil,
+
     on_any_card_drawn_local = nil,
     on_any_card_drawn_server = nil,
     on_any_card_drawn_remote = nil,
@@ -158,6 +162,10 @@ local template_template = {
     on_game_start_local = nil,
     on_game_start_server = nil,
     on_game_start_remote = nil,
+
+    on_created_in_game_local = nil,
+    on_created_in_game_server = nil,
+    on_created_in_game_remote = nil,
 
     update_local = nil,
     update_server = nil,

@@ -109,6 +109,8 @@ EnigmaCardGameHud.create_ui_elements = function (self)
 	for id,widget in pairs(self._widgets_by_name) do
 		if not id:find("hand_") then
 			table.insert(self._widgets_except_hand, widget)
+		else
+			widget.cached_card = 1
 		end
 	end
 
