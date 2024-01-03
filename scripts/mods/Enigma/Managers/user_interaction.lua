@@ -13,7 +13,7 @@ end
 
 enigma.draw_card_hotkey_pressed = function()
     if forbid_keybinds() then return end
-    enigma.managers.game:draw_card()
+    enigma.managers.game:draw_card(true)
 end
 
 enigma.card_mode_key_pressed = function(down)

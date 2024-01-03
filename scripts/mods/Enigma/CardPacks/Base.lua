@@ -187,7 +187,7 @@ pack_handle.register_passive_cards({
                             local random_card_to_discard = game.local_data.hand[random_hand_index]
                             game:discard_card(random_card_to_discard)
                         end
-                        game:draw_card(true)
+                        game:draw_card()
                     end
                 end
             end
@@ -326,7 +326,7 @@ pack_handle.register_attack_cards({
             end
         end,
         on_play_local = function(card)
-            game:draw_card(true)
+            game:draw_card()
         end,
         description_lines = {
             {
@@ -502,8 +502,8 @@ pack_handle.register_ability_cards({
         cost = 1,
         texture = "enigma_base_gluttonous_jug",
         on_play_local = function(card)
-            game:draw_card(true)
-            game:draw_card(true)
+            game:draw_card()
+            game:draw_card()
         end,
         description_lines = {
             {

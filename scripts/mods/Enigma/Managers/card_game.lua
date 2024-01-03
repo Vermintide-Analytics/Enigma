@@ -494,7 +494,7 @@ cgm.start_game = function(self)
         self.last_broadcast_level_progress = 0
     end
 
-    self:draw_card(true)
+    self:draw_card()
     enigma:register_mod_event_callback("update", self, "update")
 end
 
@@ -585,7 +585,7 @@ enigma:network_register(net.event_card_drawn, function(peer_id, expected_card_lo
         return
     end
 end)
-cgm.draw_card = function(self, free)
+cgm.draw_card = function(self, pay_card_draw)
     if not self:is_in_game() then
         return false, "not_in_game"
     end
@@ -593,7 +593,7 @@ cgm.draw_card = function(self, free)
         enigma:echo("Cannot draw cards at this time")
         return false, "dead"
     end
-    if not free and self.local_data.available_card_draws < 1 then
+    if pay_card_draw and self.local_data.available_card_draws < 1 then
         enigma.managers.ui.time_since_available_draw_action_invalid = 0
         return false, "not_enough_card_draw"
     end
@@ -605,7 +605,7 @@ cgm.draw_card = function(self, free)
         enigma.managers.ui.time_since_hand_size_action_invalid = 0
         return false, "hand_full"
     end
-    handle_local_card_drawn(free)
+    handle_local_card_drawn(not pay_card_draw)
     return true
 end
 
