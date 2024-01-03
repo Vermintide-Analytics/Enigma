@@ -131,6 +131,7 @@ local condense_warpstone = function(warpstone, warp_dust)
 end
 
 wm.add_warp_dust = function(self, amount, source, raw)
+    source = source or "other"
     if not raw then
         local local_unit = enigma.managers.game.local_data and enigma.managers.game.local_data.unit
         if local_unit then
