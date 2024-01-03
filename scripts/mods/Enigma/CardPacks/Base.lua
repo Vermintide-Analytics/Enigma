@@ -611,7 +611,7 @@ pack_handle.register_ability_cards({
         end,
         on_draw_local = function(card)
             card.time_until_next_compound = card.compound_interval
-            local current_warpstone = warp.warpstone
+            local current_warpstone = warp:get_warpstone()
             warp:remove_warpstone(current_warpstone)
             card.principal = current_warpstone
             card.description_lines[1].parameters[1] = card.principal

@@ -31,6 +31,13 @@ local wm = {
 }
 enigma.managers.warp = wm
 
+wm.get_warpstone = function(self)
+    return self.warpstone
+end
+wm.get_warp_dust = function(self)
+    return self.warp_dust
+end
+
 local on_warpstone_amount_changed = function()
     enigma.managers.game:on_warpstone_amount_changed()
 end
