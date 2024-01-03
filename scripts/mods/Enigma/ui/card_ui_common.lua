@@ -1016,8 +1016,6 @@ local set_widgets_visibility = function(widgets, card_node_id, visible, has_dura
 	visible = not not visible
 	has_duration = not not has_duration
 	glow = not not glow
-	
-	enigma:info("Widget visibility --- visible: "..tostring(visible).." | glow: "..tostring(glow))
 
 	widgets[card_node_id].content.visible = visible
 	
@@ -1060,13 +1058,6 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	local has_retain = card and #card.retain_descriptions > 0
 	local in_hand = card and card.location == enigma.CARD_LOCATION.hand
 	local show_glow = playable or (has_retain and in_hand)
-	if card and not show_glow then
-		if not card.condition_met then
-			enigma:info("Not showing glow because card condition not met")
-		elseif not card.can_pay_warpstone then
-			enigma:info("Not showing glow because can't pay card warpstone")
-		end
-	end
 	set_widgets_visibility(widgets, card_node_id, card, card and card.duration, show_glow)
 	if not card then
 		return
