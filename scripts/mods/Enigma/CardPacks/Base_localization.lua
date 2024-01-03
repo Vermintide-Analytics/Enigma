@@ -241,6 +241,19 @@ return {
         en = "Tiny chance to play at a random time"
     },
 
+    base_rat_banker = {
+        en = "Rat Banker",
+    },
+    base_rat_banker_description_on_draw = {
+        en = "When drawn, bank your current warpstone in this card (%i)"
+    },
+    base_rat_banker_description_interest = {
+        en = "Accrue interest over time on banked warpstone",
+    },
+    base_rat_banker_description_on_play = {
+        en = "When played, regain all banked warpstone plus interest (%.2f)"
+    },
+
     base_retreat = {
         en = "Retreat!"
     },

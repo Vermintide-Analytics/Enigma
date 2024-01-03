@@ -9,6 +9,7 @@ local pack_handle = enigma.managers.card_pack:register_card_pack("Enigma", "base
 
 local game = enigma.managers.game
 local buff = enigma.managers.buff
+local warp = enigma.managers.warp
 
 
 --[[ CARD DEFINITION TEMPLATE
@@ -583,6 +584,56 @@ pack_handle.register_ability_cards({
         auto_descriptions = {
             {
                 format = "base_ranalds_play_auto"
+            }
+        }
+    },
+    rat_banker = {
+        rarity = EPIC,
+        cost = 0,
+        texture = "enigma_base_rat_banker",
+        principal = 0,
+        interest = 0,
+        compound_interval = 5,
+        time_until_next_compound = 5,
+        interest_rate = 0.012,
+        update_local = function(card, dt)
+            if card:is_in_hand() then
+                card.time_until_next_compound = card.time_until_next_compound - dt
+                if card.time_until_next_compound <= 0 then
+                    card.time_until_next_compound = card.time_until_next_compound + card.compound_interval
+                    local current_total = card.principal + card.interest
+                    local new_interest = current_total * card.interest_rate
+                    card.interest = card.interest + new_interest
+                    card.description_lines[3].parameters[1] = current_total + new_interest
+                    card:set_dirty()
+                end
+            end
+        end,
+        on_draw_local = function(card)
+            card.time_until_next_compound = card.compound_interval
+            local current_warpstone = warp.warpstone
+            warp:remove_warpstone(current_warpstone)
+            card.principal = current_warpstone
+            card.description_lines[1].parameters[1] = card.principal
+            card.description_lines[3].parameters[1] = card.principal
+            card:set_dirty()
+        end,
+        on_play_local = function(card)
+            warp:add_warpstone(card.principal + card.interest)
+            card.principal = 0
+            card.interest = 0
+        end,
+        description_lines = {
+            {
+                format = "base_rat_banker_description_on_draw",
+                parameters = { 0 }
+            },
+            {
+                format = "base_rat_banker_description_interest",
+            },
+            {
+                format = "base_rat_banker_description_on_play",
+                parameters = { 0 }
             }
         }
     },
