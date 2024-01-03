@@ -10,9 +10,28 @@ local pack_handle = enigma.managers.card_pack:register_card_pack("Enigma", "base
 local game = enigma.managers.game
 local buff = enigma.managers.buff
 
+
+--[[ CARD DEFINITION TEMPLATE
+
+    CARD_NAME = {
+        rarity = RARITY,
+        cost = COST,
+        --texture = "enigma_base_"..TEXTURE,
+        on_play_local = function(card)
+
+        end,
+        description_lines = {
+            {
+                format = DESCRIPTION_LINE_1,
+                parameters = { PARAMETER_1 }
+            }
+        }
+    },
+
+]]
+
 pack_handle.register_passive_cards({
     caffeinated = {
-        name = "base_caffeinated",
         rarity = COMMON,
         cost = 2,
         texture = "enigma_base_caffeinated",
@@ -32,7 +51,6 @@ pack_handle.register_passive_cards({
         end
     },
     collar_cage = {
-        name = "base_collar_cage",
         rarity = LEGENDARY,
         cost = 3,
         texture = "enigma_base_collar_cage",
@@ -49,7 +67,6 @@ pack_handle.register_passive_cards({
         },
     },
     eshin_counter_intelligence = {
-        name = "base_eshin_counter_intelligence",
         rarity = LEGENDARY,
         cost = 3,
         texture = "enigma_base_eshin_counter_intelligence",
@@ -66,7 +83,6 @@ pack_handle.register_passive_cards({
         }
     },
     executioner = {
-        name = "base_executioner",
         rarity = EPIC,
         cost = 2,
         texture = "enigma_base_executioner",
@@ -81,7 +97,6 @@ pack_handle.register_passive_cards({
         }
     },
     expertise = {
-        name = "base_expertise",
         rarity = COMMON,
         cost = 1,
         texture = "enigma_base_expertise",
@@ -96,7 +111,6 @@ pack_handle.register_passive_cards({
         }
     },
     gym_rat = {
-        name = "base_gym_rat",
         rarity = COMMON,
         cost = 1,
         texture = "enigma_base_gym_rat",
@@ -111,7 +125,6 @@ pack_handle.register_passive_cards({
         }
     },
     plated_armor = {
-        name = "base_plated_armor",
         rarity = LEGENDARY,
         cost = 2,
         texture = "enigma_base_plated_armor",
@@ -128,7 +141,6 @@ pack_handle.register_passive_cards({
         },
     },
     soul_safe = {
-        name = "base_soul_safe",
         rarity = LEGENDARY,
         cost = 3,
         texture = "enigma_base_soul_safe",
@@ -145,7 +157,6 @@ pack_handle.register_passive_cards({
         },
     },
     spartan = {
-        name = "base_spartan",
         rarity = RARE,
         cost = 1,
         texture = "enigma_base_spartan",
@@ -160,7 +171,6 @@ pack_handle.register_passive_cards({
         }
     },
     tough_skin = {
-        name = "base_tough_skin",
         rarity = COMMON,
         cost = 0,
         texture = "enigma_base_tough_skin",
@@ -175,7 +185,6 @@ pack_handle.register_passive_cards({
         }
     },
     veteran = {
-        name = "base_veteran",
         rarity = EPIC,
         cost = 4,
         texture = "enigma_base_veteran",
@@ -213,7 +222,6 @@ pack_handle.register_passive_cards({
         }
     },
     warp_flesh = {
-        name = "base_warp_flesh",
         rarity = RARE,
         cost = 2,
         texture = "enigma_base_warp_flesh",
@@ -246,7 +254,6 @@ pack_handle.register_passive_cards({
 
 pack_handle.register_attack_cards({
     cyclone_strike = {
-        name = "base_cyclone_strike",
         rarity = RARE,
         cost = 0,
         texture = "enigma_base_cyclone_strike",
@@ -267,7 +274,6 @@ pack_handle.register_attack_cards({
         }
     },
     quick_stab = {
-        name = "base_quick_stab",
         rarity = COMMON,
         cost = 0,
         texture = "enigma_base_quick_stab",
@@ -291,7 +297,6 @@ pack_handle.register_attack_cards({
         }
     },
     slam = {
-        name = "base_slam",
         rarity = EPIC,
         cost = 1,
         texture = "enigma_base_slam",
@@ -324,7 +329,6 @@ pack_handle.register_attack_cards({
 
 pack_handle.register_ability_cards({
     blood_transfusion = {
-        name = "base_blood_transfusion",
         rarity = COMMON,
         cost = 1,
         texture = "enigma_base_blood_transfusion",
@@ -356,7 +360,6 @@ pack_handle.register_ability_cards({
         }
     },
     divine_insurance = {
-        name = "base_divine_insurance",
         rarity = EPIC,
         cost = 2,
         texture = "enigma_base_divine_insurance",
@@ -399,7 +402,6 @@ pack_handle.register_ability_cards({
         }
     },
     dubious_insurance = {
-        name = "base_dubious_insurance",
         rarity = EPIC,
         cost = 0,
         texture = "enigma_base_dubious_insurance",
@@ -438,7 +440,6 @@ pack_handle.register_ability_cards({
         }
     },
     field_medicine = {
-        name = "base_field_medicine",
         rarity = COMMON,
         cost = 0,
         texture = "enigma_base_field_medicine",
@@ -456,7 +457,6 @@ pack_handle.register_ability_cards({
         }
     },
     gluttonous_jug = {
-        name = "base_gluttonous_jug",
         rarity = RARE,
         cost = 1,
         texture = "enigma_base_gluttonous_jug",
@@ -472,7 +472,6 @@ pack_handle.register_ability_cards({
         }
     },
     long_rest = {
-        name = "base_long_rest",
         rarity = LEGENDARY,
         cost = 3,
         texture = "enigma_base_long_rest",
@@ -494,7 +493,6 @@ pack_handle.register_ability_cards({
         }
     },
     quick_stimulants = {
-        name = "base_quick_stimulants",
         rarity = COMMON,
         cost = 0,
         texture = "enigma_base_quick_stimulants",
@@ -511,7 +509,6 @@ pack_handle.register_ability_cards({
         }
     },
     ranalds_play = {
-        name = "base_ranalds_play",
         rarity = LEGENDARY,
         cost = 1,
         texture = "enigma_base_ranalds_play",
@@ -549,7 +546,6 @@ pack_handle.register_ability_cards({
         }
     },
     retreat = {
-        name = "base_retreat",
         rarity = RARE,
         cost = 1,
         duration = 15,
@@ -593,7 +589,6 @@ pack_handle.register_ability_cards({
         }
     },
     spare_engine = {
-        name = "base_spare_engine",
         rarity = RARE,
         cost = 1,
         texture = "enigma_base_spare_engine",
@@ -613,7 +608,6 @@ pack_handle.register_ability_cards({
         }
     },
     stolen_bell = {
-        name = "base_stolen_bell",
         rarity = RARE,
         cost = 1,
         duration = 100,
@@ -633,7 +627,6 @@ pack_handle.register_ability_cards({
         }
     },
     ubersreik_hero = {
-        name = "base_ubersreik_hero",
         rarity = RARE,
         cost = 1,
         texture = "enigma_base_ubersreik_hero",
@@ -692,7 +685,6 @@ pack_handle.register_ability_cards({
         }
     },
     vault = {
-        name = "base_vault",
         rarity = COMMON,
         cost = 0,
         texture = "enigma_base_vault",
@@ -738,7 +730,6 @@ pack_handle.register_ability_cards({
         }
     },
     warpfire_strikes = {
-        name = "base_warpfire_strikes",
         rarity = COMMON,
         cost = 2,
         duration = 60,
@@ -764,7 +755,6 @@ pack_handle.register_ability_cards({
         }
     },
     warpstone_pie = {
-        name = "base_warpstone_pie",
         rarity = EPIC,
         cost = 1,
         duration = 31.4,
@@ -792,7 +782,6 @@ pack_handle.register_ability_cards({
         }
     },
     wrath_of_khorne = {
-        name = "base_wrath_of_khorne",
         rarity = EPIC,
         cost = 1,
         duration = 10,
@@ -811,7 +800,6 @@ pack_handle.register_ability_cards({
 
 pack_handle.register_chaos_cards({
     incompetence = {
-        name = "base_incompetence",
         rarity = COMMON,
         cost = 1,
         texture = "enigma_base_incompetence",
@@ -835,7 +823,6 @@ pack_handle.register_chaos_cards({
         ephemeral = true
     },
     injury = {
-        name = "base_injury",
         rarity = EPIC,
         cost = 0,
         times_drawn = 0,
@@ -860,7 +847,6 @@ pack_handle.register_chaos_cards({
         echo = true
     },
     life_sap = {
-        name = "base_life_sap",
         rarity = RARE,
         cost = 2,
         texture = "enigma_base_life_sap",
@@ -882,7 +868,6 @@ pack_handle.register_chaos_cards({
         ephemeral = true
     },
     parasite = {
-        name = "base_parasite",
         rarity = EPIC,
         cost = 2,
         texture = "enigma_base_parasite",
@@ -912,7 +897,6 @@ pack_handle.register_chaos_cards({
         ephemeral = true
     },
     silence = {
-        name = "base_silence",
         rarity = LEGENDARY,
         cost = 3,
         texture = "enigma_base_silence",
@@ -934,7 +918,6 @@ pack_handle.register_chaos_cards({
         ephemeral = true
     },
     slow = {
-        name = "base_slow",
         rarity = RARE,
         cost = 1,
         texture = "enigma_base_slow",
@@ -960,7 +943,6 @@ pack_handle.register_chaos_cards({
         ephemeral = true
     },
     thorn = {
-        name = "base_thorn",
         rarity = COMMON,
         cost = 0,
         texture = "enigma_base_thorn",
@@ -976,7 +958,6 @@ pack_handle.register_chaos_cards({
         ephemeral = true
     },
     virus = {
-        name = "base_virus",
         rarity = LEGENDARY,
         cost = 0,
         texture = "enigma_base_virus",
@@ -1047,7 +1028,6 @@ pack_handle.register_chaos_cards({
         unplayable = true
     },
     vulnerability = {
-        name = "base_vulnerability",
         rarity = RARE,
         cost = 0,
         duration = 60,

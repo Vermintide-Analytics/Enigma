@@ -155,7 +155,7 @@ end
 
 local set_common_card_properties = function(template, type, pack, id)
     local mod = get_mod(template.mod_id)
-    template.name = mod:localize(template.name)
+    template.name = mod:localize(template.name or pack.id.."_"..id)
     refresh_card_detail_localization(template)
 
     template.card_type = type
@@ -291,10 +291,6 @@ local template_template = {
 ctm.register_card = function(self, pack_id, card_id, card_type, card_def, additional_params)
     if type(card_id) ~= "string" then
         enigma:echo_bad_function_call("register_card", "id", {pack_id = pack_id, id = card_def.id, name = card_def.name, rarity = card_def.rarity, cost = card_def.cost})
-        return false
-    end
-    if type(card_def.name) ~= "string" then
-        enigma:echo_bad_function_call("register_card", "name", {pack_id = pack_id, id = card_def.id,  name = card_def.name, rarity = card_def.rarity, cost = card_def.cost})
         return false
     end
     if not enigma.validate_rarity(card_def.rarity) then
