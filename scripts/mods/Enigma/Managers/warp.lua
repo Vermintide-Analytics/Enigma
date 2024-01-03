@@ -117,9 +117,6 @@ wm.remove_warpstone = function(self, amount)
 end
 
 local condense_warpstone = function(warpstone, warp_dust)
-    if warpstone >= MAX_WARPSTONE then
-        return warpstone, 0
-    end
     if warp_dust > WARP_DUST_PER_WARPSTONE then
         return warpstone + 1, warp_dust - WARP_DUST_PER_WARPSTONE
     end
@@ -135,6 +132,13 @@ wm.add_warp_dust = function(self, amount, source, raw)
                 amount = amount * custom_buffs.warp_dust_multiplier
             end
         end
+    end
+
+    if self.warpstone >= MAX_WARPSTONE and source ~= "debug" and source ~= "other" then
+        -- Disable most common forms of warp dust gain when at the maximum amount of warpstone
+        -- The goal is to discourage hoarding all the warpstone for specific events, but
+        -- it should still allow for cards to add warpstone/warpdust beyond the maximum.
+        return
     end
 
     self.warp_dust = self.warp_dust + amount
