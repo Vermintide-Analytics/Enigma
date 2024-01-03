@@ -539,12 +539,12 @@ local handle_card_drawn = function(context, data)
     if card[on_draw_func_name] then
         safe(card[on_draw_func_name], card)
     end
-    add_card_to_pile(data, enigma.CARD_LOCATION.hand, card)
     if cgm.is_server then
         invoke_card_event_callbacks_for_all_piles(data, "on_any_card_drawn_server", card)
     end
     local on_any_card_drawn_func_name = "on_any_card_drawn_"..context
     invoke_card_event_callbacks_for_all_piles(data, on_any_card_drawn_func_name, card)
+    add_card_to_pile(data, enigma.CARD_LOCATION.hand, card)
     if cgm.is_server and card.on_location_changed_server then
         safe(card.on_location_changed_server, card, enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
     end
