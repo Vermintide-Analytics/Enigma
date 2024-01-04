@@ -130,7 +130,7 @@ pack_handle.register_passive_cards({
         cost = 2,
         texture = "enigma_base_khornes_pact",
         power_boost_per_damage_dealt = 0.0006,
-        shared_damage_multiplier = 0.5,
+        shared_damage_multiplier = 0.2,
         calculated_power_boost = 0,
         last_applied_power_boost = 0,
         power_boost_update_interval = 5,
