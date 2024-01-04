@@ -198,6 +198,7 @@ local template_template = {
     double_agent = false,
     ephemeral = false,
     echo = false,
+    primordial = false,
     unplayable = false,
     warp_hungry = nil,
 

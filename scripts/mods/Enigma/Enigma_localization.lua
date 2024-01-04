@@ -53,6 +53,9 @@ local loc = {
 	echo = {
 		en = "Echo",
 	},
+	primordial = {
+		en = "Primordial",
+	},
 	retain = {
 		en = "Retain",
 	},
@@ -82,6 +85,9 @@ local loc = {
 	},
 	keyword_echo = {
 		en = "Echo",
+	},
+	keyword_primordial = {
+		en = "Primordial",
 	},
 	keyword_retain = {
 		en = "Retain",

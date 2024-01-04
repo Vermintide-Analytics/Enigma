@@ -262,15 +262,20 @@ cgm.init_game = function(self, game_init_data, debug)
     self.furthest_level_progress = 0
 
     local card_manager = enigma.managers.card_template
+    local primordial_cards = {}
     for _,card_id in ipairs(card_ids) do
         local card_template = card_manager:get_card_from_id(card_id)
         local card = card_template:instance(local_data)
         
-        table.insert(local_data.draw_pile, card)
+        table.insert(card.primordial and primordial_cards or local_data.draw_pile, card)
         if self.is_server then
             enigma.managers.event:_add_card_server_event_callbacks(card)
         end
         enigma.managers.event:_add_card_local_event_callbacks(card)
+    end
+
+    for _,card in ipairs(primordial_cards) do
+        table.insert(local_data.draw_pile, card)
     end
 
     self.local_data = local_data
@@ -324,6 +329,7 @@ enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_nam
 
     local missing_packs = {}
     local card_manager = enigma.managers.card_template
+    local primordial_cards = {}
     for _,card_id in ipairs(card_ids_in_deck) do
         local card_template = card_manager:get_card_from_id(card_id)
         if not card_template then
@@ -342,12 +348,18 @@ enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_nam
         end
         card.owner = peer_id
         card.original_owner = card.owner
-        table.insert(peer_data.draw_pile, card)
+
+        table.insert(card.primordial and primordial_cards or peer_data.draw_pile, card)
         if cgm.is_server then
             enigma.managers.event:_add_card_server_event_callbacks(card)
         end
         enigma.managers.event:_add_card_remote_event_callbacks(card)
     end
+
+    for _,card in ipairs(primordial_cards) do
+        table.insert(peer_data.draw_pile, card)
+    end
+
     if #missing_packs > 0 then
         local pack_list = table.concat(missing_packs, ", ")
         enigma:chat_whisper(peer_id, "A player is missing the following card packs, and some cards may not work properly: (".. pack_list..")")

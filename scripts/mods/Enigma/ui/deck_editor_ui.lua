@@ -117,6 +117,10 @@ local filter_definitions = {
 			enigma:localize("keyword_echo")
 		},
 		{
+			"primordial",
+			enigma:localize("keyword_primordial")
+		},
+		{
 			"retain",
 			enigma:localize("keyword_retain")
 		},
