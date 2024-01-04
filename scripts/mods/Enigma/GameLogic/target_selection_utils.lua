@@ -325,6 +325,7 @@ enigma:hook_origin(PerceptionUtils, "pick_closest_target_with_spillover", functi
 		local is_player = status_extension
 		local is_valid = nil
 		is_valid = is_player and valid_players[target_unit] or enemy_units[target_unit] and HEALTH_ALIVE[target_unit]
+        is_valid = is_valid and not Unit.has_data(target_unit, "untargetable")
 
 		if not is_valid or end_of_override_t < t or status_extension and status_extension:is_disabled() then
 			override_targets[target_unit] = nil
@@ -377,4 +378,19 @@ enigma:hook_origin(PerceptionUtils, "pick_closest_target_with_spillover", functi
 	end
 
 	return best_target_unit, distance_to_target_sq
+end)
+
+enigma:hook(AISystem, "_update_taunt", function(func, self, t, blackboard)
+    if blackboard.indefinite_taunt and blackboard.taunt_unit and Unit.alive(blackboard.taunt_unit) then
+        blackboard.target_unit = blackboard.taunt_unit
+        return
+    end
+    func(self, t, blackboard)
+end)
+
+enigma:hook(AiUtils, "is_unwanted_target", function(func, side, enemy_unit)
+    if enemy_unit and Unit.has_data(enemy_unit, "untargetable") then
+        return true
+    end
+    return func(side, enemy_unit)
 end)

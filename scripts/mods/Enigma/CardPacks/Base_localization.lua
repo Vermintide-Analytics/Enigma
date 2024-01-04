@@ -241,6 +241,16 @@ return {
         en = "Gluttonous Jug"
     },
 
+    base_honorable_duel = {
+        en = "Honorable Duel"
+    },
+    base_honorable_duel_description = {
+        en = "Challenge the closest monster to a duel. Until you or that monster dies, these rules apply:\n- The monster can only damage and be damaged by you\n- You can only damage and be damaged by the monster\n- You gain %+.1f%% Power and %+.1f%% Attack Speed\n- Other enemies will not target you"
+    },
+    base_honorable_duel_condition = {
+        en = "At least one monster is alive and not already in a duel"
+    },
+
     base_long_rest = {
         en = "Long Rest"
     },

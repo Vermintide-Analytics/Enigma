@@ -11,7 +11,6 @@ local game = enigma.managers.game
 local buff = enigma.managers.buff
 local warp = enigma.managers.warp
 
-
 --[[ CARD DEFINITION TEMPLATE
 
     CARD_NAME = {
@@ -30,6 +29,7 @@ local warp = enigma.managers.warp
     },
 
 ]]
+
 
 pack_handle.register_passive_cards({
     caffeinated = {
@@ -264,7 +264,7 @@ pack_handle.register_passive_cards({
         texture = "enigma_base_training_weights",
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_blightstorm_damage", 1.0)
-            
+
             local status = ScriptUnit.extension(card.context.unit, "status_system")
             if status:is_in_vortex() and status.in_vortex_unit then
                 local vortex_ext = ScriptUnit.has_extension(status.in_vortex_unit, "ai_supplementary_system") and ScriptUnit.extension(status.in_vortex_unit, "ai_supplementary_system")
@@ -585,6 +585,169 @@ pack_handle.register_ability_cards({
                 parameters = { 2 }
             }
         }
+    },
+    honorable_duel = {
+        rarity = EPIC,
+        cost = 3,
+        texture = "enigma_base_honorable_duel",
+        power_level_boost = 0.2,
+        attack_speed_boost = 0.2,
+        in_duel = false,
+        start_duel = function(card, monster_unit)
+            local player_unit = card.context.unit
+            if card.dueling_monster then
+                enigma:warning("Could not start Honorable Duel, we were already dueling a monster...")
+                return
+            end
+            enigma:info("Starting Honorable Duel between "..tostring(player_unit).." and "..tostring(monster_unit))
+            card.in_duel = true
+            buff:update_stat(player_unit, "power_level", card.power_level_boost)
+            buff:update_stat(player_unit, "attack_speed", card.attack_speed_boost)
+
+            enigma:push_unit_untargetable(player_unit)
+            Unit.set_data(player_unit, "can_only_damage_unit", monster_unit)
+            Unit.set_data(player_unit, "can_only_be_damaged_by_unit", monster_unit)
+            Unit.set_data(player_unit, "enigma_base_honorable_dueling", monster_unit)
+            
+            enigma:set_taunt_unit(monster_unit, player_unit, true)
+            Unit.set_data(monster_unit, "can_only_damage_unit", player_unit)
+            Unit.set_data(monster_unit, "can_only_be_damaged_by_unit", player_unit)
+            Unit.set_data(monster_unit, "enigma_base_honorable_dueling", player_unit)
+
+            card.living_monsters[monster_unit] = "dueling"
+            card.dueling_monster = monster_unit
+        end,
+        end_duel = function(card)
+            local player_unit = card.context.unit
+            local monster_unit = card.dueling_monster
+
+            local player_alive = Unit.alive(player_unit)
+            local monster_alive = Unit.alive(monster_unit)
+
+            if not monster_unit then
+                enigma:warning("Could not end Honorable Duel, we were not dueling a monster...")
+                return
+            end
+            enigma:info("Ending Honorable Duel between "..tostring(player_unit).." and "..tostring(monster_unit))
+            card.in_duel = false
+            buff:update_stat(player_unit, "power_level", card.power_level_boost * -1)
+            buff:update_stat(player_unit, "attack_speed", card.attack_speed_boost * -1)
+
+            if player_alive then
+                enigma:pop_unit_untargetable(player_unit)
+                Unit.set_data(player_unit, "can_only_damage_unit", nil)
+                Unit.set_data(player_unit, "can_only_be_damaged_by_unit", nil)
+                Unit.set_data(player_unit, "enigma_base_honorable_dueling", nil)
+            end
+            if monster_alive then
+                enigma:unset_taunt_unit(monster_unit)
+                Unit.set_data(monster_unit, "can_only_damage_unit", nil)
+                Unit.set_data(monster_unit, "can_only_be_damaged_by_unit", nil)
+                Unit.set_data(monster_unit, "enigma_base_honorable_dueling", nil)
+            end
+            
+            card.living_monsters[monster_unit] = monster_alive and "alive" or nil
+            card.dueling_monster = nil
+        end,
+        on_game_start_server = function(card)
+            card.living_monsters = {}
+        end,
+        on_created_in_game_server = function(card)
+            card.living_monsters = {}
+        end,
+        on_play_server = function(card)
+            local us = card.context.unit
+            local closest_monster = nil
+            local closest_distance = math.huge
+            if card.living_monsters then
+                for unit,state in pairs(card.living_monsters) do
+                    if state == "alive" then
+                        local distance = enigma:distance_between_units(us, unit)
+                        if distance < closest_distance then
+                            closest_distance = distance
+                            closest_monster = unit
+                        end
+                    end
+                end
+            end
+            if closest_monster then
+                card:start_duel(closest_monster)
+            end
+        end,
+        on_any_card_played_server = function(card, played_card)
+            if played_card.id == "base/honorable_duel" then
+                for unit,_ in pairs(card.living_monsters) do
+                    local alive = Unit.alive(unit)
+                    local dueling = alive and Unit.has_data(unit, "enigma_base_honorable_dueling") and Unit.get_data(unit, "enigma_base_honorable_dueling")
+                    card.living_monsters[unit] = dueling and "dueling" or alive and "alive" or nil
+                end
+            end
+        end,
+        check_for_dueling_nonexistent_monster = function(card)
+            if card.dueling_monster and not Unit.alive(card.dueling_monster) then
+                card:end_duel()
+            end
+        end,
+        update_server = function(card, dt)
+            card:check_for_dueling_nonexistent_monster()
+        end,
+        out_of_play_update_server = function(card, dt)
+            card:check_for_dueling_nonexistent_monster()
+        end,
+        condition_server = function(card)
+            if not card.living_monsters then
+                return false
+            end
+            for unit,state in pairs(card.living_monsters) do
+                if state == "alive" then
+                    if not Unit.alive(unit) then
+                        card.living_monsters[unit] = nil
+                    end
+                    return true
+                end
+            end
+            return false
+        end,
+        events_server = {
+            enemy_spawned = function(card, spawned_unit, breed, ...)
+                if enigma:breed_is_monster(breed) then
+                    card.living_monsters[spawned_unit] = "alive"
+                end
+            end,
+            enemy_killed = function(card, killed_unit, killing_blow)
+                local breed = Unit.get_data(killed_unit, "breed")
+                if not enigma:breed_is_monster(breed) then
+                    return
+                end
+                
+                card.living_monsters[killed_unit] = nil
+
+                local us = card.context.unit
+                if killed_unit == card.dueling_monster then
+                    card:end_duel()
+                end
+            end,
+            player_killed = function(card, killed_unit, killing_blow)
+                local us = card.context.unit
+                if killed_unit ~= us then
+                    return
+                end
+                if card.dueling_monster then
+                    card:end_duel()
+                end
+            end,
+        },
+        description_lines = {
+            {
+                format = "base_honorable_duel_description",
+                parameters = { 20, 20 }
+            }
+        },
+        condition_descriptions = {
+            {
+                format = "base_honorable_duel_condition"
+            }
+        },
     },
     long_rest = {
         rarity = LEGENDARY,

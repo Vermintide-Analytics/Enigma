@@ -450,31 +450,22 @@ cgm.start_game = function(self)
         enigma.managers.buff:_register_player(player)
     end
     enigma:info("Finished setting player and unit data for all players")
-    for _,card in ipairs(self.local_data.draw_pile) do
-        if card.on_game_start_local then
-            if self.is_server and card.on_game_start_server then
-                safe(card.on_game_start_server, card)
-            end
-            safe(card.on_game_start_local, card)
+    for _,card in ipairs(self.local_data.all_cards) do
+        if self.is_server and card.on_game_start_server then
+            safe(card.on_game_start_server, card)
         end
-    end
-
-    for _,card in ipairs(self.local_data.draw_pile) do
         if card.on_game_start_local then
-            if self.is_server and card.on_game_start_server then
-                safe(card.on_game_start_server, card)
-            end
             safe(card.on_game_start_local, card)
         end
     end
 
     for _,peer_data in pairs(self.peer_data) do
-        for _,card in ipairs(peer_data.draw_pile) do
+        for _,card in ipairs(peer_data.all_cards) do
             if self.is_server and card.on_game_start_server then
                 safe(card.on_game_start_server, card)
             end
             if card.on_game_start_remote then
-                safe(card.on_game_start_local, card)
+                safe(card.on_game_start_remote, card)
             end
         end
     end

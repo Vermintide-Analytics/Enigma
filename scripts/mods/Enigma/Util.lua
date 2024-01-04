@@ -70,6 +70,19 @@ enigma.is_peer_local = function(self, peer_id)
 end
 
 -- Retrieve Unit/Player data
+local monster_breeds = {
+	chaos_troll = true,
+	chaos_spawn = true,
+	skaven_rat_ogre = true,
+	skaven_stormfiend = true,
+	beastmen_minotaur = true
+}
+enigma.breed_is_monster = function(self, breed)
+    if not breed then
+        return false
+    end
+    return monster_breeds[breed.name]
+end
 enigma.distance_between_units = function(self, unit1, unit2)
     if not unit1 or not unit2 then
         enigma:warning("Cannot get the distance between units: "..tostring(unit1).." and "..tostring(unit2))
@@ -129,11 +142,11 @@ end
 enigma.leap_first_person = function(self, unit, direction, distance, speed, initial_vertical_speed, leap_events)
     if not ScriptUnit.has_extension(unit, "first_person_system") then
         enigma:warning("Cannot leap "..tostring(unit).." first person. No first person extension attached to it")
-        return
+        return false
     end
     if not ScriptUnit.has_extension(unit, "status_system") then
         enigma:warning("Cannot leap "..tostring(unit).." first person. No status extension attached to it")
-        return
+        return false
     end
     local first_person = ScriptUnit.extension(unit, "first_person_system")
     direction = adjust_direction_by_first_person_rotation(unit, direction, false)
@@ -151,6 +164,7 @@ enigma.leap_first_person = function(self, unit, direction, distance, speed, init
         projected_hit_pos = Vector3Box(landing_position),
         leap_events = leap_events
     }
+    return true
 end
 enigma.leap_forward = function(self, player_unit, distance, speed, initial_vertical_speed, leap_events)
     enigma:leap_first_person(player_unit, Vector3(0, 1, 1), distance, speed, initial_vertical_speed, leap_events)
@@ -223,6 +237,17 @@ enigma.hit_enemy = function(self, hit_unit, attacking_player_unit, hit_zone_name
 
     enigma:_hit_enemy(hit_unit, attacking_player_unit, hit_zone_name, hit_position, Vector3.zero(), attacker_breed, power_level, damage_profile, 0, power_multiplier, is_critical_strike, true, true, false, break_shields, 1, false, 0)
 end
+enigma.pop_unit_untargetable = function(self, unit)
+    local current_untargetable = Unit.has_data(unit, "untargetable") and Unit.get_data(unit, "untargetable")
+    if current_untargetable then
+        local new_value = current_untargetable > 1 and current_untargetable - 1 or nil
+        Unit.set_data(unit, "untargetable", new_value)
+    end
+end
+enigma.push_unit_untargetable = function(self, unit)
+    local current_untargetable = Unit.has_data(unit, "untargetable") and Unit.get_data(unit, "untargetable") or 0
+    Unit.set_data(unit, "untargetable", current_untargetable + 1)
+end
 enigma.remove_no_clip = function(self, unit, reason)
     enigma:remove_no_clip_filter(unit, reason)
 end
@@ -254,7 +279,29 @@ enigma.set_ignore_next_fall_damage = function(self, unit, ignore)
     local status = ScriptUnit.extension(unit, "status_system")
     status:set_ignore_next_fall_damage(ignore)
 end
+enigma.set_taunt_unit = function (ai_unit, taunt_unit, taunt_bosses)
+	local blackboard = BLACKBOARDS[ai_unit]
 
+	if blackboard then
+		local breed = blackboard.breed
+		local taunt_target = breed and not breed.ignore_taunts and (not breed.boss or taunt_bosses)
+
+		if taunt_target then
+			if blackboard.taunt_unit ~= taunt_unit then
+				blackboard.taunt_unit = taunt_unit
+				blackboard.indefinite_taunt = true
+                local t = Managers.time:time("game")
+				blackboard.target_unit_found_time = t
+			end
+		end
+	end
+end
+enigma.unset_taunt_unit = function(ai_unit)
+	local blackboard = BLACKBOARDS[ai_unit]
+    if blackboard then
+        blackboard.indefinite_taunt = false
+    end
+end
 
 
 -- Execution

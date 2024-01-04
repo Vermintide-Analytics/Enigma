@@ -120,8 +120,18 @@ end
 
 add_complex_hook(PlayerUnitHealthExtension, "add_damage", function(func, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
     local player_unit = self.unit
-    local custom_buffs = player_unit and enigma.managers.buff.unit_custom_buffs[player_unit]
     local attacker = attacker_unit or source_attacker_unit
+
+    local can_only_damage_unit = attacker and Unit.has_data(attacker, "can_only_damage_unit") and Unit.get_data(attacker, "can_only_damage_unit")
+    if can_only_damage_unit and can_only_damage_unit ~= player_unit then
+        return
+    end
+    local can_only_be_damaged_by = Unit.has_data(player_unit, "can_only_be_damaged_by_unit") and Unit.get_data(player_unit, "can_only_be_damaged_by_unit")
+    if can_only_be_damaged_by and can_only_be_damaged_by ~= attacker then
+        return
+    end
+
+    local custom_buffs = player_unit and enigma.managers.buff.unit_custom_buffs[player_unit]
 
     if custom_buffs then
         if (attack_type == "warpfire" or damage_type == "warpfire_ground") then
@@ -142,3 +152,21 @@ add_complex_hook(PlayerUnitHealthExtension, "add_damage", function(func, self, a
 
     func(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
 end)
+
+local handle_damage_dealt = function(func, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+    local ai_unit = self.unit
+    local attacker = attacker_unit or source_attacker_unit
+
+    local can_only_damage_unit = attacker and Unit.has_data(attacker, "can_only_damage_unit") and Unit.get_data(attacker, "can_only_damage_unit")
+    if can_only_damage_unit and can_only_damage_unit ~= ai_unit then
+        return
+    end
+    local can_only_be_damaged_by = Unit.has_data(ai_unit, "can_only_be_damaged_by_unit") and Unit.get_data(ai_unit, "can_only_be_damaged_by_unit")
+    if can_only_be_damaged_by and can_only_be_damaged_by ~= attacker then
+        return
+    end
+
+    return func(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+end
+add_complex_hook(GenericHealthExtension, "add_damage", handle_damage_dealt)
+add_complex_hook(RatOgreHealthExtension, "add_damage", handle_damage_dealt)
