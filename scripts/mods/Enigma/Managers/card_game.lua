@@ -49,8 +49,12 @@ end
 local format_drawing_card = function(card, remote_peer_id)
     return format_card_event_log(card, "DRAWING", remote_peer_id)
 end
-local format_playing_card = function(card, remote_peer_id, warpstone_payed)
-    return format_card_event_log(card, "PLAYING", remote_peer_id).." Warpstone payed: "..tostring(warpstone_payed)
+local format_playing_card = function(card, remote_peer_id, net_x_cost)
+    local output = format_card_event_log(card, "PLAYING", remote_peer_id)
+    if net_x_cost then
+        output = output.." Warpstone payed: "..tostring(net_x_cost)
+    end
+    return output
 end
 local format_discarding_card = function(card, remote_peer_id)
     return format_card_event_log(card, "DISCARDING", remote_peer_id)
