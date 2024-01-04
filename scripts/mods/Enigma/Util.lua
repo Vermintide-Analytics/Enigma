@@ -296,7 +296,7 @@ enigma.set_ignore_next_fall_damage = function(self, unit, ignore)
     local status = ScriptUnit.extension(unit, "status_system")
     status:set_ignore_next_fall_damage(ignore)
 end
-enigma.set_taunt_unit = function (ai_unit, taunt_unit, taunt_bosses)
+enigma.set_taunt_unit = function (self, ai_unit, taunt_unit, taunt_bosses)
 	local blackboard = BLACKBOARDS[ai_unit]
 
 	if blackboard then
@@ -310,10 +310,10 @@ enigma.set_taunt_unit = function (ai_unit, taunt_unit, taunt_bosses)
                 local t = Managers.time:time("game")
 				blackboard.target_unit_found_time = t
 			end
-		end
-	end
+        end
+    end
 end
-enigma.unset_taunt_unit = function(ai_unit)
+enigma.unset_taunt_unit = function(self, ai_unit)
 	local blackboard = BLACKBOARDS[ai_unit]
     if blackboard then
         blackboard.indefinite_taunt = false
