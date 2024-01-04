@@ -173,6 +173,9 @@ enigma.apply_no_clip = function(self, unit, reason)
     self:apply_no_clip_filter(unit, reason, true, true, true, true, true, true)
 end
 enigma.apply_no_clip_filter = function(self, unit, reason, infantry, armored, monster, hero, berserker, super_armor)
+    if not unit then
+        return
+    end
     if not ScriptUnit.has_extension(unit, "locomotion_system") then
         enigma:warning("Cannot add "..tostring(unit).." no clip filter \""..tostring(reason).."\". No locomotion extension attached to it")
         return
@@ -196,6 +199,9 @@ enigma.force_damage = function(self, unit, damage, damager, damage_source)
         enigma:warning("Only the server can damage")
         return false
     end
+    if not unit then
+        return false
+    end
     damager = damager or unit
     damage_source = damage_source or "life_tap"
 
@@ -209,7 +215,7 @@ enigma.heal = function(self, unit, heal, healer, heal_type)
         enigma:warning("Only the server can heal")
         return false
     end
-    if not ALIVE[unit] then
+    if not unit or not ALIVE[unit] then
         return false
     end
     healer = healer or unit
@@ -234,6 +240,9 @@ enigma.hit_enemy = function(self, hit_unit, attacking_player_unit, hit_zone_name
     enigma:_hit_enemy(hit_unit, attacking_player_unit, hit_zone_name, hit_position, Vector3.zero(), attacker_breed, power_level, damage_profile, 0, power_multiplier, is_critical_strike, true, true, false, break_shields, 1, false, 0)
 end
 enigma.pop_unit_untargetable = function(self, unit)
+    if not unit then
+        return
+    end
     local current_untargetable = Unit.has_data(unit, "untargetable") and Unit.get_data(unit, "untargetable")
     if current_untargetable then
         local new_value = current_untargetable > 1 and current_untargetable - 1 or nil
@@ -241,6 +250,9 @@ enigma.pop_unit_untargetable = function(self, unit)
     end
 end
 enigma.push_unit_untargetable = function(self, unit)
+    if not unit then
+        return
+    end
     local current_untargetable = Unit.has_data(unit, "untargetable") and Unit.get_data(unit, "untargetable") or 0
     Unit.set_data(unit, "untargetable", current_untargetable + 1)
 end
@@ -248,6 +260,9 @@ enigma.remove_no_clip = function(self, unit, reason)
     enigma:remove_no_clip_filter(unit, reason)
 end
 enigma.remove_no_clip_filter = function(self, unit, reason)
+    if not unit then
+        return
+    end
     if not ScriptUnit.has_extension(unit, "locomotion_system") then
         enigma:warning("Cannot remove "..tostring(unit).." no clip filter \""..tostring(reason).."\". No locomotion extension attached to it")
         return
@@ -260,6 +275,9 @@ enigma.remove_no_clip_filter = function(self, unit, reason)
     locomotion:remove_no_clip_filter(reason)
 end
 enigma.set_first_person_rotation = function(self, unit, rotation)
+    if not unit then
+        return
+    end
     if not ScriptUnit.has_extension(unit, "first_person_system") then
         enigma:warning("Cannot lerp "..tostring(unit).." first person rotation. No first person extension attached to it")
         return
@@ -268,6 +286,9 @@ enigma.set_first_person_rotation = function(self, unit, rotation)
     first_person:set_rotation(rotation)
 end
 enigma.set_ignore_next_fall_damage = function(self, unit, ignore)
+    if not unit then
+        return
+    end
     if not ScriptUnit.has_extension(unit, "status_system") then
         enigma:warning("Cannot set "..tostring(unit).." to ignore next fall damage. No status extension attached to it")
         return
