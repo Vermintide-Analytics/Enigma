@@ -196,10 +196,8 @@ local invoke_card_event_callbacks = function(cards, func_name, ...)
         end
     end
 end
-local invoke_card_event_callbacks_for_all_piles = function(data, func_name, ...)
-    invoke_card_event_callbacks(data.draw_pile, func_name, ...)
-    invoke_card_event_callbacks(data.hand, func_name, ...)
-    invoke_card_event_callbacks(data.discard_pile, func_name, ...)
+local invoke_card_event_callbacks_for_all_cards = function(data, func_name, ...)
+    invoke_card_event_callbacks(data.all_cards, func_name, ...)
 end
 
 local set_card_can_pay_warpstone = function(card)
@@ -513,8 +511,9 @@ cgm.end_game = function(self)
 end
 
 
-cgm.unable_to_play = function(self)
-    return not self:is_in_game() or self.local_data.dead or self.local_data.waiting_for_rescue
+cgm.unable_to_play = function(self, data)
+    data = data or self.local_data
+    return not self:is_in_game() or data.dead or data.waiting_for_rescue
 end
 
 ----------
@@ -539,10 +538,10 @@ local handle_card_drawn = function(context, data)
         safe(card[on_location_changed_func_name], card, enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
     end
     if cgm.is_server then
-        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_drawn_server", card)
+        invoke_card_event_callbacks_for_all_cards(data, "on_any_card_drawn_server", card)
     end
     local on_any_card_drawn_func_name = "on_any_card_drawn_"..context
-    invoke_card_event_callbacks_for_all_piles(data, on_any_card_drawn_func_name, card)
+    invoke_card_event_callbacks_for_all_cards(data, on_any_card_drawn_func_name, card)
     
     if card.sounds_3D.on_draw then
         sound:trigger_at_unit(card.sounds_3D.on_draw, data.unit)
@@ -670,10 +669,10 @@ local handle_card_played = function(context, data, card, play_type, destination_
         end
     end
     if cgm.is_server then
-        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_played_server", card)
+        invoke_card_event_callbacks_for_all_cards(data, "on_any_card_played_server", card)
     end
     local any_card_played_func = "on_any_card_played_"..context
-    invoke_card_event_callbacks_for_all_piles(data, any_card_played_func, card)
+    invoke_card_event_callbacks_for_all_cards(data, any_card_played_func, card)
     return destination_pile, inserted_index
 end
 local handle_local_card_played = function(card, location, index, skip_warpstone_cost, play_type)
@@ -870,10 +869,10 @@ local handle_card_discarded = function(context, data, card, discard_type)
         safe(card[on_location_changed_func_name], card, location, destination_pile)
     end
     if cgm.is_server then
-        invoke_card_event_callbacks_for_all_piles(data, "on_any_card_discarded_server", card)
+        invoke_card_event_callbacks_for_all_cards(data, "on_any_card_discarded_server", card)
     end
     local on_any_card_discarded_func_name = "on_any_card_discarded_"..context
-    invoke_card_event_callbacks_for_all_piles(data, on_any_card_discarded_func_name, card)
+    invoke_card_event_callbacks_for_all_cards(data, on_any_card_discarded_func_name, card)
 
     if card.sounds_3D.on_discard then
         sound:trigger_at_unit(card.sounds_3D.on_discard, data.unit)
@@ -1227,90 +1226,35 @@ cgm._run_local_card_updates = function(self, dt)
         return
     end
     if self.is_server then
-        for _,card in ipairs(self.local_data.hand) do
-            if card.update_server then
-                safe(card.update_server, card, dt)
-            end
-        end
-        for _,card in ipairs(self.local_data.draw_pile) do
-            if card.update_server then
-                safe(card.update_server, card, dt)
-            end
-        end
-        for _,card in ipairs(self.local_data.discard_pile) do
+        for _,card in ipairs(self.local_data.all_cards) do
             if card.update_server then
                 safe(card.update_server, card, dt)
             end
         end
     end
-    for _,card in ipairs(self.local_data.hand) do
+    for _,card in ipairs(self.local_data.all_cards) do
         if card.update_local then
             safe(card.update_local, card, dt)
-        end
-    end
-    for _,card in ipairs(self.local_data.draw_pile) do
-        if card.update_local then
-            safe(card.update_local, card, dt)
-        end
-    end
-    for _,card in ipairs(self.local_data.discard_pile) do
-        if card.update_local then
-            safe(card.update_local, card, dt)
-        end
-    end
-    for _,card in ipairs(self.local_data.out_of_play_pile) do
-        if card.out_of_play_update_local then
-            safe(card.out_of_play_update_local, card, dt)
         end
     end
 end
 cgm._run_remote_card_updates = function(self, dt)
     if self.is_server then
         for _,peer_data in pairs(self.peer_data) do
-            if not self:unable_to_play() then
-                for _,card in ipairs(peer_data.hand) do
+            if not self:unable_to_play(peer_data) then
+                for _,card in ipairs(peer_data.all_cards) do
                     if card.update_server then
                         safe(card.update_server, card, dt)
-                    end
-                end
-                for _,card in ipairs(peer_data.draw_pile) do
-                    if card.update_server then
-                        safe(card.update_server, card, dt)
-                    end
-                end
-                for _,card in ipairs(peer_data.discard_pile) do
-                    if card.update_server then
-                        safe(card.update_server, card, dt)
-                    end
-                end
-                for _,card in ipairs(peer_data.out_of_play_pile) do
-                    if card.out_of_play_update_server then
-                        safe(card.out_of_play_update_server, card, dt)
                     end
                 end
             end
         end
     end
     for _,peer_data in pairs(self.peer_data) do
-        if not self:unable_to_play() then
-            for _,card in ipairs(peer_data.hand) do
+        if not self:unable_to_play(peer_data) then
+            for _,card in ipairs(peer_data.all_cards) do
                 if card.update_remote then
                     safe(card.update_remote, card, dt)
-                end
-            end
-            for _,card in ipairs(peer_data.draw_pile) do
-                if card.update_remote then
-                    safe(card.update_remote, card, dt)
-                end
-            end
-            for _,card in ipairs(peer_data.discard_pile) do
-                if card.update_remote then
-                    safe(card.update_remote, card, dt)
-                end
-            end
-            for _,card in ipairs(peer_data.out_of_play_pile) do
-                if card.out_of_play_update_remote then
-                    safe(card.out_of_play_update_remote, card, dt)
                 end
             end
         end
@@ -1333,15 +1277,11 @@ local _update_card_active_durations_for_cards = function(cards, dt)
 end
 
 cgm._update_local_card_active_durations = function(self, dt)
-    _update_card_active_durations_for_cards(self.local_data.draw_pile, dt)
-    _update_card_active_durations_for_cards(self.local_data.hand, dt)
-    _update_card_active_durations_for_cards(self.local_data.discard_pile, dt)
+    _update_card_active_durations_for_cards(self.local_data.all_cards, dt)
 end
 cgm._update_remote_card_active_durations = function(self, dt)
     for _,peer_data in pairs(self.peer_data) do
-        _update_card_active_durations_for_cards(peer_data.draw_pile, dt)
-        _update_card_active_durations_for_cards(peer_data.hand, dt)
-        _update_card_active_durations_for_cards(peer_data.discard_pile, dt)
+        _update_card_active_durations_for_cards(peer_data.all_cards, dt)
     end
 end
 
@@ -1419,7 +1359,7 @@ end
 cgm._evaluate_remote_card_conditions = function(self)
     -- Should only be run as server
     for peer_id,peer_data in pairs(self.peer_data) do
-        if not self:unable_to_play() then
+        if not self:unable_to_play(peer_data) then
             for index,card in ipairs(peer_data.hand) do
                 local cached_met_value = card.condition_server_met
                 if card.condition_server then
@@ -1450,7 +1390,7 @@ end
 cgm._evaluate_remote_card_autos = function(self)
     -- Should only be run as server
     for peer_id,peer_data in pairs(self.peer_data) do
-        if not self:unable_to_play() then
+        if not self:unable_to_play(peer_data) then
             for index,card in ipairs(peer_data.hand) do
                 local cached_met_value = card.auto_condition_server_met
                 if card.auto_condition_server then

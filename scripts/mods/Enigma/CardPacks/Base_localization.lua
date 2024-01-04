@@ -120,6 +120,13 @@ return {
         en = "Gym Rat"
     },
 
+    base_khornes_pact = {
+        en = "Khorne's Pact"
+    },
+    base_khornes_pact_description = {
+        en = "Incrase power based on recent damage dealt by allies.\nWhen allies take damage, you  take damage as well."
+    },
+
     base_plated_armor = {
         en = "Plated Armor"
     },

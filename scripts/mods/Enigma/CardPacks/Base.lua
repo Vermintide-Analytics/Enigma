@@ -125,6 +125,63 @@ pack_handle.register_passive_cards({
             }
         }
     },
+    khornes_pact = {
+        rarity = LEGENDARY,
+        cost = 2,
+        texture = "enigma_base_khornes_pact",
+        power_boost_per_damage_dealt = 0.0006,
+        shared_damage_multiplier = 0.5,
+        calculated_power_boost = 0,
+        last_applied_power_boost = 0,
+        power_boost_update_interval = 5,
+        time_until_power_boost_update = 0,
+        on_play_server = function(card)
+            card.time_until_power_boost_update = card.power_boost_update_interval
+        end,
+        update_server = function(card, dt)
+            if card.times_played > 0 then
+                card.time_until_power_boost_update = card.time_until_power_boost_update - dt
+                if card.time_until_power_boost_update <= 0 then
+                    card.time_until_power_boost_update = card.time_until_power_boost_update + card.power_boost_update_interval
+                    local buff_difference = card.calculated_power_boost - card.last_applied_power_boost
+                    card.last_applied_power_boost = card.calculated_power_boost
+                    if buff_difference ~= 0 then
+                        buff:update_stat(card.context.unit, "power_level", buff_difference)
+                    end
+                end
+                local power_boost_lerp_amount = dt * 0.1
+                card.calculated_power_boost = math.lerp(card.calculated_power_boost, 0, power_boost_lerp_amount)
+            end
+        end,
+        events_server = {
+            enemy_damaged = function(card, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+                if card.times_played > 0 then
+                    local attacker = attacker_unit or source_attacker_unit
+                    local breed = attacker and Unit.get_data(attacker, "breed")
+                    if not breed or not breed.is_player or attacker == card.context.unit then
+                        return
+                    end
+                    card.calculated_power_boost = card.calculated_power_boost + card.power_boost_per_damage_dealt * damage_amount
+                end
+            end,
+            player_damaged = function(card, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+                if card.times_played > 0 then
+                    local damaged_unit = self.unit
+                    local us = card.context.unit
+                    if damaged_unit == us or damage_type == "temporary_health_degen" then
+                        return
+                    end
+                    enigma:force_damage(us, damage_amount * card.shared_damage_multiplier, us)
+                end
+            end,
+        },
+        ephemeral = true,
+        description_lines = {
+            {
+                format = "base_khornes_pact_description",
+            }
+        }
+    },
     plated_armor = {
         rarity = LEGENDARY,
         cost = 2,
@@ -193,7 +250,7 @@ pack_handle.register_passive_cards({
         texture = "enigma_base_the_mill",
         effect_interval = 60,
         time_until_next_effect = 0,
-        update_always = function(card, dt)
+        update_local = function(card, dt)
             if card.times_played > 0 then
                 card.time_until_next_effect = card.time_until_next_effect - dt
                 if card.time_until_next_effect <= 0 then
@@ -208,12 +265,6 @@ pack_handle.register_passive_cards({
                     end
                 end
             end
-        end,
-        update_local = function(card, dt)
-            card:update_always(dt)
-        end,
-        out_of_play_update_local = function(card, dt)
-            card:update_always(dt)
         end,
         on_play_local = function(card)
             if card.times_played < 1 then
@@ -683,16 +734,10 @@ pack_handle.register_ability_cards({
                 end
             end
         end,
-        check_for_dueling_nonexistent_monster = function(card)
+        update_server = function(card, dt)
             if card.dueling_monster and not Unit.alive(card.dueling_monster) then
                 card:end_duel()
             end
-        end,
-        update_server = function(card, dt)
-            card:check_for_dueling_nonexistent_monster()
-        end,
-        out_of_play_update_server = function(card, dt)
-            card:check_for_dueling_nonexistent_monster()
         end,
         condition_server = function(card)
             if not card.living_monsters then

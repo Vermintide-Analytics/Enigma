@@ -199,10 +199,6 @@ enigma.force_damage = function(self, unit, damage, damager, damage_source)
     damager = damager or unit
     damage_source = damage_source or "life_tap"
 
-    local breed = Unit.get_data(unit, "breed")
-    local breed_name = breed and breed.name
-    enigma:info("DAMAGING "..tostring(breed_name).." for "..tostring(damage))
-
     -- attacked_unit, attacker_unit, original_damage_amount, hit_zone_name, damage_type, hit_position, damage_direction,
     -- damage_source, hit_ragdoll_actor, source_attacker_unit, buff_attack_type, hit_react_type, is_critical_strike,
     -- added_dot, first_hit, total_hits, backstab_multiplier, skip_buffs
