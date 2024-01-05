@@ -1,5 +1,6 @@
 del .\Init.wwise_bank
 del .\Init.wwise_dep
 del .\Enigma.wwise_dep
-powershell .\_generate_project_metadata.ps1
-p4merge .\mods\Enigma\project.wwise_metadata .\project.wwise_metadata 
+move /y .\Enigma.wwise_bank .\mods\Enigma\Enigma.wwise_bank
+move /y .\Enigma.wwise_bank_metadata .\mods\Enigma\Enigma.wwise_bank_metadata
+move /y .\project.wwise_metadata .\mods\Enigma\project.wwise_metadata
