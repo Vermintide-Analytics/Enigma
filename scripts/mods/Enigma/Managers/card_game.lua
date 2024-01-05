@@ -297,6 +297,9 @@ cgm.init_game = function(self, game_init_data, debug)
             auto = 0
         }
     }
+    
+    enigma.managers.ui.last_played_card = nil
+    table.clear(enigma.managers.ui.played_cards_queue)
 
     enigma:register_mod_event_callback("update", self, "_init_update")
 end
@@ -727,7 +730,7 @@ local handle_local_card_played = function(card, location, index, skip_warpstone_
     cgm.statistics.cards_played[play_type] = cgm.statistics.cards_played[play_type] + 1
     
     table.insert(enigma.managers.ui.played_cards_queue, card)
-    
+
     return true
 end
 enigma:network_register(net.event_card_played, function(peer_id, card_local_id, play_type, destination_index, net_x_cost)

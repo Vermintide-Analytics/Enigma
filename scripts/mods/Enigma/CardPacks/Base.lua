@@ -16,7 +16,7 @@ local warp = enigma.managers.warp
     CARD_NAME = {
         rarity = RARITY,
         cost = COST,
-        --texture = "enigma_base_"..TEXTURE,
+        texture = false,
         on_play_local = function(card)
 
         end,
@@ -30,12 +30,41 @@ local warp = enigma.managers.warp
 
 ]]
 
-
-pack_handle.register_passive_cards({
+local passive_cards = {
+    bigger_bombs = {
+        rarity = RARE,
+        cost = 1,
+        texture = true,
+        grenade_radius_modifier = 0.2,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "grenade_radius", card.grenade_radius_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_grenade_radius",
+                parameters = { 20 }
+            }
+        }
+    },
+    burly = {
+        rarity = COMMON,
+        cost = 0,
+        texture = true,
+        max_health_modifier = 0.1,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "max_health", card.max_health_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_max_health",
+                parameters = { 10 }
+            }
+        }
+    },
     caffeinated = {
         rarity = COMMON,
         cost = 2,
-        texture = "enigma_base_caffeinated",
+        texture = true,
         description_lines = {
             {
                 format = "description_attack_speed",
@@ -54,7 +83,7 @@ pack_handle.register_passive_cards({
     collar_cage = {
         rarity = LEGENDARY,
         cost = 3,
-        texture = "enigma_base_collar_cage",
+        texture = true,
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_packmaster", 1.0)
         end,
@@ -67,10 +96,70 @@ pack_handle.register_passive_cards({
             }
         },
     },
+    controlled_breathing = {
+        rarity = EPIC,
+        cost = 2,
+        texture = true,
+        stamina_regen_modifier = 0.3,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "fatigue_regen", card.stamina_regen_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_stamina_regen",
+                parameters = { 30 }
+            }
+        }
+    },
+    cooperation = {
+        rarity = COMMON,
+        cost = 1,
+        texture = true,
+        revive_speed_modifier = 0.15,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "faster_revive", card.revive_speed_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_revive_speed",
+                parameters = { 15 }
+            }
+        }
+    },
+    doctors_orders = {
+        rarity = EPIC,
+        cost = 1,
+        texture = true,
+        healing_received_modifier = 0.25,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "healing_received", card.healing_received_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_healing_received",
+                parameters = { 25 }
+            }
+        }
+    },
+    dogged_warrior = {
+        rarity = COMMON,
+        cost = 0,
+        texture = true,
+        respawn_speed_modifier = 0.2,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "faster_respawn", card.respawn_speed_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_respawn_speed",
+                parameters = { 20 }
+            }
+        }
+    },
     eshin_counter_intelligence = {
         rarity = LEGENDARY,
         cost = 3,
-        texture = "enigma_base_eshin_counter_intelligence",
+        texture = true,
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_assassin", 1.0)
         end,
@@ -83,10 +172,25 @@ pack_handle.register_passive_cards({
             }
         }
     },
+    enchanted_shield = {
+        rarity = EPIC,
+        cost = 1,
+        texture = true,
+        block_cost_modifier = -0.1,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "block_cost", card.block_cost_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_block_cost",
+                parameters = { -10 }
+            }
+        }
+    },
     executioner = {
         rarity = EPIC,
         cost = 2,
-        texture = "enigma_base_executioner",
+        texture = true,
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_instantly_slay_man_sized_enemy", 0.05)
         end,
@@ -97,10 +201,46 @@ pack_handle.register_passive_cards({
             }
         }
     },
+    exertion = {
+        rarity = RARE,
+        cost = 1,
+        texture = true,
+        push_power_modifier = 0.15,
+        push_range_modifier = 0.1,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "push_power", card.push_power_modifier)
+            buff:update_stat(card.context.unit, "push_range", card.push_range_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_push_power",
+                parameters = { 15 }
+            },
+            {
+                format = "description_push_range",
+                parameters = { 10 }
+            },
+        }
+    },
+    extra_munitions = {
+        rarity = COMMON,
+        cost = 0,
+        texture = true,
+        max_ammo_modifier = 0.1,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "total_ammo", card.max_ammo_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_max_ammo",
+                parameters = { 10 }
+            }
+        }
+    },
     expertise = {
         rarity = COMMON,
         cost = 1,
-        texture = "enigma_base_expertise",
+        texture = true,
         on_play_local = function(card)
             buff:update_stat(card.context.unit, "cooldown_regen", 0.05)
         end,
@@ -114,7 +254,7 @@ pack_handle.register_passive_cards({
     gym_rat = {
         rarity = COMMON,
         cost = 1,
-        texture = "enigma_base_gym_rat",
+        texture = true,
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "power_level", 0.02)
         end,
@@ -128,7 +268,7 @@ pack_handle.register_passive_cards({
     khornes_pact = {
         rarity = LEGENDARY,
         cost = 2,
-        texture = "enigma_base_khornes_pact",
+        texture = true,
         power_boost_per_damage_dealt = 0.0006,
         shared_damage_multiplier = 0.2,
         calculated_power_boost = 0,
@@ -185,7 +325,7 @@ pack_handle.register_passive_cards({
     plated_armor = {
         rarity = LEGENDARY,
         cost = 2,
-        texture = "enigma_base_plated_armor",
+        texture = true,
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_gunner", 1.0)
         end,
@@ -198,10 +338,55 @@ pack_handle.register_passive_cards({
             }
         },
     },
+    precise_thrusts = {
+        rarity = RARE,
+        cost = 2,
+        texture = true,
+        crit_chance_modifier = 0.04,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "critical_strike_chance_melee", card.crit_chance_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_critical_strike_chance_melee",
+                parameters = { 4 }
+            }
+        }
+    },
+    refined_parts = {
+        rarity = COMMON,
+        cost = 1,
+        texture = true,
+        reload_speed_modifier = -0.05,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "reload_speed", card.reload_speed_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_reload_speed",
+                parameters = { 5 }
+            }
+        }
+    },
+    sharpshooter = {
+        rarity = COMMON,
+        cost = 1,
+        texture = true,
+        crit_chance_modifier = 0.02,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "critical_strike_chance_ranged", card.crit_chance_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_critical_strike_chance_ranged",
+                parameters = { 2 }
+            }
+        }
+    },
     soul_safe = {
         rarity = LEGENDARY,
         cost = 3,
-        texture = "enigma_base_soul_safe",
+        texture = true,
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_leech", 1.0)
         end,
@@ -217,7 +402,7 @@ pack_handle.register_passive_cards({
     spartan = {
         rarity = RARE,
         cost = 1,
-        texture = "enigma_base_spartan",
+        texture = true,
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "power_level_impact", 0.08)
         end,
@@ -231,7 +416,7 @@ pack_handle.register_passive_cards({
     the_gas_mask = {
         rarity = LEGENDARY,
         cost = 2,
-        texture = "enigma_base_the_gas_mask",
+        texture = true,
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_globadier", 1.0)
         end,
@@ -247,7 +432,7 @@ pack_handle.register_passive_cards({
     the_mill = {
         rarity = LEGENDARY,
         cost = 3,
-        texture = "enigma_base_the_mill",
+        texture = true,
         effect_interval = 60,
         time_until_next_effect = 0,
         update_local = function(card, dt)
@@ -282,7 +467,7 @@ pack_handle.register_passive_cards({
     thermal_suit = {
         rarity = LEGENDARY,
         cost = 2,
-        texture = "enigma_base_thermal_suit",
+        texture = true,
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_fire_rat", 1.0)
         end,
@@ -298,7 +483,7 @@ pack_handle.register_passive_cards({
     tough_skin = {
         rarity = COMMON,
         cost = 0,
-        texture = "enigma_base_tough_skin",
+        texture = true,
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "damage_taken", -0.02)
         end,
@@ -312,7 +497,7 @@ pack_handle.register_passive_cards({
     training_weights = {
         rarity = LEGENDARY,
         cost = 2,
-        texture = "enigma_base_training_weights",
+        texture = true,
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "chance_ignore_blightstorm_damage", 1.0)
 
@@ -353,7 +538,7 @@ pack_handle.register_passive_cards({
     veteran = {
         rarity = EPIC,
         cost = 4,
-        texture = "enigma_base_veteran",
+        texture = true,
         on_play_server = function(card)
             buff:update_stat(card.context.unit, "power_level", 0.1)
         end,
@@ -387,10 +572,25 @@ pack_handle.register_passive_cards({
             },
         }
     },
+    warding_charm = {
+        rarity = COMMON,
+        cost = 1,
+        texture = true,
+        curse_resistance_modifier = 0.2,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "curse_protection", card.curse_resistance_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_curse_resistance",
+                parameters = { 20 }
+            }
+        }
+    },
     warp_flesh = {
         rarity = RARE,
         cost = 2,
-        texture = "enigma_base_warp_flesh",
+        texture = true,
         update_server = function(card, dt)
             if card.times_played > 0 then
                 card.next_heal_time = card.next_heal_time - dt
@@ -416,13 +616,28 @@ pack_handle.register_passive_cards({
             }
         }
     },
-})
+    weakpoint_exploiter = {
+        rarity = RARE,
+        cost = 2,
+        texture = true,
+        crit_power_modifier = 0.05,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "critical_strike_effectiveness", card.crit_power_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_critical_strike_power",
+                parameters = { 5 }
+            }
+        }
+    },
+}
 
-pack_handle.register_attack_cards({
+local attack_cards = {
     cyclone_strike = {
         rarity = RARE,
         cost = 0,
-        texture = "enigma_base_cyclone_strike",
+        texture = true,
         on_play_server = function(card)
             local us = card.context.unit
             local nearby_ai_units = enigma:get_ai_units_around_unit(us, 6)
@@ -442,7 +657,7 @@ pack_handle.register_attack_cards({
     quick_stab = {
         rarity = COMMON,
         cost = 0,
-        texture = "enigma_base_quick_stab",
+        texture = true,
         on_play_server = function(card)
             local us = card.context.unit
             local ai_units_to_stab = enigma:get_ai_units_in_front_of_unit(us, 3, 90)
@@ -465,7 +680,7 @@ pack_handle.register_attack_cards({
     slam = {
         rarity = EPIC,
         cost = 1,
-        texture = "enigma_base_slam",
+        texture = true,
         damage_enemies = function(card)
             local us = card.context.unit
             local nearby_ai_units = enigma:get_ai_units_around_unit(us, 8)
@@ -491,13 +706,13 @@ pack_handle.register_attack_cards({
             }
         }
     }
-})
+}
 
-pack_handle.register_ability_cards({
+local ability_cards = {
     blood_transfusion = {
         rarity = COMMON,
         cost = 1,
-        texture = "enigma_base_blood_transfusion",
+        texture = true,
         on_play_server = function(card)
             local us = card.context.unit
             enigma:force_damage(card.context.unit, 40)
@@ -528,7 +743,7 @@ pack_handle.register_ability_cards({
     divine_insurance = {
         rarity = EPIC,
         cost = 2,
-        texture = "enigma_base_divine_insurance",
+        texture = true,
         duration = 60,
         on_play_server = function(card)
             if card.disabler_unit then
@@ -567,10 +782,24 @@ pack_handle.register_ability_cards({
             }
         }
     },
+    douse = {
+        rarity = RARE,
+        cost = 0,
+        texture = true,
+        on_play_server = function(card)
+            enigma:remove_overcharge_fraction(card.context.unit, 1)
+        end,
+        charges = 4,
+        description_lines = {
+            {
+                format = "base_douse_description"
+            },
+        }
+    },
     dubious_insurance = {
         rarity = EPIC,
         cost = 0,
-        texture = "enigma_base_dubious_insurance",
+        texture = true,
         on_play_server = function(card)
             if card.disabler_unit then
                 enigma:execute_unit(card.disabler_unit, card.context.unit)
@@ -608,7 +837,7 @@ pack_handle.register_ability_cards({
     field_medicine = {
         rarity = COMMON,
         cost = 0,
-        texture = "enigma_base_field_medicine",
+        texture = true,
         on_play_server = function(card)
             local us = card.context.unit
             enigma:heal(us, 20)
@@ -625,7 +854,7 @@ pack_handle.register_ability_cards({
     gluttonous_jug = {
         rarity = RARE,
         cost = 1,
-        texture = "enigma_base_gluttonous_jug",
+        texture = true,
         on_play_local = function(card)
             game:draw_card()
             game:draw_card()
@@ -640,7 +869,7 @@ pack_handle.register_ability_cards({
     honorable_duel = {
         rarity = EPIC,
         cost = 3,
-        texture = "enigma_base_honorable_duel",
+        texture = true,
         power_level_boost = 0.2,
         attack_speed_boost = 0.2,
         in_duel = false,
@@ -797,7 +1026,7 @@ pack_handle.register_ability_cards({
     long_rest = {
         rarity = LEGENDARY,
         cost = 3,
-        texture = "enigma_base_long_rest",
+        texture = true,
         on_play_local = function(card)
             local discard_pile = game.local_data.discard_pile
             local to_return_to_draw_pile = math.min(5, #discard_pile)
@@ -818,7 +1047,7 @@ pack_handle.register_ability_cards({
     quick_stimulants = {
         rarity = COMMON,
         cost = 0,
-        texture = "enigma_base_quick_stimulants",
+        texture = true,
         on_play_server = function(card)
             local us = card.context.unit
             enigma:heal(us, 25, us, "heal_from_proc")
@@ -834,7 +1063,7 @@ pack_handle.register_ability_cards({
     ranalds_play = {
         rarity = LEGENDARY,
         cost = 1,
-        texture = "enigma_base_ranalds_play",
+        texture = true,
         auto_play_chance_interval = 1,
         time_until_auto_play_chance = 1,
         auto_play_chance = 0.000577456, -- ~50% chance to auto play approximately for 20 minutes spent in your hand
@@ -871,7 +1100,7 @@ pack_handle.register_ability_cards({
     rat_banker = {
         rarity = EPIC,
         cost = 0,
-        texture = "enigma_base_rat_banker",
+        texture = true,
         principal = 0,
         interest = 0,
         compound_interval = 5,
@@ -922,7 +1151,7 @@ pack_handle.register_ability_cards({
         rarity = RARE,
         cost = 1,
         duration = 15,
-        texture = "enigma_base_retreat",
+        texture = true,
         on_play_local = function(card)
             buff:surge_stat(card.context.unit, "movement_speed", 0.5, card.duration)
             buff:surge_stat(card.context.unit, "dodge_range", 0.3, card.duration)
@@ -964,7 +1193,7 @@ pack_handle.register_ability_cards({
     spare_engine = {
         rarity = RARE,
         cost = 1,
-        texture = "enigma_base_spare_engine",
+        texture = true,
         warp_dust_increase = 0.15,
         on_location_changed_local = function(card, old, new)
             if new == "hand" then
@@ -986,7 +1215,7 @@ pack_handle.register_ability_cards({
         duration = 100,
         skaven_aggro_modifier = 50,
         power_level_skaven_modifier = 0.35,
-        texture = "enigma_base_stolen_bell",
+        texture = true,
         on_play_server = function(card)
             buff:surge_stat(card.context.unit, "aggro_skaven", card.skaven_aggro_modifier, card.duration)
             buff:surge_stat(card.context.unit, "power_level_skaven", card.power_level_skaven_modifier, card.duration)
@@ -1004,7 +1233,7 @@ pack_handle.register_ability_cards({
     ubersreik_hero = {
         rarity = RARE,
         cost = 1,
-        texture = "enigma_base_ubersreik_hero",
+        texture = true,
         on_play_server = function(card)
             -- Find closest disabled ally and kill their disabler
             local us = card.context.unit
@@ -1062,7 +1291,7 @@ pack_handle.register_ability_cards({
     vault = {
         rarity = COMMON,
         cost = 0,
-        texture = "enigma_base_vault",
+        texture = true,
         charges = 3,
         rotation_duration = 0.9,
         rotation_progress = 0,
@@ -1108,7 +1337,7 @@ pack_handle.register_ability_cards({
         rarity = COMMON,
         cost = 2,
         duration = 60,
-        texture = "enigma_base_warpfire_strikes",
+        texture = true,
         on_play_local = function(card)
             -- TODO implement card
             enigma:echo(card.name.." "..enigma:localize("not_yet_implemented"))
@@ -1133,7 +1362,7 @@ pack_handle.register_ability_cards({
         rarity = EPIC,
         cost = 1,
         duration = 31.4,
-        texture = "enigma_base_warpstone_pie",
+        texture = true,
         on_play_server = function(card)
             buff:surge_stat(card.context.unit, "power_level", .314, card.duration)
             buff:surge_stat(card.context.unit, "damage_taken", -.314, card.duration)
@@ -1160,7 +1389,7 @@ pack_handle.register_ability_cards({
         rarity = EPIC,
         cost = 1,
         duration = 10,
-        texture = "enigma_base_wrath_of_khorne",
+        texture = true,
         on_play_server = function(card)
             buff:surge_stat(card.context.unit, "chance_instantly_slay_man_sized_enemy", 1.0, card.duration)
         end,
@@ -1171,13 +1400,13 @@ pack_handle.register_ability_cards({
             }
         }
     },
-})
+}
 
-pack_handle.register_chaos_cards({
+local chaos_cards = {
     incompetence = {
         rarity = COMMON,
         cost = 1,
-        texture = "enigma_base_incompetence",
+        texture = true,
         warp_dust_decrease = -0.1,
         card_draw_decrease = -0.1,
         on_location_changed_local = function(card, old, new)
@@ -1202,7 +1431,7 @@ pack_handle.register_chaos_cards({
         cost = 0,
         times_drawn = 0,
         damage_per_draw = 5,
-        texture = "enigma_base_injury",
+        texture = true,
         on_location_changed_server = function(card, old, new)
             if new == enigma.CARD_LOCATION.hand and old == enigma.CARD_LOCATION.draw_pile then
                 card.times_drawn = card.times_drawn + 1
@@ -1224,7 +1453,7 @@ pack_handle.register_chaos_cards({
     life_sap = {
         rarity = RARE,
         cost = 2,
-        texture = "enigma_base_life_sap",
+        texture = true,
         on_any_card_drawn_server = function(card, other_card)
             if not card:is_in_hand() or other_card == card then
                 return
@@ -1245,7 +1474,7 @@ pack_handle.register_chaos_cards({
     parasite = {
         rarity = EPIC,
         cost = 2,
-        texture = "enigma_base_parasite",
+        texture = true,
         damage = 1,
         damage_interval = 5,
         on_location_changed_server = function(card, old, new)
@@ -1274,7 +1503,7 @@ pack_handle.register_chaos_cards({
     silence = {
         rarity = LEGENDARY,
         cost = 3,
-        texture = "enigma_base_silence",
+        texture = true,
         on_location_changed_local = function(card, old, new)
             if new == enigma.CARD_LOCATION.hand then
                 buff:update_stat(card.context.unit, "cannot_use_career_skill", 1)
@@ -1295,7 +1524,7 @@ pack_handle.register_chaos_cards({
     slow = {
         rarity = RARE,
         cost = 1,
-        texture = "enigma_base_slow",
+        texture = true,
         dodge_decrease = -0.25,
         on_location_changed_local = function(card, old, new)
             if new == "hand" then
@@ -1320,7 +1549,7 @@ pack_handle.register_chaos_cards({
     thorn = {
         rarity = COMMON,
         cost = 0,
-        texture = "enigma_base_thorn",
+        texture = true,
         on_play_server = function(card)
             enigma:force_damage(card.context.unit, 5)
         end,
@@ -1335,7 +1564,7 @@ pack_handle.register_chaos_cards({
     virus = {
         rarity = LEGENDARY,
         cost = 0,
-        texture = "enigma_base_virus",
+        texture = true,
         infection_duration = 60,
         power_level_reduction = -0.15,
         on_play_local = function(card)
@@ -1406,7 +1635,7 @@ pack_handle.register_chaos_cards({
         rarity = RARE,
         cost = 0,
         duration = 60,
-        texture = "enigma_base_vulnerability",
+        texture = true,
         on_play_server = function(card)
             buff:surge_stat(card.context.unit, "damage_taken", 0.25, card.duration)
         end,
@@ -1418,4 +1647,23 @@ pack_handle.register_chaos_cards({
         },
         ephemeral = true
     },
-})
+}
+
+local set_default_texture_names = function(cards)
+    for id,def in pairs(cards) do
+        if def.texture == true then
+            def.texture = "enigma_base_"..tostring(id)
+        elseif def.texture == false then
+            def.texture = nil
+        end
+    end
+end
+set_default_texture_names(passive_cards)
+set_default_texture_names(attack_cards)
+set_default_texture_names(ability_cards)
+set_default_texture_names(chaos_cards)
+
+pack_handle.register_passive_cards(passive_cards)
+pack_handle.register_attack_cards(attack_cards)
+pack_handle.register_ability_cards(ability_cards)
+pack_handle.register_chaos_cards(chaos_cards)

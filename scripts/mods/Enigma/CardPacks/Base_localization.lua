@@ -8,11 +8,26 @@ return {
     description_attack_speed = {
         en = "%+.1f%% Attack Speed"
     },
+    description_block_cost = {
+        en = "%+.1f%% Block Cost"
+    },
     description_cooldown_regen = {
         en = "%+.1f%% Cooldown Regen"
     },
     description_critical_strike_chance = {
         en = "%+.1f%% Crit Chance"
+    },
+    description_critical_strike_chance_melee = {
+        en = "%+.1f%% Melee Crit Chance"
+    },
+    description_critical_strike_chance_ranged = {
+        en = "%+.1f%% Ranged Crit Chance"
+    },
+    description_critical_strike_power = {
+        en = "%+.1f%% Crit Power"
+    },
+    description_curse_resistance = {
+        en = "%+.1f%% Curse Resistance"
     },
     description_damage_taken = {
         en = "%+.1f%% Damage Taken"
@@ -35,6 +50,15 @@ return {
     description_execute_man_sized_enemy = {
         en = "%+.1f%% Chance to Instantly Slay Man-Sized Enemies"
     },
+    description_grenade_radius = {
+        en = "%+.1f%% Grenade Radius"
+    },
+    description_healing_received = {
+        en = "%+.1f%% Healing Received"
+    },
+    description_max_ammo = {
+        en = "%+.1f%% Max Ammo"
+    },
     description_max_health = {
         en = "%+.1f%% Max Health"
     },
@@ -50,11 +74,29 @@ return {
     description_power_level_skaven = {
         en = "%+.1f%% Power vs Skaven"
     },
+    description_push_power = {
+        en = "%+.1f%% Push Power"
+    },
+    description_push_range = {
+        en = "%+.1f%% Push Range"
+    },
+    description_reload_speed = {
+        en = "%+.1f%% Reload Speed"
+    },
+    description_respawn_speed = {
+        en = "%+.1f%% Respawn Speed"
+    },
+    description_revive_speed = {
+        en = "%+.1f%% Revive Speed"
+    },
     description_restore_health = {
         en = "Restore %i Health"
     },
     description_restore_temporary_health = {
         en = "Restore %i Temporary Health"
+    },
+    description_stamina_regen = {
+        en = "%+.1f%% Stamina Regen"
     },
     description_take_damage = {
         en = "Take %i Damage"
@@ -90,6 +132,14 @@ return {
     },
 
     -- Passive cards
+    base_bigger_bombs = {
+        en = "Bigger Bombs"
+    },
+
+    base_burly = {
+        en = "Burly"
+    },
+
     base_caffeinated = {
         en = "Caffeinated"
     },
@@ -99,6 +149,26 @@ return {
     },
     base_collar_cage_description = {
         en = "Gain immunity to hook rats"
+    },
+
+    base_controlled_breathing = {
+        en = "Controlled Breathing"
+    },
+
+    base_cooperation = {
+        en = "Cooperation"
+    },
+
+    base_doctors_orders = {
+        en = "Doctor's Orders"
+    },
+
+    base_dogged_warrior = {
+        en = "Dogged Warrior"
+    },
+
+    base_enchanted_shield = {
+        en = "Enchanted Shield"
     },
 
     base_eshin_counter_intelligence = {
@@ -112,8 +182,16 @@ return {
         en = "Executioner"
     },
 
+    base_exertion = {
+        en = "Exertion"
+    },
+
     base_expertise = {
         en = "Expertise"
+    },
+    
+    base_extra_munitions = {
+        en = "Extra Munitions"
     },
 
     base_gym_rat = {
@@ -132,6 +210,18 @@ return {
     },
     base_plated_armor_description = {
         en = "Gain immunity to ratling gunners"
+    },
+
+    base_precise_thrusts = {
+        en = "Precise Thrusts"
+    },
+
+    base_refined_parts = {
+        en = "Refined Parts"
+    },
+
+    base_sharpshooter = {
+        en = "Sharpshooter"
     },
 
     base_soul_safe = {
@@ -181,11 +271,19 @@ return {
         en = "Veteran"
     },
 
+    base_warding_charm = {
+        en = "Warding Charm"
+    },
+
     base_warp_flesh = {
         en = "Warp Flesh"
     },
     base_warp_flesh_description = {
         en = "Regenerate %i Health every %i seconds"
+    },
+
+    base_weakpoint_exploiter = {
+        en = "Weakpoint Exploiter"
     },
 
 
@@ -228,6 +326,13 @@ return {
     },
     base_divine_insurance_description = {
         en = "Instantly execute your disabler whenever you are disabled"
+    },
+
+    base_douse = {
+        en = "Douse"
+    },
+    base_douse_description = {
+        en = "Remove all overcharge"
     },
 
     base_dubious_insurance = {

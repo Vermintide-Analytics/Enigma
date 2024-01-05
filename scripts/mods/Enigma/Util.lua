@@ -274,6 +274,17 @@ enigma.remove_no_clip_filter = function(self, unit, reason)
     end
     locomotion:remove_no_clip_filter(reason)
 end
+enigma.remove_overcharge_fraction = function(self, unit, fraction)
+    if not unit or not Unit.alive(unit) then
+        return
+    end
+    local overcharge = ScriptUnit.extension(unit, "overcharge_system")
+    if not overcharge then
+        enigma:warning("Cannot remove overcharge from "..tostring(unit)..". No overcharge extension attached to it")
+        return
+    end
+    overcharge:remove_charge_fraction(fraction)
+end
 enigma.set_first_person_rotation = function(self, unit, rotation)
     if not unit then
         return
