@@ -29,6 +29,9 @@ local uim = {
 	time_since_available_draw_action_invalid = 100,
 	time_since_warpstone_cost_action_invalid = 100,
 	time_since_hand_size_action_invalid = 100,
+
+	time_since_card_played = 0,
+	played_cards_queue = {},
 }
 enigma.managers.ui = uim
 

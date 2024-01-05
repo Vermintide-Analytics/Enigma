@@ -12,6 +12,9 @@ local PRETTY_MARGIN = 10
 local CHANNEL_BAR_WIDTH = 600
 local CHANNEL_BAR_HEIGHT = 28
 
+local PLAYED_CARD_WIDTH = 300
+local PLAYED_CARD_HEIGHT = 485
+
 -- Hand Panel Sizing
 local CARD_WIDTH = 128
 
@@ -179,6 +182,20 @@ local scenegraph_definition = {
 		position = {
 			0,
 			CHANNEL_BAR_HEIGHT*-1 - PRETTY_MARGIN,
+			1
+		}
+	},
+	played_card_container = {
+		parent = "channel_bar",
+		vertical_alignment = "bottom",
+		horizontal_alignment = "center",
+		size = {
+			PLAYED_CARD_WIDTH,
+			PLAYED_CARD_HEIGHT
+		},
+		position = {
+			0,
+			PLAYED_CARD_HEIGHT*-1 - PRETTY_MARGIN,
 			1
 		}
 	},
@@ -623,10 +640,12 @@ local widgets = {
 }
 
 card_ui_common.add_hand_display(scenegraph_definition, widgets, "hand_panel", CARD_WIDTH)
+card_ui_common.add_card_display(scenegraph_definition, widgets, "played_card_container", "played_card", PLAYED_CARD_WIDTH)
 
 return {
 	scenegraph_definition = scenegraph_definition,
 	widgets = widgets,
 	card_width = CARD_WIDTH,
+	played_card_width = PLAYED_CARD_WIDTH,
 	channel_bar_inner_width = CHANNEL_BAR_WIDTH - 8
 }

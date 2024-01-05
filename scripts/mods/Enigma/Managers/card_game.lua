@@ -725,6 +725,9 @@ local handle_local_card_played = function(card, location, index, skip_warpstone_
     sound:trigger("play_card")
     enigma:network_send(net.event_card_played, "others", card.local_id, play_type, inserted_index, net_x_cost)
     cgm.statistics.cards_played[play_type] = cgm.statistics.cards_played[play_type] + 1
+    
+    table.insert(enigma.managers.ui.played_cards_queue, card)
+    
     return true
 end
 enigma:network_register(net.event_card_played, function(peer_id, card_local_id, play_type, destination_index, net_x_cost)

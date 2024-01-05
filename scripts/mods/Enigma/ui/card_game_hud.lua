@@ -1,5 +1,6 @@
 local definitions = local_require("scripts/mods/Enigma/ui/card_game_hud_definitions")
 local CARD_WIDTH = definitions.card_width
+local MAX_PLAYED_CARD_WIDTH = definitions.played_card_width
 local PRETTY_MARGIN = 10
 local CHANNEL_BAR_INNER_WIDTH = definitions.channel_bar_inner_width
 local card_ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
@@ -86,6 +87,31 @@ EnigmaCardGameHud.update_hand_panel_color = function(self)
 	end
 end
 
+local show_played_card_duration = 1.25
+local played_card_grow_duration = 0.2
+EnigmaCardGameHud.update_played_card_display = function(self, dt, t)
+	local ui_manager = enigma.managers.ui
+
+	if not ui_manager.last_played_card and #ui_manager.played_cards_queue > 0 then
+		ui_manager.time_since_card_played = 0
+		ui_manager.last_played_card = table.remove(ui_manager.played_cards_queue, 1)
+	elseif ui_manager.last_played_card then
+		ui_manager.time_since_card_played = ui_manager.time_since_card_played + dt
+		if ui_manager.time_since_card_played > show_played_card_duration then
+			ui_manager.last_played_card = nil
+		end
+	end
+
+	local card_to_display = ui_manager.time_since_card_played < show_played_card_duration and ui_manager.last_played_card
+	local width = MAX_PLAYED_CARD_WIDTH
+	if card_to_display and ui_manager.time_since_card_played < played_card_grow_duration then
+		width = math.lerp(0, MAX_PLAYED_CARD_WIDTH, ui_manager.time_since_card_played / played_card_grow_duration)
+	end
+
+	card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, "played_card", card_to_display, width, "dirty_hud_ui_played_card", false)
+
+end
+
 EnigmaCardGameHud.create_ui_elements = function (self)
 	DO_RELOAD = false
 	self.ui_scenegraph = UISceneGraph.init_scenegraph(definitions.scenegraph_definition)
@@ -98,6 +124,7 @@ EnigmaCardGameHud.create_ui_elements = function (self)
 	self.channel_bar_widget = self._widgets_by_name.channel_bar
 	self.channel_bar_inner_widget = self._widgets_by_name.channel_bar_inner
 	self.hand_panel_widget = self._widgets_by_name.hand_panel
+	self.played_card_widget = self._widgets_by_name.played_card
 	
 	self.warp_dust_bar_node = self.ui_scenegraph.warp_dust_bar
 	self.warp_dust_bar_node_inner = self.ui_scenegraph.warp_dust_bar_inner
@@ -113,6 +140,7 @@ EnigmaCardGameHud.create_ui_elements = function (self)
 			widget.cached_card = 1
 		end
 	end
+	self.played_card_widget.cached_card = 1
 
 	self.time_since_channel_ended = 0
 
@@ -168,6 +196,9 @@ EnigmaCardGameHud.update = function (self, dt, t)
 
 	-- Hand display
 	card_ui_common.update_hand_display(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, CARD_WIDTH, PRETTY_MARGIN, enigma.managers.ui.hud_data, "dirty_hud_ui")
+
+	-- Played card display
+	self:update_played_card_display(dt, t)
 
 	-- Channel Bar
 	local active_channel = game_data.active_channel

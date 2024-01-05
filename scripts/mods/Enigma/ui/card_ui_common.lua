@@ -1050,7 +1050,7 @@ local set_widgets_visibility = function(widgets, card_node_id, visible, has_dura
 	additional_keywords_widget.content.visible = visible
 end
 
-card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name)
+card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name, card_glow_override)
 	local sizes = calculate_card_sizes(card_width)
 	local pretty_margin = sizes.pretty_margin
 
@@ -1058,6 +1058,9 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	local has_retain = card and #card.retain_descriptions > 0
 	local in_hand = card and card.location == enigma.CARD_LOCATION.hand
 	local show_glow = playable or (has_retain and in_hand)
+	if card_glow_override ~= nil then
+		show_glow = card_glow_override
+	end
 	set_widgets_visibility(widgets, card_node_id, card, card and card.duration, show_glow)
 	if not card then
 		return
@@ -1385,12 +1388,12 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	end
 end
 
-card_ui_common.update_card_display_if_needed = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name)
+card_ui_common.update_card_display_if_needed = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name, card_glow_override)
 	if not card then
 		if widgets[card_node_id].cached_card then
 			widgets[card_node_id].cached_card = nil
 			widgets[card_node_id].cached_card_width = -1
-			return card_ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, nil, card_width)
+			return card_ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, nil, card_width, card_glow_override)
 		end
 		return
 	end
@@ -1398,7 +1401,7 @@ card_ui_common.update_card_display_if_needed = function(ui_renderer, scenegraph_
 	if card[dirty_property_name] or card ~= widgets[card_node_id].cached_card or card_width ~= widgets[card_node_id].cached_card_width then
 		widgets[card_node_id].cached_card = card
 		widgets[card_node_id].cached_card_width = card_width
-		return card_ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name)
+		return card_ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name, card_glow_override)
 	end
 end
 

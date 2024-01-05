@@ -93,6 +93,7 @@ local add_card_instance_functions = function(inst)
     inst.set_dirty = function(self)
         refresh_card_detail_localization(self)
         self.dirty_hud_ui = true
+        self.dirty_hud_ui_played_card = true
         self.dirty_card_mode_ui = true
     end
 end
