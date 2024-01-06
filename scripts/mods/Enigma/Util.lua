@@ -1,5 +1,7 @@
 local enigma = get_mod("Enigma")
 
+local buff_perk_functions = require("scripts/unit_extensions/default_player_unit/buffs/settings/buff_perk_functions")
+
 -- Table functions
 table.deep_copy = function(tbl, max_depth)
     local inst = table.shallow_copy(tbl)
@@ -120,6 +122,9 @@ enigma.player_and_bot_units = function(self)
     local side = Managers.state and Managers.state.side and Managers.state.side:get_side_from_name("heroes")
 	return side and side.PLAYER_AND_BOT_UNITS
 end
+enigma.unit_position = function(self, unit)
+    return unit and Unit.alive(unit) and Unit.world_position(unit, 0)
+end
 enigma.on_ground = function(self, unit)
     if not unit then
         return false
@@ -194,8 +199,43 @@ enigma.apply_no_clip_filter = function(self, unit, reason, infantry, armored, mo
         not not super_armor
     }, reason)
 end
+enigma.apply_perk = function(self, unit, perk_name)
+    if not unit or not Unit.alive(unit) then
+        return
+    end
+    local buff_ext = ScriptUnit.extension(unit, "buff_system")
+    if not buff_ext then
+        enigma:warning("Cannot apply perk to "..tostring(unit)..". No buff extension attached to it")
+        return
+    end
+    local perks = buff_ext._perks
+    local perk_count = perks[perk_name] or 0
+    if perk_count == 0 then
+        local perk_funcs = buff_perk_functions[perk_name]
+
+        if perk_funcs and perk_funcs.added then
+            perk_funcs.added(buff_ext, unit, nil, self:is_server())
+        end
+    end
+    perks[perk_name] = perk_count + 1
+end
+enigma.create_explosion = function(self, owner_unit, position, rotation, explosion_template_name, scale, damage_source, attacker_power_level, is_critical_strike)
+    if not self:is_server() then
+        enigma:warning("Only the server can create explosions")
+        return
+    end
+    if not owner_unit or not Unit.alive(owner_unit) then
+        return
+    end
+    local area_damage = Managers.state.entity:system("area_damage_system")
+    if not area_damage then
+        enigma:warning("Could not create an explosion, no area damage system.")
+        return
+    end
+    area_damage:create_explosion(owner_unit, position, rotation, explosion_template_name, scale, damage_source, attacker_power_level, is_critical_strike)
+end
 enigma.force_damage = function(self, unit, damage, damager, damage_source)
-    if not enigma:is_server() then
+    if not self:is_server() then
         enigma:warning("Only the server can damage")
         return false
     end
@@ -211,7 +251,7 @@ enigma.force_damage = function(self, unit, damage, damager, damage_source)
     DamageUtils.add_damage_network(unit, damager, damage, "full", "forced", Unit.world_position(unit, 0), Vector3.up(), damage_source, nil, damager, "n/a", "light", false, false, false, 1, 1, true)
 end
 enigma.heal = function(self, unit, heal, healer, heal_type)
-    if not enigma:is_server() then
+    if not self:is_server() then
         enigma:warning("Only the server can heal")
         return false
     end
@@ -284,6 +324,26 @@ enigma.remove_overcharge_fraction = function(self, unit, fraction)
         return
     end
     overcharge:remove_charge_fraction(fraction)
+end
+enigma.remove_perk = function(self, unit, perk_name)
+    if not unit or not Unit.alive(unit) then
+        return
+    end
+    local buff_ext = ScriptUnit.extension(unit, "buff_system")
+    if not buff_ext then
+        enigma:warning("Cannot remove perk from "..tostring(unit)..". No buff extension attached to it")
+        return
+    end
+    local perks = buff_ext._perks
+    local perk_count = perks[perk_name] - 1
+    if perk_count == 0 then
+        local perk_funcs = buff_perk_functions[perk_name]
+
+        if perk_funcs and perk_funcs.removed then
+            perk_funcs.removed(buff_ext, unit, nil, self:is_server())
+        end
+    end
+    perks[perk_name] = perk_count
 end
 enigma.set_first_person_rotation = function(self, unit, rotation)
     if not unit then
