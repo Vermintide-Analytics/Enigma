@@ -1044,6 +1044,46 @@ local ability_cards = {
             }
         }
     },
+    planestrider = {
+        rarity = RARE,
+        cost = 1,
+        texture = true,
+        duration = 15,
+        dodge_range_modifier = 1.0,
+        dodge_speed_modifier = 3.0,
+        no_clipping = false,
+        on_play_local = function(card)
+            buff:surge_stat(card.context.unit, "dodge_range", card.dodge_range_modifier, card.duration)
+            buff:surge_stat(card.context.unit, "dodge_speed", card.dodge_speed_modifier, card.duration)
+        end,
+        charges = 3,
+        events_local = {
+            player_dodge = function(card, unit, direction)
+                if #card.active_durations < 1 then
+                    return
+                end
+                card.no_clipping = card.id.."/"..card.local_id
+                enigma:apply_no_clip(card.context.unit, card.no_clipping)
+            end,
+            player_dodge_finished = function(card, unit)
+                if not card.no_clipping then
+                    return
+                end
+                enigma:remove_no_clip(card.context.unit, card.no_clipping)
+                card.no_clipping = false
+            end
+        },
+        description_lines = {
+            {
+                format = "description_dodge_range",
+                parameters = { 100 }
+            },
+            {
+                format = "description_dodge_speed",
+                parameters = { 300 }
+            },
+        }
+    },
     quick_stimulants = {
         rarity = COMMON,
         cost = 0,

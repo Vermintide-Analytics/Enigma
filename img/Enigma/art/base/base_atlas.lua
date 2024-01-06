@@ -2,165 +2,170 @@
 return { 
 	enigma_base_wrath_of_khorne = { 
 		size = { 504, 304, },
+		uv00 = { 0.738281, 0.296875, },
+		uv11 = { 0.861328, 0.371094, },
+	},
+	enigma_base_weakpoint_exploiter = { 
+		size = { 504, 304, },
 		uv00 = { 0.615234, 0.296875, },
 		uv11 = { 0.738281, 0.371094, },
 	},
-	enigma_base_weakpoint_exploiter = { 
+	enigma_base_warp_flesh = { 
 		size = { 504, 304, },
 		uv00 = { 0.492188, 0.296875, },
 		uv11 = { 0.615234, 0.371094, },
 	},
-	enigma_base_warp_flesh = { 
+	enigma_base_warpstone_pie = { 
 		size = { 504, 304, },
 		uv00 = { 0.369141, 0.296875, },
 		uv11 = { 0.492188, 0.371094, },
 	},
-	enigma_base_warpstone_pie = { 
+	enigma_base_warpfire_strikes = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.890625, },
 		uv11 = { 0.369141, 0.964844, },
 	},
-	enigma_base_warpfire_strikes = { 
+	enigma_base_warding_charm = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.816406, },
 		uv11 = { 0.369141, 0.890625, },
 	},
-	enigma_base_warding_charm = { 
+	enigma_base_vulnerability = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.742188, },
 		uv11 = { 0.369141, 0.816406, },
 	},
-	enigma_base_vulnerability = { 
+	enigma_base_virus = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.667969, },
 		uv11 = { 0.369141, 0.742188, },
 	},
-	enigma_base_virus = { 
+	enigma_base_veteran = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.593750, },
 		uv11 = { 0.369141, 0.667969, },
 	},
-	enigma_base_veteran = { 
+	enigma_base_vault = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.519531, },
 		uv11 = { 0.369141, 0.593750, },
 	},
-	enigma_base_vault = { 
+	enigma_base_ubersreik_hero = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.445313, },
 		uv11 = { 0.369141, 0.519531, },
 	},
-	enigma_base_ubersreik_hero = { 
+	enigma_base_training_weights = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.371094, },
 		uv11 = { 0.369141, 0.445313, },
 	},
-	enigma_base_training_weights = { 
+	enigma_base_tough_skin = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.296875, },
 		uv11 = { 0.369141, 0.371094, },
 	},
-	enigma_base_tough_skin = { 
+	enigma_base_thorn = { 
 		size = { 504, 304, },
 		uv00 = { 0.861328, 0.222656, },
 		uv11 = { 0.984375, 0.296875, },
 	},
-	enigma_base_thorn = { 
+	enigma_base_the_mill = { 
 		size = { 504, 304, },
 		uv00 = { 0.738281, 0.222656, },
 		uv11 = { 0.861328, 0.296875, },
 	},
-	enigma_base_the_mill = { 
+	enigma_base_the_gas_mask = { 
 		size = { 504, 304, },
 		uv00 = { 0.615234, 0.222656, },
 		uv11 = { 0.738281, 0.296875, },
 	},
-	enigma_base_the_gas_mask = { 
+	enigma_base_thermal_suit = { 
 		size = { 504, 304, },
 		uv00 = { 0.492188, 0.222656, },
 		uv11 = { 0.615234, 0.296875, },
 	},
-	enigma_base_thermal_suit = { 
+	enigma_base_stolen_bell = { 
 		size = { 504, 304, },
 		uv00 = { 0.369141, 0.222656, },
 		uv11 = { 0.492188, 0.296875, },
 	},
-	enigma_base_stolen_bell = { 
+	enigma_base_spartan = { 
 		size = { 504, 304, },
 		uv00 = { 0.246094, 0.222656, },
 		uv11 = { 0.369141, 0.296875, },
 	},
-	enigma_base_spartan = { 
+	enigma_base_spare_engine = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.890625, },
 		uv11 = { 0.246094, 0.964844, },
 	},
-	enigma_base_spare_engine = { 
+	enigma_base_soul_safe = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.816406, },
 		uv11 = { 0.246094, 0.890625, },
 	},
-	enigma_base_soul_safe = { 
+	enigma_base_slow = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.742188, },
 		uv11 = { 0.246094, 0.816406, },
 	},
-	enigma_base_slow = { 
+	enigma_base_slam = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.667969, },
 		uv11 = { 0.246094, 0.742188, },
 	},
-	enigma_base_slam = { 
+	enigma_base_silence = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.593750, },
 		uv11 = { 0.246094, 0.667969, },
 	},
-	enigma_base_silence = { 
+	enigma_base_sharpshooter = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.519531, },
 		uv11 = { 0.246094, 0.593750, },
 	},
-	enigma_base_sharpshooter = { 
+	enigma_base_retreat = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.445313, },
 		uv11 = { 0.246094, 0.519531, },
 	},
-	enigma_base_retreat = { 
+	enigma_base_refined_parts = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.371094, },
 		uv11 = { 0.246094, 0.445313, },
 	},
-	enigma_base_refined_parts = { 
+	enigma_base_rat_banker = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.296875, },
 		uv11 = { 0.246094, 0.371094, },
 	},
-	enigma_base_rat_banker = { 
+	enigma_base_ranalds_play = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.222656, },
 		uv11 = { 0.246094, 0.296875, },
 	},
-	enigma_base_ranalds_play = { 
+	enigma_base_quick_stimulants = { 
 		size = { 504, 304, },
 		uv00 = { 0.861328, 0.148438, },
 		uv11 = { 0.984375, 0.222656, },
 	},
-	enigma_base_quick_stimulants = { 
+	enigma_base_quick_stab = { 
 		size = { 504, 304, },
 		uv00 = { 0.738281, 0.148438, },
 		uv11 = { 0.861328, 0.222656, },
 	},
-	enigma_base_quick_stab = { 
+	enigma_base_precise_thrusts = { 
 		size = { 504, 304, },
 		uv00 = { 0.615234, 0.148438, },
 		uv11 = { 0.738281, 0.222656, },
 	},
-	enigma_base_precise_thrusts = { 
+	enigma_base_plated_armor = { 
 		size = { 504, 304, },
 		uv00 = { 0.492188, 0.148438, },
 		uv11 = { 0.615234, 0.222656, },
 	},
-	enigma_base_plated_armor = { 
+	enigma_base_planestrider = { 
 		size = { 504, 304, },
 		uv00 = { 0.369141, 0.148438, },
 		uv11 = { 0.492188, 0.222656, },

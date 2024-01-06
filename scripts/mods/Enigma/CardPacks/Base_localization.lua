@@ -105,32 +105,6 @@ return {
         en = "%+.1f%% Temp Health gained"
     },
 
-    -- TEST
-    base_ex_passive = {
-        en = "Example Passive Card"
-    },
-    base_ex_attack = {
-        en = "Example Attack Card"
-    },
-    base_ex_ability = {
-        en = "Example Ability Card"
-    },
-    base_ex_chaos = {
-        en = "Example Chaos Card"
-    },
-    description_test = {
-        en = "Do a thing, but with a longer description that should make some smaller text."
-    },
-    auto_description_test = {
-        en = "When a thing happens"
-    },
-    condition_description_test = {
-        en = "Only when a thing is true"
-    },
-    retain_description_test = {
-        en = "Gain an effect"
-    },
-
     -- Passive cards
     base_bigger_bombs = {
         en = "Bigger Bombs"
@@ -368,6 +342,10 @@ return {
     },
     base_long_rest_description = {
         en = "Shuffle %i random cards from your discard pile into your draw pile"
+    },
+
+    base_planestrider = {
+        en = "Planestrider"
     },
 
     base_quick_stimulants = {
