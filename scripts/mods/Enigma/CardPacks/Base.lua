@@ -683,17 +683,17 @@ local attack_cards = {
         texture = true,
         damage_enemies = function(card)
             local us = card.context.unit
-            local nearby_ai_units = enigma:get_ai_units_around_unit(us, 8)
-            for _,unit in ipairs(nearby_ai_units) do
-                card:hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_slashing_linesman, 5)
-            end
+            enigma:create_explosion(us, enigma:unit_position(us), Quaternion.identity(), "grenade", 1, "undefined", nil, false)
         end,
         on_play_local = function(card)
-            enigma:apply_no_clip(card.context.unit, "enigma_base_slam")
-            enigma:leap_forward(card.context.unit, 0.5, 0.1, 10, {
+            local us = card.context.unit
+            enigma:apply_no_clip(us, "enigma_base_slam")
+            enigma:apply_perk(us, "immovable")
+            enigma:leap_forward(us, 0.5, 0.1, 10, {
                 finished = function(this, aborted, final_position)
                     card:rpc_server("damage_enemies")
-                    enigma:remove_no_clip(card.context.unit, "enigma_base_slam")
+                    enigma:remove_no_clip(us, "enigma_base_slam")
+                    enigma:remove_perk(us, "immovable")
                 end
             })
         end,
