@@ -451,6 +451,7 @@ local index = #NetworkLookup.buff_templates + 1
 NetworkLookup.buff_templates[index] = ENIGMA_UMBRELLA_BUFF
 NetworkLookup.buff_templates[ENIGMA_UMBRELLA_BUFF] = index
 
+
 BuffTemplates[ENIGMA_UMBRELLA_BUFF] = {
     buffs = {}
 }
@@ -642,6 +643,27 @@ enigma:command("enigma_buff_self", "", function(stat, value)
         return
     end
     bm:update_stat(local_player_unit, stat, value)
+end)
+
+enigma:command("enigma_add_perk", "", function(perk)
+    local local_player_unit = enigma:local_player_unit()
+    if not local_player_unit then
+        return
+    end
+    if not perk then
+        return
+    end
+    enigma:apply_perk(local_player_unit, perk)
+end)
+enigma:command("enigma_remove_perk", "", function(perk)
+    local local_player_unit = enigma:local_player_unit()
+    if not local_player_unit then
+        return
+    end
+    if not perk then
+        return
+    end
+    enigma:remove_perk(local_player_unit, perk)
 end)
 
 enigma:command("enigma_dump_buffs", "", function()
