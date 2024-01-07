@@ -34,7 +34,9 @@ local cgm = {
     level_progress_card_draw = {
         adventure = 15,
         deus = 9
-    }
+    },
+
+    delayed_function_calls = {}
 }
 cgm.local_data = nil -- Initialize as table then set to null to shut up the Lua diagnostics complaining about accessing fields from nil
 enigma.managers.game = cgm
@@ -218,6 +220,7 @@ cgm.init_game = function(self, game_init_data, debug)
     self.is_server = game_init_data.is_server
     self.debug = debug
     self.game_state = "initializing"
+    self.delayed_function_calls = {}
 
     local card_ids = {}
     for _,template in ipairs(game_init_data.cards) do
@@ -519,6 +522,7 @@ cgm.end_game = function(self)
     self.pacing_intensity = nil
     self.broadcast_pacing_intensity_interval = nil
     self.time_until_broadcast_pacing_intensity = nil
+    self.delayed_function_calls = {}
     enigma:unregister_mod_event_callback("update", self, "update")
     enigma.managers.warp:end_game()
     enigma.managers.sound:end_game()
@@ -533,6 +537,16 @@ end
 cgm.unable_to_play = function(self, data)
     data = data or self.local_data
     return not self:is_in_game() or data.dead or data.waiting_for_rescue
+end
+
+cgm._add_delayed_function_call = function(self, func, delay)
+    if not self:is_in_game() or not func or not delay then
+        return
+    end
+    table.insert(self.delayed_function_calls, {
+        func = func,
+        delay = delay
+    })
 end
 
 ----------
@@ -1243,30 +1257,30 @@ cgm._update_active_channel = function(self, dt)
     end
 end
 
-cgm._run_local_card_updates = function(self, dt)
+cgm._run_local_card_updates = function(self, dt, t)
     if self:unable_to_play() then
         return
     end
     if self.is_server then
         for _,card in ipairs(self.local_data.all_cards) do
             if card.update_server then
-                safe(card.update_server, card, dt)
+                safe(card.update_server, card, dt, t)
             end
         end
     end
     for _,card in ipairs(self.local_data.all_cards) do
         if card.update_local then
-            safe(card.update_local, card, dt)
+            safe(card.update_local, card, dt, t)
         end
     end
 end
-cgm._run_remote_card_updates = function(self, dt)
+cgm._run_remote_card_updates = function(self, dt,t )
     if self.is_server then
         for _,peer_data in pairs(self.peer_data) do
             if not self:unable_to_play(peer_data) then
                 for _,card in ipairs(peer_data.all_cards) do
                     if card.update_server then
-                        safe(card.update_server, card, dt)
+                        safe(card.update_server, card, dt, t)
                     end
                 end
             end
@@ -1276,7 +1290,7 @@ cgm._run_remote_card_updates = function(self, dt)
         if not self:unable_to_play(peer_data) then
             for _,card in ipairs(peer_data.all_cards) do
                 if card.update_remote then
-                    safe(card.update_remote, card, dt)
+                    safe(card.update_remote, card, dt, t)
                 end
             end
         end
@@ -1520,15 +1534,32 @@ cgm._update_card_draw_gain_rate = function(self)
     rate = rate * pacing_multiplier
     self.local_data._card_draw_gain_rate = rate
 end
-cgm.update = function(self, dt)
+
+cgm._update_delayed_function_calls = function(self, dt)
+    local done = 0
+    for _,func_call_data in ipairs(self.delayed_function_calls) do
+        func_call_data.delay = func_call_data.delay - dt
+        if func_call_data <= 0 then
+            done = done + 1
+        end
+    end
+    for i=1,done do
+        self.delayed_function_calls[i].func()
+    end
+    for i=done,1,-1 do
+        table.remove(self.delayed_function_calls, i)
+    end
+end
+
+cgm.update = function(self, dt, t)
     if self.game_state == "in_progress" then
 
         self:_handle_requested_card_play_from_ui(dt)
 
         self:_update_active_channel(dt)
         
-        self:_run_local_card_updates(dt)
-        self:_run_remote_card_updates(dt)
+        self:_run_local_card_updates(dt, t)
+        self:_run_remote_card_updates(dt, t)
         
         self:_update_local_card_active_durations(dt)
         self:_update_remote_card_active_durations(dt)
@@ -1549,6 +1580,8 @@ cgm.update = function(self, dt)
         local pull_from_deferred = self.local_data.deferred_card_draws * dt * 0.5
         self.local_data.deferred_card_draws = self.local_data.deferred_card_draws - pull_from_deferred
         self:add_card_draw(pull_from_deferred, "level_progress")
+
+        self:_update_delayed_function_calls(dt)
 
     elseif self.game_state == "initializing" then
     end
@@ -1603,6 +1636,9 @@ cgm.change_card_cost = function(self, card, new_cost)
         enigma:warning("Cannot directly set card cost of an X-cost card ["..tostring(card.id).."]")
         return
     end
+    if card.fixed_cost then
+        return
+    end
     if type(new_cost) ~= "number" then
         enigma:warning("Could not change card cost to non-number value: "..tostring(new_cost))
         return
@@ -1618,6 +1654,9 @@ cgm.add_card_cost = function(self, card, cost_to_add)
     end
     if card.owner ~= enigma:local_peer_id() then
         enigma:warning("Attempted to set card cost for someone else's card, this is not allowed.")
+        return
+    end
+    if card.fixed_cost then
         return
     end
     if type(cost_to_add) ~= "number" then

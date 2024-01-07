@@ -443,6 +443,9 @@ enigma.get_level_progress = function(self)
 
     return nil
 end
+enigma.invoke_delayed = function(self, func, delay)
+    enigma.managers.game:_add_delayed_function_call(func, delay)
+end
 enigma.lerp_yaw_pitch_roll = function(self, initial_yaw, initial_pitch, initial_roll, target_yaw, target_pitch, target_roll, t)
     local lerped_yaw = math.lerp(initial_yaw, target_yaw, t)
     local lerped_pitch = math.lerp(initial_pitch, target_pitch, t)

@@ -626,7 +626,7 @@ bm.get_warpstone_cost_modifier_from_buffs = function(self, card)
     return modifier
 end
 bm.get_final_warpstone_cost = function(self, card)
-    local modifier_from_buffs = self:get_warpstone_cost_modifier_from_buffs(card)
+    local modifier_from_buffs = card.fixed_cost and 0 or self:get_warpstone_cost_modifier_from_buffs(card)
     local cost = card.cost
     if cost == "X" then
         cost = card.cost_modifier + modifier_from_buffs

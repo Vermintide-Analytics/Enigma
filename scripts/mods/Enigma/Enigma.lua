@@ -253,7 +253,7 @@ end)
 -- Mod Events
 enigma.update = function(dt)
     for _,v in pairs(mod_event_callbacks.update) do
-        v.executor[v.callback](v.executor, dt)
+        v.executor[v.callback](v.executor, dt, Managers.time:time("game"))
     end
 end
 
