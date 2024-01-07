@@ -168,6 +168,10 @@ return {
         en = "Extra Munitions"
     },
 
+    base_fancy_footwork = {
+        en = "Fancy Footwork"
+    },
+
     base_gym_rat = {
         en = "Gym Rat"
     },
@@ -269,6 +273,16 @@ return {
         en = "Strike all nearby enemies with an instantaneous sweep"
     },
 
+    base_counterattack = {
+        en = "Counterattack"
+    },
+    base_counterattack_description = {
+        en = "Deal a large amount of damage to the last enemy you blocked"
+    },
+    base_counterattack_condition = {
+        en = "Blocked an enemy attack in the past 2 seconds"
+    },
+
     base_quick_stab = {
         en = "Quick Stab"
     },
@@ -280,7 +294,7 @@ return {
         en = "Slam"
     },
     base_slam_description = {
-        en = "Jump high in the air, then come down with great force, damaging and staggering nearby enemies."
+        en = "Jump high in the air, then come down with great force, damaging and staggering nearby enemies"
     },
 
 
@@ -290,6 +304,13 @@ return {
     },
     base_blood_transfusion_description = {
         en = "Evenly distribute a Heal of %i among Allied Heroes"
+    },
+
+    base_delayed_bomb = {
+        en = "Delayed Bomb"
+    },
+    base_delayed_bomb_description = {
+        en = "After %i seconds, create a huge explosion around yourself"
     },
 
     base_divine_insurance = {
@@ -422,6 +443,17 @@ return {
     
     base_warpstone_pie = {
         en = "Warpstone Pie"
+    },
+    
+    base_warpstone_vapors = {
+        en = "Warpstone Vapors"
+    },
+    
+    base_warp_charge_reserve = {
+        en = "Warp Charge Reserve"
+    },
+    base_warp_charge_reserve_description = {
+        en = "Give each Charge card in your hand +1 charge"
     },
 
     base_wrath_of_khorne = {

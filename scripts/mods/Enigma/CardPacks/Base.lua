@@ -1,5 +1,7 @@
 local enigma = get_mod("Enigma")
 
+dofile("scripts/mods/Enigma/CardPacks/Base_explosion_templates")
+
 local COMMON = enigma.CARD_RARITY.common
 local RARE = enigma.CARD_RARITY.rare
 local EPIC = enigma.CARD_RARITY.epic
@@ -249,6 +251,28 @@ local passive_cards = {
                 format = "description_cooldown_regen",
                 parameters = { 5 }
             }
+        }
+    },
+    fancy_footwork = {
+        rarity = COMMON,
+        cost = 3,
+        texture = true,
+        dodge_range_modifier = 0.2,
+        dodge_speed_modifier = 0.25,
+        on_play_local = function(card)
+            local us = card.context.unit
+            buff:update_stat(us, "dodge_range", card.dodge_range_modifier)
+            buff:update_stat(us, "dodge_speed", card.dodge_speed_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_dodge_range",
+                parameters = { 20 }
+            },
+            {
+                format = "description_dodge_speed",
+                parameters = { 25 }
+            },
         }
     },
     gym_rat = {
@@ -634,6 +658,57 @@ local passive_cards = {
 }
 
 local attack_cards = {
+    counterattack = {
+        rarity = COMMON,
+        cost = 0,
+        fixed_cost = true,
+        texture = true,
+        block_time_threshold = 2,
+        time_since_last_block = 2,
+        last_blocked_unit = nil,
+        on_play_server = function(card)
+            local us = card.context.unit
+            local enemy = card.last_blocked_unit
+            if Unit.alive(us) and Unit.alive(enemy) then
+                card:hit_enemy(enemy, us, nil, DamageProfileTemplates.medium_pointy_smiter_flat_1h, 3)
+            end
+        end,
+        update_local = function(card, dt)
+            card.time_since_last_block = card.time_since_last_block + dt
+        end,
+        condition_local = function(card)
+            local enemy_alive = Unit.alive(card.last_blocked_unit) and card.last_blocked_unit_health_extension and card.last_blocked_unit_health_extension:is_alive()
+            return enemy_alive and card.time_since_last_block < card.block_time_threshold
+        end,
+        events_local = {
+            player_block = function(card, blocker_unit, blocked_unit, fatigue_type)
+                if blocker_unit == card.context.unit then
+                    card.last_blocked_unit = blocked_unit
+                    card.last_blocked_unit_health_extension = ScriptUnit.extension(blocked_unit, "health_system")
+                    card.time_since_last_block = 0
+                end
+            end
+        },
+        events_server = {
+            player_block = function(card, blocker_unit, blocked_unit, fatigue_type)
+                if blocker_unit == card.context.unit then
+                    card.last_blocked_unit = blocked_unit
+                end
+            end
+        },
+        echo = true,
+        description_lines = {
+            {
+                format = "base_counterattack_description"
+            }
+        },
+        condition_descriptions = {
+            {
+                format = "base_counterattack_condition",
+                parameters = { 2 }
+            }
+        }
+    },
     cyclone_strike = {
         rarity = RARE,
         cost = 0,
@@ -683,7 +758,7 @@ local attack_cards = {
         texture = true,
         damage_enemies = function(card)
             local us = card.context.unit
-            enigma:create_explosion(us, enigma:unit_position(us), Quaternion.identity(), "grenade", 1, "undefined", nil, false)
+            enigma:create_explosion(us, enigma:unit_position(us), Quaternion.identity(), "grenade_no_ff", 1, "undefined", nil, false)
         end,
         on_play_local = function(card)
             local us = card.context.unit
@@ -736,6 +811,23 @@ local ability_cards = {
             },
             {
                 format = "base_blood_transfusion_description",
+                parameters = { 60 }
+            }
+        }
+    },
+    delayed_bomb = {
+        rarity = RARE,
+        cost = 2,
+        texture = true,
+        on_play_server = function(card)
+            local us = card.context.unit
+            enigma:invoke_delayed(function()
+                enigma:create_explosion(us, enigma:unit_position(us), Quaternion.identity(), "grenade_no_ff", 3, "undefined", nil, false)
+            end, 60)
+        end,
+        description_lines = {
+            {
+                format = "base_delayed_bomb_description",
                 parameters = { 60 }
             }
         }
@@ -1423,6 +1515,42 @@ local ability_cards = {
                 format = "description_movement_speed",
                 parameters = { -31.4 }
             },
+        }
+    },
+    warpstone_vapors = {
+        rarity = RARE,
+        cost = 2,
+        texture = true,
+        duration = 60,
+        cooldown_regen_modifier = 1.5,
+        on_play_local = function(card)
+            buff:surge_stat(card.context.unit, "cooldown_regen", card.cooldown_regen_modifier, card.duration)
+        end,
+        description_lines = {
+            {
+                format = "description_cooldown_regen",
+                parameters = { 150 }
+            }
+        }
+    },
+    warp_charge_reserve = {
+        rarity = EPIC,
+        cost = 1,
+        texture = true,
+        on_play_local = function(card)
+            for _,card_in_hand in ipairs(card.context.hand) do
+                if card_in_hand.charges then
+                    card_in_hand.charges = card_in_hand.charges + 1
+                    card_in_hand:set_dirty()
+                end
+            end
+        end,
+        ephemeral = true,
+        description_lines = {
+            {
+                format = "base_warp_charge_reserve_description",
+                parameters = { 1 }
+            }
         }
     },
     wrath_of_khorne = {
