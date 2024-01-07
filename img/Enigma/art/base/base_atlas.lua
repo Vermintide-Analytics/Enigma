@@ -165,7 +165,7 @@ return {
 		uv00 = { 0.123047, 0.593750, },
 		uv11 = { 0.246094, 0.667969, },
 	},
-	enigma_base_ranalds_gift = { 
+	enigma_base_ranalds_bounty = { 
 		size = { 504, 304, },
 		uv00 = { 0.123047, 0.519531, },
 		uv11 = { 0.246094, 0.593750, },

@@ -661,7 +661,6 @@ local attack_cards = {
     counterattack = {
         rarity = COMMON,
         cost = 0,
-        fixed_cost = true,
         texture = true,
         block_time_threshold = 2,
         time_since_last_block = 2,
@@ -1192,6 +1191,22 @@ local ability_cards = {
             },
         }
     },
+    ranalds_bounty = {
+        rarity = EPIC,
+        cost = 1,
+        texture = true,
+        on_play_local = function(card)
+            local random_card_template = enigma:get_random_card_definition()
+            local new_card = game:add_new_card_to_hand(random_card_template.id)
+            game:set_card_cost(new_card, 0)
+        end,
+        description_lines = {
+            {
+                format = "base_ranalds_bounty_description",
+                parameters = { 0 }
+            }
+        }
+    },
     ranalds_play = {
         rarity = LEGENDARY,
         cost = 1,
@@ -1600,12 +1615,13 @@ local chaos_cards = {
         times_drawn = 0,
         damage_per_draw = 5,
         texture = true,
-        on_location_changed_server = function(card, old, new)
-            if new == enigma.CARD_LOCATION.hand and old == enigma.CARD_LOCATION.draw_pile then
-                card.times_drawn = card.times_drawn + 1
-                card.description_lines[1].parameters[2] = card.damage_per_draw * card.times_drawn
-                card:set_dirty()
-            end
+        on_draw_server = function(card)
+            card.times_drawn = card.times_drawn + 1
+        end,
+        on_draw_local = function(card)
+            card.times_drawn = card.times_drawn + 1
+            card.description_lines[1].parameters[2] = card.damage_per_draw * card.times_drawn
+            card:set_dirty()
         end,
         on_play_server = function(card)
             enigma:force_damage(card.context.unit, card.damage_per_draw * card.times_drawn)

@@ -373,6 +373,13 @@ return {
         en = "Quick Stimulants"
     },
 
+    base_ranalds_bounty = {
+        en = "Ranald's Bounty"
+    },
+    base_ranalds_bounty_description = {
+        en = "Add a random card to your hand and set its cost to %i"
+    },
+
     base_ranalds_play = {
         en = "Ranald's Play"
     },

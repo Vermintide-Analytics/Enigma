@@ -1020,6 +1020,13 @@ local handle_shuffle_new_card_into_draw_pile = function(context, data, card_id, 
     if card[on_shuffle_into_draw_pile_func_name] then
         safe(card[on_shuffle_into_draw_pile_func_name], card)
     end
+    if cgm.is_server and card.on_location_changed_server then
+        safe(card.on_location_changed_server, card, nil, enigma.CARD_LOCATION.draw_pile)
+    end
+    local on_location_changed_func_name = "on_location_changed_"..context
+    if card[on_location_changed_func_name] then
+        safe(card[on_location_changed_func_name], card, nil, enigma.CARD_LOCATION.draw_pile)
+    end
     return card
 end
 local handle_local_shuffle_new_card_into_draw_pile = function(card_id)
@@ -1125,6 +1132,13 @@ local handle_add_new_card_to_hand = function(context, data, card_id)
     if card[on_created_in_game_func_name] then
         safe(card[on_created_in_game_func_name], card)
     end
+    if cgm.is_server and card.on_location_changed_server then
+        safe(card.on_location_changed_server, card, nil, enigma.CARD_LOCATION.hand)
+    end
+    local on_location_changed_func_name = "on_location_changed_"..context
+    if card[on_location_changed_func_name] then
+        safe(card[on_location_changed_func_name], card, nil, enigma.CARD_LOCATION.hand)
+    end
     return card
 end
 local handle_local_add_new_card_to_hand = function(card_id)
@@ -1135,6 +1149,7 @@ local handle_local_add_new_card_to_hand = function(card_id)
     if added_card then
         set_card_can_pay_warpstone(added_card)
     end
+    return added_card
 end
 enigma:network_register(net.event_new_card_added_to_hand, function(peer_id, card_id)
     local peer_data = cgm.peer_data[peer_id]
@@ -1152,8 +1167,8 @@ cgm.add_new_card_to_hand = function(self, card_id)
         enigma.managers.ui.time_since_hand_size_action_invalid = 0
         return false, "hand_full"
     end
-    handle_local_add_new_card_to_hand(card_id)
-    return true
+    local added_card = handle_local_add_new_card_to_hand(card_id)
+    return added_card
 end
 
 
@@ -1623,7 +1638,7 @@ cgm.card_cost_changed = function(self, card)
         end
     end
 end
-cgm.change_card_cost = function(self, card, new_cost)
+cgm.set_card_cost = function(self, card, new_cost)
     if type(card) ~= "table" then
         enigma:warning("Could not change card cost, invalid card")
         return
@@ -1668,7 +1683,7 @@ cgm.add_card_cost = function(self, card, cost_to_add)
         self:card_cost_changed(card)
         return
     end
-    self:change_card_cost(card, card.cost + cost_to_add)
+    self:set_card_cost(card, card.cost + cost_to_add)
 end
 
 cgm.on_warpstone_amount_changed = function(self)

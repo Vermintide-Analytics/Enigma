@@ -5,6 +5,18 @@ enigma.managers.card_template = ctm
 
 ctm.card_templates = {}
 
+ctm.ALL_CARDS = {
+    where = function(self, predicate)
+        local matches = {}
+        for _,template in ipairs(self) do
+            if predicate(template) then
+                table.insert(matches, template)
+            end
+        end
+        return matches
+    end
+}
+
 local trim_template_properties = function(card_instance)
     card_instance.instance = nil
 end
@@ -296,6 +308,7 @@ ctm.register_card = function(self, pack_id, card_id, card_type, card_def, additi
     end
 
     self.card_templates[new_template.id] = new_template
+    table.insert(self.ALL_CARDS, new_template)
     return true
 end
 

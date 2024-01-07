@@ -443,6 +443,15 @@ enigma.get_level_progress = function(self)
 
     return nil
 end
+enigma.get_random_card_definition = function(self, predicate)
+    local cards = enigma.managers.card_template.ALL_CARDS:where(function(template)
+        return not template.exclude_from_random_card_effects and (not predicate or predicate(template))
+    end)
+    if #cards < 1 then
+        return
+    end
+    return cards[enigma:random_range_int(1, #cards)]
+end
 enigma.invoke_delayed = function(self, func, delay)
     enigma.managers.game:_add_delayed_function_call(func, delay)
 end
