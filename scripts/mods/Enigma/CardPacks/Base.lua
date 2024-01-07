@@ -728,6 +728,25 @@ local attack_cards = {
             }
         }
     },
+    omnistrike = {
+        rarity = EPIC,
+        cost = 2,
+        texture = true,
+        on_play_server = function(card)
+            local us = card.context.unit
+            local enemies = enigma:get_all_enemies()
+            for _,unit in ipairs(enemies) do
+                if Unit.alive(unit) then
+                    card:hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_slashing_linesman, 3)
+                end
+            end
+        end,
+        description_lines = {
+            {
+                format = "base_omnistrike_description"
+            }
+        }
+    },
     quick_stab = {
         rarity = COMMON,
         cost = 0,
@@ -779,7 +798,33 @@ local attack_cards = {
                 format = "base_slam_description"
             }
         }
-    }
+    },
+    thrash = {
+        rarity = COMMON,
+        cost = 0,
+        texture = true,
+        on_play_server = function(card)
+            local us = card.context.unit
+            local nearby_ai_units = enigma:get_ai_units_around_unit(us, 1.5)
+            for _,unit in ipairs(nearby_ai_units) do
+                card:hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_blunt_tank, 8)
+            end
+        end,
+        on_draw_local = function(card)
+            local cost = enigma:random_range_int(0, 2)
+            game:set_card_cost(card, cost)
+        end,
+        description_lines = {
+            {
+                format = "base_thrash_description",
+                parameters = { }
+            },
+            {
+                format = "base_thrash_description_drawn",
+                parameters = { 0, 2 }
+            }
+        }
+    },
 }
 
 local ability_cards = {
@@ -819,9 +864,8 @@ local ability_cards = {
         cost = 2,
         texture = true,
         on_play_server = function(card)
-            local us = card.context.unit
             enigma:invoke_delayed(function()
-                enigma:create_explosion(us, enigma:unit_position(us), Quaternion.identity(), "grenade_no_ff", 3, "undefined", nil, false)
+                enigma:create_explosion(card.context.unit, enigma:unit_position(card.context.unit), Quaternion.identity(), "grenade_no_ff", 3, "undefined", nil, false)
             end, 60)
         end,
         description_lines = {
@@ -1375,6 +1419,40 @@ local ability_cards = {
                 format = "description_power_level_skaven",
                 parameters = { 35 }
             }
+        }
+    },
+    the_red_raven = {
+        rarity = LEGENDARY,
+        cost = 5,
+        texture = true,
+        card_draw_multiplier_modifier = -0.30,
+        draw_additional = true,
+        on_location_changed_local = function(card, old, new)
+            if new == enigma.CARD_LOCATION.hand then
+                buff:update_stat(card.context.unit, "card_draw_multiplier", card.card_draw_multiplier_modifier)
+            elseif old == enigma.CARD_LOCATION.hand then
+                buff:update_stat(card.context.unit, "card_draw_multiplier", card.card_draw_multiplier_modifier * -1)
+            end
+        end,
+        on_any_card_drawn_local = function(card, drawn_card)
+            if card:is_in_hand() and drawn_card ~= card then
+                if card.draw_additional then
+                    card.draw_additional = false -- Don't trigger ourselves from this additional card draw
+                    game:draw_card()
+                else
+                    card.draw_additional = true
+                end
+            end
+        end,
+        ephemeral = true,
+        retain_descriptions = {
+            {
+                format = "base_the_red_raven_retain",
+            },
+            {
+                format = "description_card_draw",
+                parameters = { -30 }
+            },
         }
     },
     ubersreik_hero = {

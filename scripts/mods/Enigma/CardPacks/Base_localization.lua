@@ -11,6 +11,9 @@ return {
     description_block_cost = {
         en = "%+.1f%% Block Cost"
     },
+    description_card_draw = {
+        en = "%+.1f%% Card Draw"
+    },
     description_cooldown_regen = {
         en = "%+.1f%% Cooldown Regen"
     },
@@ -283,6 +286,13 @@ return {
         en = "Blocked an enemy attack in the past 2 seconds"
     },
 
+    base_omnistrike = {
+        en = "Omnistrike"
+    },
+    base_omnistrike_description = {
+        en = "Strike ALL enemies simultaneously with a powerful slash"
+    },
+
     base_quick_stab = {
         en = "Quick Stab"
     },
@@ -295,6 +305,16 @@ return {
     },
     base_slam_description = {
         en = "Jump high in the air, then come down with great force, damaging and staggering nearby enemies"
+    },
+    
+    base_thrash = {
+        en = "Thrash"
+    },
+    base_thrash_description = {
+        en = "Swing wildly, heavily damaging enemies in a small area around you"
+    },
+    base_thrash_description_drawn = {
+        en = "When this card is drawn, randomize its cost between %i and %i"
     },
 
 
@@ -422,6 +442,13 @@ return {
     },
     base_stolen_bell_description = {
         en = "Skaven will prefer to attack you"
+    },
+
+    base_the_red_raven = {
+        en = "The Red Raven"
+    },
+    base_the_red_raven_retain = {
+        en = "Whenever you draw a card, draw another for free"
     },
 
     base_ubersreik_hero = {

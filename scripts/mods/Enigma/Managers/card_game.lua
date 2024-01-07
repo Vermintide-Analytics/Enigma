@@ -1551,18 +1551,18 @@ cgm._update_card_draw_gain_rate = function(self)
 end
 
 cgm._update_delayed_function_calls = function(self, dt)
-    local done = 0
-    for _,func_call_data in ipairs(self.delayed_function_calls) do
+    local done_indexes = {}
+    for i,func_call_data in ipairs(self.delayed_function_calls) do
         func_call_data.delay = func_call_data.delay - dt
-        if func_call_data <= 0 then
-            done = done + 1
+        if func_call_data.delay <= 0 then
+            table.insert(done_indexes, i)
         end
     end
-    for i=1,done do
-        self.delayed_function_calls[i].func()
+    for i=1,#done_indexes do
+        safe(self.delayed_function_calls[done_indexes[i]].func)
     end
-    for i=done,1,-1 do
-        table.remove(self.delayed_function_calls, i)
+    for i=#done_indexes,1,-1 do
+        table.remove(self.delayed_function_calls, done_indexes[i])
     end
 end
 

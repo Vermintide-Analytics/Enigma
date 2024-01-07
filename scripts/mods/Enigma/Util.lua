@@ -432,6 +432,27 @@ enigma.echo_bad_function_call = function(self, func_name, bad_param_name, detail
     params_details = params_details..")"
     enigma:echo("Enigma function call \""..func_name.."\" called with invalid parameter \""..bad_param_name.."\" "..params_details)
 end
+enigma.get_all_enemies = function(self)
+    local units = {}
+	local ai_system = Managers.state.entity:system("ai_system")
+    if not ai_system then
+        return units
+    end
+	local broadphase = ai_system.group_blackboard.broadphase
+    if not broadphase then
+        return units
+    end
+	local entries = Broadphase.all(broadphase)
+    enigma:info("Found "..tostring(#entries).." ENTRIES TOTAL")
+    for i,entry in ipairs(entries) do
+        enigma:info("Found UNIT: "..tostring(entry[3]))
+        if entry[3] then
+            table.insert(units, entry[3])
+        end
+    end
+    enigma:info("Found "..tostring(#units).." UNITS TOTAL")
+    return units
+end
 enigma.get_level_progress = function(self)
     local conflict = Managers.state.conflict
 
