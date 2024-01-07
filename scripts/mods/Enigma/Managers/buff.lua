@@ -591,7 +591,7 @@ bm.update = function(self, dt)
             end
         end
         for i=#finished_surges,1,-1 do
-            local surge = unit_stat_surges[i]
+            local surge = unit_stat_surges[finished_surges[i]]
             self:update_stat(unit, surge.stat, -1*surge.difference)
             table.remove(unit_stat_surges, finished_surges[i])
         end
