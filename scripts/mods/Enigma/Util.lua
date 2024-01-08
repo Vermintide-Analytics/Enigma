@@ -273,6 +273,9 @@ enigma.heal = function(self, unit, heal, healer, heal_type)
 end
 enigma._hit_enemy = function(self, hit_unit, attacker_unit, hit_zone_name, hit_position, attack_direction, damage_source, power_level, damage_profile, target_index, boost_curve_multiplier, is_critical_strike, can_damage, can_stagger, blocking, shield_breaking_hit, backstab_multiplier, first_hit, total_hits)
     local hit_ragdoll_actor = nil
+    if attacker_unit and type(POSITION_LOOKUP[attacker_unit]) == "userdata" then
+        POSITION_LOOKUP[attacker_unit] = Unit.world_position(attacker_unit, 0)
+    end
     DamageUtils.server_apply_hit(Managers.time:time("game"), attacker_unit, hit_unit, hit_zone_name, hit_position, attack_direction, hit_ragdoll_actor, damage_source, power_level, damage_profile, target_index, boost_curve_multiplier, is_critical_strike, can_damage, can_stagger, blocking, shield_breaking_hit, backstab_multiplier, first_hit, total_hits)
 end
 enigma.hit_enemy = function(self, hit_unit, attacking_player_unit, hit_zone_name, damage_profile, power_multiplier, is_critical_strike, break_shields)
