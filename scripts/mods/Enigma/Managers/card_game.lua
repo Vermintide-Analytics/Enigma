@@ -1420,7 +1420,7 @@ cgm._evaluate_remote_card_conditions = function(self)
                     card.condition_server_met = true
                 end
                 if cached_met_value ~= card.condition_server_met then
-                    enigma:network_send(net.notify_card_condition_met_changed, peer_id, enigma.CARD_LOCATION.hand, index, card.condition_server_met)
+                    enigma:network_send(net.notify_card_condition_met_changed, peer_id, card.local_id, card.condition_server_met)
                 end
             end
             for index,card in ipairs(peer_data.draw_pile) do
@@ -1432,7 +1432,7 @@ cgm._evaluate_remote_card_conditions = function(self)
                     card.condition_server_met = true
                 end
                 if cached_met_value ~= card.condition_server_met then
-                    enigma:network_send(net.notify_card_condition_met_changed, peer_id, enigma.CARD_LOCATION.draw_pile, index, card.condition_server_met)
+                    enigma:network_send(net.notify_card_condition_met_changed, peer_id, card.local_id, card.condition_server_met)
                 end
             end
         end
