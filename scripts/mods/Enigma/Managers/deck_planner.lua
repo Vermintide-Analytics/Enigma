@@ -74,7 +74,7 @@ dpm.average_cost = function(self, deck)
     local total = 0
     local count = 0
     for _,card in ipairs(deck.cards) do
-        if card.cost ~= "X" then
+        if type(card) == "table" and card.cost ~= "X" then
             total = total + card.cost
             count = count + 1
         end
