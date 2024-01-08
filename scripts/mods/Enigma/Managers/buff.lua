@@ -532,7 +532,6 @@ end)
 
 enigma:hook(DamageUtils, "_projectile_hit_character", function(func, current_action, owner_unit, owner_player, owner_buff_extension, target_settings, hit_unit, hit_actor, hit_position, hit_rotation, hit_normal, is_husk, breed, is_server, check_buffs, is_critical_strike, difficulty_rank, power_level, ranged_boost_curve_multiplier, damage_profile, damage_source, critical_hit_effect, world, hit_effect, attack_direction, damage_source_id, damage_profile_id, max_targets, current_num_penetrations, current_amount_of_mass_hit, target_number)
     local shooter_breed = owner_unit and Unit.get_data(owner_unit, "breed")
-    enigma:info("Projectile hit character from: "..tostring(shooter_breed and shooter_breed.name))
     if shooter_breed and shooter_breed.name == "skaven_ratling_gunner" then
         local custom_buffs = hit_unit and bm.unit_custom_buffs[hit_unit]
         if custom_buffs and enigma:test_chance(custom_buffs.chance_ignore_gunner) then
