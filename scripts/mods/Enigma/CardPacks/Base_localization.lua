@@ -4,6 +4,10 @@ return {
         en = "Base"
     },
 
+    example_x_cost_card_description = {
+        en = "%+.1f%%*%s Attack Speed"
+    },
+
     -- Common descriptions
     description_attack_speed = {
         en = "%+.1f%% Attack Speed"

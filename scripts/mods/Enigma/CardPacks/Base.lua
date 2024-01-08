@@ -7,6 +7,8 @@ local RARE = enigma.CARD_RARITY.rare
 local EPIC = enigma.CARD_RARITY.epic
 local LEGENDARY = enigma.CARD_RARITY.legendary
 
+local X = "X"
+
 local pack_handle = enigma.managers.card_pack:register_card_pack("Enigma", "base", "base")
 
 local game = enigma.managers.game
@@ -828,6 +830,22 @@ local attack_cards = {
 }
 
 local ability_cards = {
+    -- example_x_cost_card = {
+    --     rarity = COMMON,
+    --     cost = X,
+    --     texture = false,
+    --     on_play_local = function(card, play_type, net_x_cost)
+    --         buff:surge_stat(card.context.unit, "attack_speed", 0.33*(net_x_cost+2), 10)
+    --     end,
+    --     description_lines = {
+    --         {
+    --             format = "example_x_cost_card_description",
+    --             parameters = { 33, "X" },
+    --             x_cost_parameters = { false, 2 }
+    --         }
+    --     }
+    -- },
+
     blood_transfusion = {
         rarity = COMMON,
         cost = 1,
