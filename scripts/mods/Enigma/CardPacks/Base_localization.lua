@@ -88,13 +88,13 @@ return {
         en = "%+.1f%% Push Range"
     },
     description_reload_speed = {
-        en = "%+.1f%% Reload Speed"
+        en = "%+.1f%% Reload Time"
     },
     description_respawn_speed = {
-        en = "%+.1f%% Respawn Speed"
+        en = "%+.1f%% Respawn Time"
     },
     description_revive_speed = {
-        en = "%+.1f%% Revive Speed"
+        en = "%+.1f%% Revive Time"
     },
     description_restore_health = {
         en = "Restore %i Health"
@@ -315,7 +315,7 @@ return {
         en = "Thrash"
     },
     base_thrash_description = {
-        en = "Swing wildly, heavily damaging enemies in a small area around you"
+        en = "Swing wildly, heavily damaging enemies in a small area around you."
     },
     base_thrash_description_drawn = {
         en = "When this card is drawn, randomize its cost between %i and %i"

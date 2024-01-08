@@ -119,14 +119,14 @@ local passive_cards = {
         rarity = COMMON,
         cost = 1,
         texture = true,
-        revive_speed_modifier = 0.15,
+        revive_speed_modifier = -0.15,
         on_play_local = function(card)
             buff:update_stat(card.context.unit, "faster_revive", card.revive_speed_modifier)
         end,
         description_lines = {
             {
                 format = "description_revive_speed",
-                parameters = { 15 }
+                parameters = { -15 }
             }
         }
     },
@@ -149,14 +149,14 @@ local passive_cards = {
         rarity = COMMON,
         cost = 0,
         texture = true,
-        respawn_speed_modifier = 0.2,
+        respawn_speed_modifier = -0.2,
         on_play_local = function(card)
             buff:update_stat(card.context.unit, "faster_respawn", card.respawn_speed_modifier)
         end,
         description_lines = {
             {
                 format = "description_respawn_speed",
-                parameters = { 20 }
+                parameters = { -20 }
             }
         }
     },
@@ -390,7 +390,7 @@ local passive_cards = {
         description_lines = {
             {
                 format = "description_reload_speed",
-                parameters = { 5 }
+                parameters = { -5 }
             }
         }
     },
@@ -602,7 +602,7 @@ local passive_cards = {
         rarity = COMMON,
         cost = 1,
         texture = true,
-        curse_resistance_modifier = 0.2,
+        curse_resistance_modifier = -0.2,
         on_play_local = function(card)
             buff:update_stat(card.context.unit, "curse_protection", card.curse_resistance_modifier)
         end,
