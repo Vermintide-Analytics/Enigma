@@ -1964,7 +1964,22 @@ reg_hook_safe(GenericStatusExtension, "set_in_vortex", function(self, in_vortex,
     handle_channel_cancelling_status_change(self.unit, in_vortex)
 end, "enigma_card_game_set_in_vortex")
 
-
+cgm.queued_explosions = {}
+reg_hook_safe(StateIngame, "post_update", function(self, dt)
+    if #cgm.queued_explosions == 0 then
+        return
+    end
+    local area_damage = Managers.state.entity:system("area_damage_system")
+    if not area_damage then
+        enigma:warning("Could not create queued explosions, no area damage system.")
+        table.clear(cgm.queued_explosions)
+        return
+    end
+    for _,data in ipairs(cgm.queued_explosions) do
+        area_damage:create_explosion(data.owner_unit, data.position, data.rotation, data.explosion_template_name, data.scale, data.damage_source, data.attacker_power_level, data.is_critical_strike)
+    end
+    table.clear(cgm.queued_explosions)
+end, "enigma_card_game_post_update")
 
 
 enigma:network_register(net.sync_player_accumulated_stagger, function(peer_id, trash, elite, special, boss)

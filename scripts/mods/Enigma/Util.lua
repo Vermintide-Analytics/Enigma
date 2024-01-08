@@ -227,12 +227,20 @@ enigma.create_explosion = function(self, owner_unit, position, rotation, explosi
     if not owner_unit or not Unit.alive(owner_unit) then
         return
     end
-    local area_damage = Managers.state.entity:system("area_damage_system")
-    if not area_damage then
-        enigma:warning("Could not create an explosion, no area damage system.")
+    if not enigma.managers.game:is_in_game() then
+        enigma:warning("Could not create an explosion, not in a game")
         return
     end
-    area_damage:create_explosion(owner_unit, position, rotation, explosion_template_name, scale, damage_source, attacker_power_level, is_critical_strike)
+    table.insert(enigma.managers.game.queued_explosions, {
+        owner_unit = owner_unit,
+        position = position,
+        rotation = rotation,
+        explosion_template_name = explosion_template_name,
+        scale = scale,
+        damage_source = damage_source,
+        attacker_power_level = attacker_power_level,
+        is_critical_strike = is_critical_strike
+    })
 end
 enigma.force_damage = function(self, unit, damage, damager, damage_source)
     if not self:is_server() then
