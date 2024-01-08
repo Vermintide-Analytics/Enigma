@@ -215,7 +215,7 @@ local scenegraph_definition = {
 		},
 		position = {
 			PRETTY_MARGIN*2,
-			PRETTY_MARGIN*-3 - 4 - TOP_PANEL_HEIGHT / 3,
+			PRETTY_MARGIN*-4 - 4 - TOP_PANEL_HEIGHT / 4,
 			0
 		}
 	},
@@ -228,8 +228,22 @@ local scenegraph_definition = {
 			TOP_PANEL_HEIGHT / 4
 		},
 		position = {
-			PRETTY_MARGIN*4 + WINDOW_WIDTH / 8,
-			PRETTY_MARGIN*-3 - 4 - TOP_PANEL_HEIGHT / 3,
+			PRETTY_MARGIN*2,
+			PRETTY_MARGIN*-3 - 4 - TOP_PANEL_HEIGHT / 2,
+			0
+		}
+	},
+	deck_avg_cost = {
+		parent = "top_panel",
+		vertical_alignment = "top",
+		horizontal_alignment = "left",
+		size = {
+			WINDOW_WIDTH / 8,
+			TOP_PANEL_HEIGHT / 4
+		},
+		position = {
+			LEFT_PANEL_WIDTH - PRETTY_MARGIN - WINDOW_WIDTH / 8,
+			PRETTY_MARGIN*-3 - 4 - TOP_PANEL_HEIGHT / 2,
 			0
 		}
 	},
@@ -387,6 +401,20 @@ local scenegraph_definition = {
 			1
 		}
 	}
+}
+
+local text_color_valid = {
+	255,
+	0,
+	255,
+	0
+}
+
+local text_color_invalid = {
+	255,
+	255,
+	0,
+	0
 }
 
 local widgets = {
@@ -626,16 +654,13 @@ local widgets = {
 		},
 		style = {
 			deck_card_count = {
-				horizontal_alignment = "center",
+				horizontal_alignment = "left",
 				vertical_alignment = "center",
-				font_size = 28,
+				font_size = 24,
 				font_type = "hell_shark",
-				text_color = {
-					255,
-					0,
-					255,
-					0
-				}
+				text_color = text_color_valid,
+				text_color_valid = text_color_valid,
+				text_color_invalid = text_color_invalid
 			}
 		}
 	},
@@ -655,15 +680,41 @@ local widgets = {
 		},
 		style = {
 			deck_cp_count = {
-				horizontal_alignment = "center",
+				horizontal_alignment = "left",
 				vertical_alignment = "center",
-				font_size = 28,
+				font_size = 24,
+				font_type = "hell_shark",
+				text_color = text_color_valid,
+				text_color_valid = text_color_valid,
+				text_color_invalid = text_color_invalid
+			}
+		}
+	},
+	deck_avg_cost = {
+		scenegraph_id = "deck_avg_cost",
+		element = {
+			passes = {
+				{
+					pass_type = "text",
+					style_id = "deck_avg_cost",
+					text_id = "deck_avg_cost"
+				}
+			}
+		},
+		content = {
+			deck_avg_cost = "Avg Cost: 0"
+		},
+		style = {
+			deck_avg_cost = {
+				horizontal_alignment = "right",
+				vertical_alignment = "center",
+				font_size = 24,
 				font_type = "hell_shark",
 				text_color = {
 					255,
-					0,
 					255,
-					0
+					255,
+					255
 				}
 			}
 		}

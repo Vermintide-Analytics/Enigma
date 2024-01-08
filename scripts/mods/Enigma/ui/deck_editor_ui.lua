@@ -467,10 +467,21 @@ EnigmaDeckEditorUI.update_deck_info_ui = function(self)
 	deck_name_content.caret_index = deck.name:len() + 1
 	
 	local deck_card_count_content = self._widgets_by_name.deck_card_count.content
-	deck_card_count_content.deck_card_count = "Cards: "..#deck.cards.." / "..enigma.managers.deck_planner:max_cards(deck.game_mode)
-	
+	deck_card_count_content.deck_card_count = enigma:localize("deck_card_count", #deck.cards, enigma.managers.deck_planner:max_cards(deck.game_mode))
+
 	local deck_cp_count_content = self._widgets_by_name.deck_cp_count.content
-	deck_cp_count_content.deck_cp_count = "CP: "..deck.cp.." / "..enigma.managers.deck_planner:max_cp(deck.game_mode)
+	deck_cp_count_content.deck_cp_count = enigma:localize("deck_cp_count", deck.cp, enigma.managers.deck_planner:max_cp(deck.game_mode))
+	
+	local deck_avg_cost_content = self._widgets_by_name.deck_avg_cost.content
+	deck_avg_cost_content.deck_avg_cost = enigma:localize("deck_avg_cost", enigma.managers.deck_planner:average_cost(deck))
+
+	local card_count_valid = not enigma.managers.deck_planner:is_num_cards_under_min(deck) and not enigma.managers.deck_planner:is_num_cards_over_max(deck)
+	local deck_card_count_style = self._widgets_by_name.deck_card_count.style.deck_card_count
+	deck_card_count_style.text_color = card_count_valid and deck_card_count_style.text_color_valid or deck_card_count_style.text_color_invalid
+	
+	local card_cp_valid = not enigma.managers.deck_planner:is_cp_over_max(deck)
+	local deck_card_cp_style = self._widgets_by_name.deck_cp_count.style.deck_cp_count
+	deck_card_cp_style.text_color = card_cp_valid and deck_card_cp_style.text_color_valid or deck_card_cp_style.text_color_invalid
 
 	local delete_deck_button = self._widgets_by_name.delete_deck_button
 	delete_deck_button.content.disable_button = deck.prebuilt

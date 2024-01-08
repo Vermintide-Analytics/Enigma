@@ -67,6 +67,21 @@ dpm.init = function(self)
     dpm:update_self_equipped_deck_valid()
 end
 
+dpm.average_cost = function(self, deck)
+    if not deck then
+        return 0
+    end
+    local total = 0
+    local count = 0
+    for _,card in ipairs(deck.cards) do
+        if card.cost ~= "X" then
+            total = total + card.cost
+            count = count + 1
+        end
+    end
+    return count == 0 and 0 or total / count
+end
+
 dpm.recalculate_cp = function(self, deck)
     local cp = 0
     for i, card_template in ipairs(deck.cards) do

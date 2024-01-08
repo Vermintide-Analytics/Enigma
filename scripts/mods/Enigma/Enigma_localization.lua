@@ -244,6 +244,15 @@ local loc = {
 	card_pack = {
 		en = "Pack"
 	},
+	deck_avg_cost = {
+		en = "Avg Cost: %.2f",
+	},
+	deck_card_count = {
+		en = "Cards: %i / %i",
+	},
+	deck_cp_count = {
+		en = "CP: %i / %i",
+	},
 	deck_editor_window_title = {
 		en = "Deck Planner",
 	},
