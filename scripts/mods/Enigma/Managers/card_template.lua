@@ -28,7 +28,46 @@ local card_loc_helper = function(mod, format, parameters)
     return mod:localize(format)
 end
 
+local update_x_cost_descriptions = function(card)
+    if card.cost ~= "X" then
+        return
+    end
+    local any_description_changed = false
+    local description_tables = {
+        card.description_lines,
+        card.auto_descriptions,
+        card.condition_descriptions,
+        card.retain_descriptions
+    }
+    for _,description_table in ipairs(description_tables) do
+        for _,line in ipairs(description_table) do
+            if line.x_cost_parameters then
+                for i,_ in ipairs(line.parameters) do
+                    if line.x_cost_parameters[i] then
+                        local x_cost_string = "X"
+                        local total_modifier = line.x_cost_parameters[i] * -1
+                        if card.local_id then
+                            total_modifier = total_modifier + (card.cost_modifier or 0) + enigma.managers.buff:get_warpstone_cost_modifier_from_buffs(card)
+                        end
+                        
+                        if total_modifier > 0 then
+                            x_cost_string = "(X-"..tostring(total_modifier)..")"
+                        elseif total_modifier < 0 then
+                            x_cost_string = "(X+"..tostring(total_modifier*-1)..")"
+                        end
+                        line.parameters[i] = x_cost_string
+                        any_description_changed = true
+                    end
+                end
+            end
+        end
+    end
+    return any_description_changed
+end
+
 local refresh_card_detail_localization = function(card)
+    update_x_cost_descriptions(card)
+
     local mod = get_mod(card.mod_id)
     for _,description_table in ipairs(card.description_lines) do
         description_table.localized = card_loc_helper(mod, description_table.format, description_table.parameters)
@@ -342,6 +381,10 @@ ctm.get_pack_id_from_card_id = function(self, scoped_card_id)
         return
     end
     return scoped_card_id:sub(1, delimiter_index - 1)
+end
+
+ctm._update_x_cost_descriptions = function(self, card)
+    return update_x_cost_descriptions(card)
 end
 
 ctm.dump = function(self)
