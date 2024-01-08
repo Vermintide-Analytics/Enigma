@@ -883,7 +883,7 @@ local ability_cards = {
         texture = true,
         on_play_server = function(card)
             enigma:invoke_delayed(function()
-                enigma:create_explosion(card.context.unit, enigma:unit_position(card.context.unit), Quaternion.identity(), "grenade_no_ff", 3, "undefined", nil, false)
+                enigma:create_explosion(card.context.unit, enigma:unit_position(card.context.unit), Quaternion.identity(), "grenade_no_ff_scaled_x3", 1, "undefined", nil, false)
             end, 60)
         end,
         description_lines = {

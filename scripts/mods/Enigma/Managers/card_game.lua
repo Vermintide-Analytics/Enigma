@@ -1950,7 +1950,7 @@ reg_hook_safe(StateIngame, "post_update", function(self, dt)
         return
     end
     for _,data in ipairs(cgm.queued_explosions) do
-        area_damage:create_explosion(data.owner_unit, data.position, data.rotation, data.explosion_template_name, data.scale, data.damage_source, data.attacker_power_level, data.is_critical_strike)
+        safe(area_damage.create_explosion, area_damage, data.owner_unit, data.position:unbox(), data.rotation:unbox(), data.explosion_template_name, data.scale, data.damage_source, data.attacker_power_level, data.is_critical_strike)
     end
     table.clear(cgm.queued_explosions)
 end, "enigma_card_game_post_update")

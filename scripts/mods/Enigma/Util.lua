@@ -233,8 +233,8 @@ enigma.create_explosion = function(self, owner_unit, position, rotation, explosi
     end
     table.insert(enigma.managers.game.queued_explosions, {
         owner_unit = owner_unit,
-        position = position,
-        rotation = rotation,
+        position = Vector3Box(position),
+        rotation = QuaternionBox(rotation),
         explosion_template_name = explosion_template_name,
         scale = scale,
         damage_source = damage_source,
