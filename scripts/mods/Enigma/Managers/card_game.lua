@@ -6,7 +6,9 @@ local safe = function(func, ...)
 end
 
 local net = {
-    sync_card_game_init_data = "sync_card_game_init_data",
+    card_game_init_begin = "card_game_init_begin",
+    card_game_init_card = "card_game_init_card",
+    card_game_init_complete = "card_game_init_complete",
     sync_players_and_units_set = "sync_players_and_units_set",
     event_card_drawn = "event_card_drawn",
     event_card_played = "event_card_played",
@@ -215,6 +217,7 @@ local set_card_can_pay_warpstone = function(card)
     card.can_pay_warpstone = can_pay
 end
 
+local in_progress_game_init_syncs
 cgm.init_game = function(self, game_init_data, debug)
     enigma:info("Initializing Enigma game")
     self.is_server = game_init_data.is_server
@@ -304,10 +307,11 @@ cgm.init_game = function(self, game_init_data, debug)
     enigma.managers.ui.last_played_card = nil
     table.clear(enigma.managers.ui.played_cards_queue)
 
+    in_progress_game_init_syncs = {}
     enigma:register_mod_event_callback("update", self, "_init_update")
 end
 
-enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_name, card_ids_in_deck)
+enigma:network_register(net.card_game_init_begin, function(peer_id, deck_name, num_cards_in_deck)
     local peer_data = {
         deck_name = deck_name,
 
@@ -333,10 +337,33 @@ enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_nam
         }
     end
 
+    cgm.peer_data[peer_id] = peer_data
+    in_progress_game_init_syncs[peer_id] = {}
+    for i=1,num_cards_in_deck do
+        in_progress_game_init_syncs[peer_id][i] = true
+    end
+end)
+enigma:network_register(net.card_game_init_card, function(peer_id, card_id)
+    local in_progress_sync_data = in_progress_game_init_syncs[peer_id]
+    if not in_progress_sync_data then
+        enigma:warning("Received card_game_init_card for "..tostring(peer_id).." before receiving card_game_init_begin from them!")
+        return
+    end
+
+    table.insert(in_progress_sync_data, card_id)
+end)
+enigma:network_register(net.card_game_init_complete, function(peer_id)
+    local peer_data = cgm.peer_data[peer_id]
+    local in_progress_sync_data = in_progress_game_init_syncs[peer_id]
+    if not in_progress_sync_data then
+        enigma:warning("Received card_game_init_complete for "..tostring(peer_id).." before receiving card_game_init_begin from them!")
+        return
+    end
+
     local missing_packs = {}
     local card_manager = enigma.managers.card_template
     local primordial_cards = {}
-    for _,card_id in ipairs(card_ids_in_deck) do
+    for _,card_id in ipairs(in_progress_sync_data) do
         local card_template = card_manager:get_card_from_id(card_id)
         if not card_template then
             table.insert(peer_data.draw_pile, card_id)
@@ -371,16 +398,17 @@ enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_nam
         enigma:chat_whisper(peer_id, "A player is missing the following card packs, and some cards may not work properly: (".. pack_list..")")
     end
 
-    cgm.peer_data[peer_id] = peer_data
     enigma:info("peer_data["..tostring(peer_id).."] set")
     enigma:dump(peer_data, "NEW PEER DATA", 0)
+
+    in_progress_game_init_syncs[peer_id] = nil
 
     if cgm.game_state == "syncing" then
         if cgm.expecting_sync_from_peers[peer_id] then
             cgm.expecting_sync_from_peers[peer_id] = false
-            enigma:info("Received initialization sync from peer: "..tostring(peer_id))
+            enigma:info("Received initialization sync complete from peer: "..tostring(peer_id))
         elseif cgm.expecting_sync_from_peers[peer_id] == false then
-            enigma:warning("Received DUPLICATE initialization sync from peer: "..tostring(peer_id))
+            enigma:warning("Received DUPLICATE initialization sync complete from peer: "..tostring(peer_id))
         end
         local any_left_to_sync = false
         for _,expecting_sync in pairs(cgm.expecting_sync_from_peers) do
@@ -390,7 +418,7 @@ enigma:network_register(net.sync_card_game_init_data, function(peer_id, deck_nam
             cgm:start_game()
         end
     else
-        enigma:info("Received initialization sync from peer: "..tostring(peer_id))
+        enigma:info("Received initialization sync complete from peer: "..tostring(peer_id))
         enigma:info("We have not reached our point of syncing out yet, but that is ok!")
     end
 end)
@@ -425,7 +453,11 @@ cgm._init_update = function(self, dt)
         end
         
         enigma:info("Attempting to send RPC sync_card_game_init_data")
-        enigma:network_send(net.sync_card_game_init_data, "others", self.local_data.deck_name, self.local_data.deck_card_ids)
+        enigma:network_send(net.card_game_init_begin, "others", self.local_data.deck_name, #self.local_data.deck_card_ids)
+        for i,card_id in ipairs(self.local_data.deck_card_ids) do
+            enigma:network_send(net.card_game_init_card, "others", i, card_id)
+        end
+        enigma:network_send(net.card_game_init_complete, "others")
 
         if num_others_not_yet_synced > 0 then
             enigma:info("Expecting syncs from the above "..tostring(num_others_not_yet_synced).." more peers:")
