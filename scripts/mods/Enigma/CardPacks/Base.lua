@@ -807,7 +807,7 @@ local attack_cards = {
         texture = true,
         on_play_server = function(card)
             local us = card.context.unit
-            local nearby_ai_units = enigma:get_ai_units_around_unit(us, 1.5)
+            local nearby_ai_units = enigma:get_ai_units_around_unit(us, 2.5)
             for _,unit in ipairs(nearby_ai_units) do
                 card:hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_blunt_tank, 8)
             end
@@ -939,7 +939,7 @@ local ability_cards = {
         rarity = RARE,
         cost = 0,
         texture = true,
-        on_play_server = function(card)
+        on_play_local = function(card)
             enigma:remove_overcharge_fraction(card.context.unit, 1)
         end,
         charges = 4,
@@ -1632,15 +1632,15 @@ local ability_cards = {
         rarity = RARE,
         cost = 2,
         texture = true,
-        duration = 60,
-        cooldown_regen_modifier = 1.5,
+        duration = 120,
+        cooldown_regen_modifier = 1.75,
         on_play_local = function(card)
             buff:surge_stat(card.context.unit, "cooldown_regen", card.cooldown_regen_modifier, card.duration)
         end,
         description_lines = {
             {
                 format = "description_cooldown_regen",
-                parameters = { 150 }
+                parameters = { 175 }
             }
         }
     },
