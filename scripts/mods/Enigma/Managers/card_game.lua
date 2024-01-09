@@ -217,6 +217,40 @@ local set_card_can_pay_warpstone = function(card)
     card.can_pay_warpstone = can_pay
 end
 
+local add_context_functions = function(context)
+    context._get_cards_in_pile = function(self, pile, predicate)
+        if type(predicate) == "string" then
+            enigma:info("Searching cards by id: "..tostring(predicate))
+            local id = predicate
+            predicate = function(card)
+                return card.id == id
+            end
+        end
+        local results = {}
+        for _,card in ipairs(pile) do
+            if not predicate or predicate(card) then
+                table.insert(results, card)
+            end
+        end
+        return results
+    end
+    context.get_cards = function(self, predicate)
+        return self:_get_cards_in_pile(self.all_cards, predicate)
+    end
+    context.get_cards_in_draw_pile = function(self, predicate)
+        return self:_get_cards_in_pile(self.draw_pile, predicate)
+    end
+    context.get_cards_in_hand = function(self, predicate)
+        return self:_get_cards_in_pile(self.hand, predicate)
+    end
+    context.get_cards_in_discard_pile = function(self, predicate)
+        return self:_get_cards_in_pile(self.discard_pile, predicate)
+    end
+    context.get_out_of_play_cards = function(self, predicate)
+        return self:_get_cards_in_pile(self.out_of_play_pile, predicate)
+    end
+end
+
 cgm._instance_card = function(self, context, card_template)
     local card = card_template:instance(context)
     if self.is_server and card.init_server then
@@ -265,6 +299,7 @@ cgm.init_game = function(self, game_init_data, debug)
 
         peer_id = Network.peer_id(),
     }
+    add_context_functions(local_data)
 
     local_data.available_card_draws = enigma.mega_resource_start and 99 or local_data.available_card_draws
     local_data.deferred_card_draws = 0
@@ -340,6 +375,7 @@ enigma:network_register(net.card_game_init_begin, function(peer_id, deck_name, n
 
         peer_id = peer_id,
     }
+    add_context_functions(peer_data)
 
     if cgm.is_server then
         peer_data.accumulated_stagger = {

@@ -1440,14 +1440,12 @@ local ability_cards = {
         on_play_local = function(card)
             local time_multiplier = 1
             local increased_duration_per_crystal = 0.25
-            for _,card_in_hand in ipairs(card.context.hand) do
-                if card_in_hand.id == "base/dormant_crystal" then
-                    time_multiplier = time_multiplier + increased_duration_per_crystal
-                end
-            end
+            local crystals = card.context:get_cards_in_hand("base/dormant_crystal")
+            time_multiplier = time_multiplier + (#crystals * increased_duration_per_crystal)
 
             local effect = 4 -- Slow down time to 1/effect
             local effect_inv = 1 / effect
+            local calculated_duration = card.duration * effect_inv * time_multiplier
 
             enigma:multiply_time_scale(effect_inv)
             card:rpc_others("multiply_time_scale", effect_inv)
@@ -1469,11 +1467,8 @@ local ability_cards = {
                 buff:update_stat(card.context.unit, stat_name, buff_amount)
             end
             
-            local calculated_duration = card.duration * effect_inv * time_multiplier
-            for _,card_in_hand in ipairs(card.context.hand) do
-                if card_in_hand.id == "base/dormant_crystal" then
-                    card_in_hand:activate()
-                end
+            for _,crystal in ipairs(crystals) do
+                crystal:activate()
             end
 
             multiply_stat("attack_speed", 1, effect)
@@ -1504,15 +1499,9 @@ local ability_cards = {
                 undivide_stat("faster_revive", effect)
                 undivide_stat("reduced_ranged_charge_time", effect)
 
-                local cards_to_discard = {}
-                for _,card_in_hand in ipairs(card.context.hand) do
-                    if card_in_hand.id == "base/dormant_crystal" then
-                        card_in_hand:deactivate()
-                        table.insert(cards_to_discard, card_in_hand)
-                    end
-                end
-                for _,card_to_discard in ipairs(cards_to_discard) do
-                    game:discard_card(card_to_discard)
+                for _,crystal in ipairs(crystals) do
+                    crystal:deactivate()
+                    game:discard_card(crystal)
                 end
             end, calculated_duration)
         end,
@@ -1979,11 +1968,10 @@ local ability_cards = {
         cost = 1,
         texture = true,
         on_play_local = function(card)
-            for _,card_in_hand in ipairs(card.context.hand) do
-                if card_in_hand.charges then
-                    card_in_hand.charges = card_in_hand.charges + 1
-                    card_in_hand:set_dirty()
-                end
+            local charge_cards = card.context:get_cards_in_hand(function(c) return c.charges end)
+            for _,charge_card in ipairs(charge_cards) do
+                charge_card.charges = charge_card.charges + 1
+                charge_card:set_dirty()
             end
         end,
         ephemeral = true,
