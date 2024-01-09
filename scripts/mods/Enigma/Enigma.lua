@@ -6,7 +6,7 @@ Wwise.load_bank("wwise/mods/Enigma/Enigma")
 
 enigma.managers = {}
 
-enigma.random_seed = 12345 -- The same password I have on my luggage
+enigma.random_seed = os.clock() * 10000 % 1000
 
 
 -- DEBUG SETTINGS
@@ -235,6 +235,18 @@ enigma._command_paste = function(self, args)
             enigma.managers.warp[key] = val
         end
         enigma:dump(enigma.managers.warp, "WARP MANAGER", 3)
+    end
+end
+enigma._command_set = function(self, args)
+    local set_target = args[2]
+    if set_target == "seed" then
+        local seed = args[3] and tonumber(args[3])
+        if not seed then
+            enigma:echo("Must provide a seed value")
+            return
+        end
+        enigma.random_seed = seed
+        enigma:echo("Enigma random seed set to "..tostring(seed))
     end
 end
 
