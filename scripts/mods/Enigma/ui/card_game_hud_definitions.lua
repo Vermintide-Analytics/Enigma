@@ -12,8 +12,8 @@ local PRETTY_MARGIN = 10
 local CHANNEL_BAR_WIDTH = 600
 local CHANNEL_BAR_HEIGHT = 28
 
-local PLAYED_CARD_WIDTH = 300
-local PLAYED_CARD_HEIGHT = 485
+local PLAYED_CARD_WIDTH = 240
+local PLAYED_CARD_HEIGHT = 388
 
 -- Hand Panel Sizing
 local CARD_WIDTH = 128
@@ -188,14 +188,14 @@ local scenegraph_definition = {
 	played_card_container = {
 		parent = "channel_bar",
 		vertical_alignment = "bottom",
-		horizontal_alignment = "center",
+		horizontal_alignment = "right",
 		size = {
 			PLAYED_CARD_WIDTH,
 			PLAYED_CARD_HEIGHT
 		},
 		position = {
 			0,
-			PLAYED_CARD_HEIGHT*-1 - PRETTY_MARGIN,
+			PLAYED_CARD_HEIGHT*-1 - PRETTY_MARGIN*2,
 			1
 		}
 	},
