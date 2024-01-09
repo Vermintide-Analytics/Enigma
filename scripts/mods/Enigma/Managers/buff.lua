@@ -50,6 +50,7 @@ local custom_buff_definitions = {
     chance_instantly_slay_man_sized_enemy = 0,
     dodge_range = 1.0,
     dodge_speed = 1.0,
+    jump_force = 1.0,
     temporary_healing_received = 1.0,
     warp_dust_multiplier = 1.0,
 }
@@ -99,6 +100,9 @@ end
 local update_dodge_speed = function(unit, stat, new, old)
     update_movement_stat(unit, stat, new, old, { "dodging", "speed_modifier" })
 end
+local update_jump_force = function(unit, stat, new, old)
+    update_movement_stat(unit, stat, new, old, { "jump", "initial_vertical_speed" })
+end
 bm.global_stat_updated_callbacks.movement_speed = {
     update_movement_speed
 }
@@ -107,6 +111,9 @@ bm.global_stat_updated_callbacks.dodge_range = {
 }
 bm.global_stat_updated_callbacks.dodge_speed = {
     update_dodge_speed
+}
+bm.global_stat_updated_callbacks.jump_force = {
+    update_jump_force
 }
 
 -- Set card UI dirty when cost modifier has updated
@@ -223,6 +230,9 @@ local handle_update_stat = function(unit, stat, difference)
         else
             buff_extension:update_stat_buff(stat, difference, index)
         end
+    elseif not custom_buffs and not builtin_buffs then
+        enigma:echo("Enigma cannot apply buffs until a game is started.")
+        return
     end
     enigma:info("Unit: "..tostring(unit)..": Stat "..stat.." updated from "..old_value.." to "..new_value)
     invoke_stat_updated_callbacks(unit, stat, new_value, old_value)
