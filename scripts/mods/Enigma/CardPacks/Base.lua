@@ -1523,7 +1523,7 @@ local ability_cards = {
             },
             {
                 format = "base_harness_discord_description",
-                parameters = { 50 }
+                parameters = { 75, 25 }
             },
         }
     },

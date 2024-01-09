@@ -386,7 +386,7 @@ return {
         en = "Harness Discord"
     },
     base_harness_discord_description = {
-        en = "Slow down time of the world around you by %.f%%. Effect increases for each Dormant Crystal in your hand.\nActivate Dormant Crystals in your hand for the duration of this effect."
+        en = "Slow down time of the world around you by %.f%%. %+.f%% Duration for each Dormant Crystal in your hand.\nActivate Dormant Crystals in your hand for the duration of this effect."
     },
     base_harness_discord_description_game_start = {
         en = "At the start of the game, shuffle %i Dormant Crystals into your deck.\n"
