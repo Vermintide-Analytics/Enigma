@@ -408,10 +408,11 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 
 	-- Cards
 	for i=1, TOTAL_CARD_TILES do
-		local card_interaction_widget = self._widgets_by_name["card_"..i.."_interaction"]
+		local card_scenegraph_id = "card_"..i
+		local card_interaction_widget = self._widgets_by_name[card_scenegraph_id.."_interaction"]
 		local card = self.filtered_cards[(self.current_page - 1) * TOTAL_CARD_TILES + i]
 		
-		card_ui_common.handle_card_input(self._widgets_by_name, "card_"..i, card, self.wwise_world)
+		card_ui_common.handle_card_input(self._widgets_by_name, card_scenegraph_id, card, self.wwise_world)
 		
 		if card then
 			if card_interaction_widget.content.hotspot.on_pressed then
@@ -427,6 +428,9 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 				else
 					enigma:echo(tostring(card.name).." cannot be added to decks")
 				end
+			end
+			if card.always_dirty then
+				card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, card_scenegraph_id, card, CARD_TILE_WIDTH)
 			end
 		end
 	end

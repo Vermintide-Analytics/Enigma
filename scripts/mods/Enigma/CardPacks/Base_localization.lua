@@ -63,6 +63,9 @@ return {
     description_healing_received = {
         en = "%+.1f%% Healing Received"
     },
+    description_health_regen_per_second = {
+        en = "Gain %i Health every second"
+    },
     description_max_ammo = {
         en = "%+.1f%% Max Ammo"
     },
@@ -146,6 +149,13 @@ return {
 
     base_dogged_warrior = {
         en = "Dogged Warrior"
+    },
+
+    base_dormant_crystal = {
+        en = "Dormant Crystal"
+    },
+    base_dormant_crystal_description = {
+        en = "So shiny! You just don't want to put it down..."
     },
 
     base_enchanted_shield = {
@@ -370,6 +380,16 @@ return {
     
     base_gluttonous_jug = {
         en = "Gluttonous Jug"
+    },
+
+    base_harness_discord = {
+        en = "Harness Discord"
+    },
+    base_harness_discord_description = {
+        en = "Slow down time of the world around you by %.f%%. Effect increases for each Dormant Crystal in your hand.\nActivate Dormant Crystals in your hand for the duration of this effect."
+    },
+    base_harness_discord_description_game_start = {
+        en = "At the start of the game, shuffle %i Dormant Crystals into your deck.\n"
     },
 
     base_honorable_duel = {

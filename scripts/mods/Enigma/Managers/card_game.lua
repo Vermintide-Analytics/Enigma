@@ -217,6 +217,19 @@ local set_card_can_pay_warpstone = function(card)
     card.can_pay_warpstone = can_pay
 end
 
+cgm._instance_card = function(self, context, card_template)
+    local card = card_template:instance(context)
+    if self.is_server and card.init_server then
+        safe(card.init_server, card)
+    end
+    local init_func_name = "init_"..(context == self.local_data and "local" or "remote")
+    if card[init_func_name] then
+        safe(card[init_func_name], card)
+    end
+
+    return card
+end
+
 local in_progress_game_init_syncs
 cgm.init_game = function(self, game_init_data, debug)
     enigma:info("Initializing Enigma game")
@@ -271,7 +284,7 @@ cgm.init_game = function(self, game_init_data, debug)
     local primordial_cards = {}
     for _,card_id in ipairs(card_ids) do
         local card_template = card_manager:get_card_from_id(card_id)
-        local card = card_template:instance(local_data)
+        local card = cgm:_instance_card(local_data, card_template)
         
         table.insert(card.primordial and primordial_cards or local_data.draw_pile, card)
         if self.is_server then
@@ -343,14 +356,18 @@ enigma:network_register(net.card_game_init_begin, function(peer_id, deck_name, n
         in_progress_game_init_syncs[peer_id][i] = true
     end
 end)
-enigma:network_register(net.card_game_init_card, function(peer_id, card_id)
+enigma:network_register(net.card_game_init_card, function(peer_id, index, card_id)
     local in_progress_sync_data = in_progress_game_init_syncs[peer_id]
     if not in_progress_sync_data then
         enigma:warning("Received card_game_init_card for "..tostring(peer_id).." before receiving card_game_init_begin from them!")
         return
     end
+    if not in_progress_sync_data[index] then
+        enigma:warning("Received card_game_init_card for "..tostring(peer_id).."at an index higher than the number of cards they told us they have!")
+        return
+    end
 
-    table.insert(in_progress_sync_data, card_id)
+    in_progress_sync_data[index] = card_id
 end)
 enigma:network_register(net.card_game_init_complete, function(peer_id)
     local peer_data = cgm.peer_data[peer_id]
@@ -372,7 +389,8 @@ enigma:network_register(net.card_game_init_complete, function(peer_id)
                 table.insert(missing_packs, missing_pack)
             end
         end
-        local card = card_template:instance(peer_data)
+        local card = cgm:_instance_card(peer_data, card_template)
+        
         if card.condition_local and not card.condition_server then
             card.condition_server_met = true
         end
@@ -1035,7 +1053,8 @@ local handle_shuffle_new_card_into_draw_pile = function(context, data, card_id, 
         enigma:warning("Could not add card to draw pile, card not defined. ("..card_id..")")
         return false, "invalid_card_id"
     end
-    local card = template:instance(data)
+    local card = cgm:_instance_card(data, template)
+
     enigma:info(format_shuffling_card_into_draw_pile(card, data.peer_id))
     add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, card, index)
     if cgm.is_server and card.on_created_in_game_server then
@@ -1154,7 +1173,8 @@ local handle_add_new_card_to_hand = function(context, data, card_id)
         enigma:warning("Could not add new card to hand, card not defined. ("..card_id..")")
         return false, "invalid_card_id"
     end
-    local card = template:instance(data)
+    local card = cgm._instance_card(data, template)
+
     enigma:info(format_adding_new_card_to_hand(card, data.peer_id))
     add_card_to_pile(data, enigma.CARD_LOCATION.hand, card)
     if cgm.is_server and card.on_created_in_game_server then

@@ -290,6 +290,34 @@ enigma.hit_enemy = function(self, hit_unit, attacking_player_unit, hit_zone_name
 
     enigma:_hit_enemy(hit_unit, attacking_player_unit, hit_zone_name, hit_position, Vector3.zero(), attacker_breed, power_level, damage_profile, 0, power_multiplier, is_critical_strike, true, true, false, break_shields, 1, false, 0)
 end
+enigma.multiply_player_gravity_scale = function(self, unit, multiplier)
+    if not unit or not Unit.alive(unit) then
+        return
+    end
+    local locomotion_extension = ScriptUnit.extension(unit, "locomotion_system")
+    if not locomotion_extension then
+        enigma:warning("Could not multiply player gravity for "..tostring(unit)..", no locomotion extension")
+        return
+    end
+    if not locomotion_extension.set_script_driven_gravity_scale then
+        enigma:warning("Could not multiply player gravity for "..tostring(unit)..", cannot set script driven gravity scale")
+        return
+    end
+    local current_gravity = locomotion_extension:get_script_driven_gravity_scale()
+    locomotion_extension:set_script_driven_gravity_scale(current_gravity * multiplier)
+    
+end
+enigma.multiply_player_movement_speed = function(self, unit, multiplier)
+    if not unit or not Unit.alive(unit) then
+        return
+    end
+    local move_settings = PlayerUnitMovementSettings.get_movement_settings_table(unit)
+    if not move_settings then
+        enigma:warning("Could not multiply player movement speed for "..tostring(unit)..", no movement settings table")
+        return
+    end
+    move_settings.player_speed_scale = move_settings.player_speed_scale * multiplier
+end
 enigma.pop_unit_untargetable = function(self, unit)
     if not unit then
         return
@@ -497,6 +525,14 @@ enigma.lerp_yaw_pitch_roll = function(self, initial_yaw, initial_pitch, initial_
     local roll_rot = Quaternion(Vector3.forward(), lerped_roll)
 
     return Quaternion.multiply(Quaternion.multiply(yaw_rot, pitch_rot), roll_rot)
+end
+enigma.multiply_time_scale = function(self, multiplier)
+    if not Managers.time then
+        enigma:warning("Could not multiply time scale, no time manager")
+        return
+    end
+    
+    Managers.time:set_global_time_scale(Managers.time._global_time_scale * multiplier)
 end
 
 

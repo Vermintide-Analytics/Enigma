@@ -160,6 +160,236 @@ local passive_cards = {
             }
         }
     },
+    dormant_crystal = {
+        rarity = EPIC,
+        cost = 0,
+        texture = true,
+        texture_tint = nil,
+        variant = nil,
+        variants = {
+            {
+                -- Red
+                color = {
+                    255,
+                    255,
+                    0,
+                    0
+                },
+                activate_func = function(card)
+                    buff:update_stat(card.context.unit, "power_level", 0.2)
+                end,
+                deactivate_func = function(card)
+                    buff:update_stat(card.context.unit, "power_level", -0.2)
+                end,
+                retain_descriptions = {
+                    {
+                        format = "description_power_level",
+                        parameters = { 20 }
+                    }
+                }
+            },
+            {
+                -- Yellow
+                color = {
+                    255,
+                    255,
+                    255,
+                    0
+                },
+                activate_func = function(card)
+                    buff:update_stat(card.context.unit, "movement_speed", 0.3)
+                end,
+                deactivate_func = function(card)
+                    buff:update_stat(card.context.unit, "movement_speed", -0.3)
+                end,
+                retain_descriptions = {
+                    {
+                        format = "description_movement_speed",
+                        parameters = { 30 }
+                    }
+                }
+            },
+            {
+                -- Blue
+                color = {
+                    255,
+                    0,
+                    0,
+                    255
+                },
+                activate_func = function(card)
+                    buff:update_stat(card.context.unit, "fatigue_regen", 0.5)
+                end,
+                deactivate_func = function(card)
+                    buff:update_stat(card.context.unit, "fatigue_regen", -0.5)
+                end,
+                retain_descriptions = {
+                    {
+                        format = "description_stamina_regen",
+                        parameters = { 50 }
+                    }
+                }
+            },
+            {
+                -- Green
+                color = {
+                    255,
+                    0,
+                    255,
+                    0
+                },
+                activate_func = function(card)
+                    card:rpc_server("start_health_regen", 1, 3)
+                end,
+                deactivate_func = function(card)
+                    card:rpc_server("end_health_regen")
+                end,
+                retain_descriptions = {
+                    {
+                        format = "description_health_regen_per_second",
+                        parameters = { 3 }
+                    }
+                }
+            },
+            {
+                -- Purple
+                color = {
+                    255,
+                    255,
+                    0,
+                    255
+                },
+                activate_func = function(card)
+                    buff:update_stat(card.context.unit, "attack_speed", 0.2)
+                end,
+                deactivate_func = function(card)
+                    buff:update_stat(card.context.unit, "attack_speed", -0.2)
+                end,
+                retain_descriptions = {
+                    {
+                        format = "description_attack_speed",
+                        parameters = { 20 }
+                    }
+                }
+            },
+            {
+                -- Cyan
+                color = {
+                    255,
+                    0,
+                    255,
+                    255
+                },
+                activate_func = function(card)
+                    buff:update_stat(card.context.unit, "cooldown_regen", 1.5)
+                end,
+                deactivate_func = function(card)
+                    buff:update_stat(card.context.unit, "cooldown_regen", -1.5)
+                end,
+                retain_descriptions = {
+                    {
+                        format = "description_cooldown_regen",
+                        parameters = { 150 }
+                    }
+                }
+            },
+            {
+                -- White
+                color = {
+                    255,
+                    255,
+                    255,
+                    255
+                },
+                activate_func = function(card)
+                    buff:update_stat(card.context.unit, "critical_strike_chance", 0.2)
+                end,
+                deactivate_func = function(card)
+                    buff:update_stat(card.context.unit, "critical_strike_chance", -0.2)
+                end,
+                retain_descriptions = {
+                    {
+                        format = "description_critical_strike_chance",
+                        parameters = { 20 }
+                    }
+                }
+            },
+        },
+        start_health_regen = function(card, interval, amount)
+            card.heal_interval = interval
+            card.heal_amount = amount
+            card.time_until_next_heal = card.heal_interval
+
+            card.update_server = function(card, dt)
+                -- This card transcends time so reverse the effect of any time scale
+                dt = dt / Managers.time._global_time_scale
+                card.time_until_next_heal = card.time_until_next_heal - dt
+                if card.time_until_next_heal <= 0 then
+                    card.time_until_next_heal = card.time_until_next_heal + card.heal_interval
+                    enigma:heal(card.context.unit, card.heal_amount)
+                end
+            end
+        end,
+        end_health_regen = function(card)
+            card.heal_interval = nil
+            card.heal_amount = nil
+            card.time_until_next_heal = nil
+
+            card.update_server = nil
+        end,
+        init_local = function(card)
+            -- Choose a random color/effect, this card will turn into that version when activated later
+            local index = enigma:random_range_int(1, #card.variants)
+            local variant = card.variants[index]
+            card.texture_tint = variant.color
+            card.variant_activate = variant.activate_func
+            card.variant_deactivate = variant.deactivate_func
+            card.activated_retain_descriptions = variant.retain_descriptions
+
+            for _,description in ipairs(card.activated_retain_descriptions) do
+                description.activated = true
+            end
+            card.variants = nil
+
+            card:set_dirty()
+        end,
+        activate = function(card)
+            enigma:info("Activating Dormant Crystal")
+            card.texture = "enigma_base_dormant_crystal_activated"
+            card:variant_activate()
+
+            for _,description in ipairs(card.activated_retain_descriptions) do
+                table.insert(card.retain_descriptions, description)
+            end
+            card.unplayable = true
+            card:set_dirty()
+        end,
+        deactivate = function(card)
+            enigma:info("Deactivating Dormant Crystal")
+            card.texture = "enigma_base_dormant_crystal"
+            card:variant_deactivate()
+
+            local retain_description_indexes_to_remove = {}
+            for i,description in ipairs(card.retain_descriptions) do
+                if description.activated then
+                    table.insert(retain_description_indexes_to_remove, i)
+                end
+            end
+            for i=#retain_description_indexes_to_remove,1,-1 do
+                table.remove(card.retain_descriptions, retain_description_indexes_to_remove[i])
+            end
+            card.unplayable = false
+            card:set_dirty()
+        end,
+        description_lines = {
+            {
+                format = "base_dormant_crystal_description",
+            }
+        },
+
+        hide_in_deck_editor = true,
+        allow_in_deck = false
+    },
     eshin_counter_intelligence = {
         rarity = LEGENDARY,
         cost = 3,
@@ -1082,10 +1312,7 @@ local ability_cards = {
             card.living_monsters[monster_unit] = monster_alive and "alive" or nil
             card.dueling_monster = nil
         end,
-        on_game_start_server = function(card)
-            card.living_monsters = {}
-        end,
-        on_created_in_game_server = function(card)
+        init_server = function(card)
             card.living_monsters = {}
         end,
         on_play_server = function(card)
@@ -1195,6 +1422,79 @@ local ability_cards = {
                 format = "base_long_rest_description",
                 parameters = { 5 }
             }
+        }
+    },
+    harness_discord = {
+        rarity = LEGENDARY,
+        cost = 2,
+        texture = true,
+        duration = 15,
+        on_game_start_local = function()
+            for i=1,4 do
+                game:shuffle_new_card_into_draw_pile("base/dormant_crystal")
+            end
+        end,
+        multiply_time_scale = function(card, multiplier)
+            enigma:multiply_time_scale(multiplier)
+        end,
+        on_play_local = function(card)
+            local time_multiplier = 1
+            local increased_duration_per_crystal = 0.25
+            for _,card_in_hand in ipairs(card.context.hand) do
+                if card_in_hand.id == "base/dormant_crystal" then
+                    time_multiplier = time_multiplier + increased_duration_per_crystal
+                end
+            end
+            enigma:echo("Harness Discord duration multiplier: "..tostring(time_multiplier))
+
+            local effect = 4 -- Slow down time to 1/effect
+            local effect_inv = 1 / effect
+
+            enigma:multiply_time_scale(effect_inv)
+            card:rpc_others("multiply_time_scale", effect_inv)
+            enigma:multiply_player_gravity_scale(card.context.unit, effect)
+            enigma:multiply_player_movement_speed(card.context.unit, effect)
+
+            local current_attack_speed = buff:get_current_stat_value(card.context.unit, "attack_speed")
+            local desired_attack_speed = (current_attack_speed + 1) * effect - 1
+            local attack_speed_buff = desired_attack_speed - current_attack_speed
+            buff:update_stat(card.context.unit, "attack_speed", attack_speed_buff)
+            
+            local calculated_duration = card.duration * effect_inv
+            for _,card_in_hand in ipairs(card.context.hand) do
+                if card_in_hand.id == "base/dormant_crystal" then
+                    card_in_hand:activate()
+                end
+            end
+            enigma:invoke_delayed(function()
+                enigma:multiply_time_scale(effect)
+                card:rpc_others("multiply_time_scale", effect)
+                enigma:multiply_player_gravity_scale(card.context.unit, effect_inv)
+                enigma:multiply_player_movement_speed(card.context.unit, effect_inv)
+
+                buff:update_stat(card.context.unit, "attack_speed", attack_speed_buff*-1)
+
+                local cards_to_discard = {}
+                for _,card_in_hand in ipairs(card.context.hand) do
+                    if card_in_hand.id == "base/dormant_crystal" then
+                        card_in_hand:deactivate()
+                        table.insert(cards_to_discard, card_in_hand)
+                    end
+                end
+                for _,card_to_discard in ipairs(cards_to_discard) do
+                    game:discard_card(card_to_discard)
+                end
+            end, calculated_duration)
+        end,
+        description_lines = {
+            {
+                format = "base_harness_discord_description_game_start",
+                parameters = { 4 }
+            },
+            {
+                format = "base_harness_discord_description",
+                parameters = { 50 }
+            },
         }
     },
     planestrider = {

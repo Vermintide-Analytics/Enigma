@@ -274,6 +274,16 @@ bm.surge_stat_locally = function(self, unit, stat, difference, duration)
     handle_surge_stat(unit, stat, difference, duration)
 end
 
+bm.get_current_stat_value = function(self, unit, stat)
+    local custom_buffs = self.unit_custom_buffs[unit]
+    local builtin_buffs = self.unit_builtin_buffs[unit]
+    if custom_buffs and custom_buffs[stat] then
+        return custom_buffs[stat]
+    elseif builtin_buffs and builtin_buffs[stat] then
+        return builtin_buffs[stat]
+    end
+end
+
 bm._register_player = function(self, player)
     self:_register_player_unit(player, player.player_unit)
 end

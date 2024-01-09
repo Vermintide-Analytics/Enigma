@@ -1255,6 +1255,11 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	else
 		card_image_widget.content.card_image = "enigma_card_image_placeholder"
 	end
+	if type(card.texture_tint) == "function" then
+		card_image_widget.style.card_image.color = card:texture_tint()
+	else
+		card_image_widget.style.card_image.color = card.texture_tint
+	end
 
 	card_pack_widget.content.pack_name = card.card_pack.name
 
@@ -1398,7 +1403,7 @@ card_ui_common.update_card_display_if_needed = function(ui_renderer, scenegraph_
 		return
 	end
 	dirty_property_name = dirty_property_name or "dirty"
-	if card[dirty_property_name] or card ~= widgets[card_node_id].cached_card or card_width ~= widgets[card_node_id].cached_card_width then
+	if card[dirty_property_name] or card ~= widgets[card_node_id].cached_card or card_width ~= widgets[card_node_id].cached_card_width or card.always_dirty then
 		widgets[card_node_id].cached_card = card
 		widgets[card_node_id].cached_card_width = card_width
 		return card_ui_common.update_card_display(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name, card_glow_override)
