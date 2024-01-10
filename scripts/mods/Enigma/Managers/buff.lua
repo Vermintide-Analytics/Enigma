@@ -193,6 +193,18 @@ local invoke_stat_updated_callbacks = function(unit, stat, new_value, old_value)
 end
 
 local handle_update_stat = function(unit, stat, difference)
+    if not unit then
+        return
+    end
+    if not stat then
+        enigma:warning("Must provide a stat to update")
+        return
+    end
+    if not difference then
+        enigma:warning("Must provide an amount to change "..tostring(stat).." by.")
+        return
+    end
+
     local old_value
     local new_value
 
