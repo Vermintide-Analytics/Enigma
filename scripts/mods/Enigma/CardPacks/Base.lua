@@ -390,6 +390,20 @@ local passive_cards = {
         hide_in_deck_editor = true,
         allow_in_deck = false
     },
+    efficient_strikes = {
+        rarity = LEGENDARY,
+        cost = 0,
+        texture = true,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "added_card_cost_attack", -1)
+        end,
+        description_lines = {
+            {
+                format = "base_efficient_strikes_description",
+                parameters = { 1 }
+            }
+        }
+    },
     eshin_counter_intelligence = {
         rarity = LEGENDARY,
         cost = 3,
@@ -1715,6 +1729,22 @@ local ability_cards = {
             {
                 format = "base_retreat_auto_description",
                 parameters = { 60 }
+            }
+        }
+    },
+    revitalize = {
+        rarity = LEGENDARY,
+        cost = 0,
+        texture = true,
+        on_play_local = function(card)
+            local cards = card.context:get_cards_in_discard_pile(function(c) return c.card_type == enigma.CARD_TYPE.attack end)
+            for _,attack_card in ipairs(cards) do
+                game:shuffle_card_into_draw_pile(attack_card)
+            end
+        end,
+        description_lines = {
+            {
+                format = "base_revitalize_description",
             }
         }
     },

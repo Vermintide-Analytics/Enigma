@@ -158,6 +158,13 @@ return {
         en = "So shiny! You just don't want to put it down..."
     },
 
+    base_efficient_strikes = {
+        en = "Efficient Strikes"
+    },
+    base_efficient_strikes_description = {
+        en = "Attack Cards cost %i less"
+    },
+
     base_enchanted_shield = {
         en = "Enchanted Shield"
     },
@@ -406,7 +413,7 @@ return {
         en = "Long Rest"
     },
     base_long_rest_description = {
-        en = "Shuffle %i random cards from your discard pile into your draw pile"
+        en = "Shuffle %i random cards from your discard pile into your deck"
     },
 
     base_planestrider = {
@@ -452,6 +459,13 @@ return {
     },
     base_retreat_auto_description = {
         en = "When hit for at least %i damage"
+    },
+    
+    base_revitalize = {
+        en = "Revitalize"
+    },
+    base_revitalize_description = {
+        en = "Shuffle all attack cards from your discard pile to your deck"
     },
 
     base_spare_engine = {
@@ -568,7 +582,7 @@ return {
         en = "Virus"
     },
     base_virus_description = {
-        en = "Shuffle a Virus into a random ally's draw pile"
+        en = "Shuffle a Virus into a random ally's deck"
     },
     base_virus_auto = {
         en = "Retained for %i seconds (%is)"
