@@ -123,6 +123,13 @@ return {
         en = "Bigger Bombs"
     },
 
+    base_bone_host = {
+        en = "Bone Host"
+    },
+    base_bone_host_description = {
+        en = "When you are hit by an enemy, spawn a skeleton warrior.\n(%i second cooldown)"
+    },
+
     base_burly = {
         en = "Burly"
     },
@@ -401,6 +408,13 @@ return {
     
     base_gluttonous_jug = {
         en = "Gluttonous Jug"
+    },
+
+    base_grave_legion = {
+        en = "Grave Legion"
+    },
+    base_grave_legion_description = {
+        en = "Summon %i skeleton warriors"
     },
 
     base_harness_discord = {

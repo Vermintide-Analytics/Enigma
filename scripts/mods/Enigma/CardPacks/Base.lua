@@ -50,6 +50,51 @@ local passive_cards = {
             }
         }
     },
+    bone_host = {
+        rarity = LEGENDARY,
+        cost = 0,
+        texture = true,
+        primordial = true,
+        ephemeral = true,
+        summon_count = 1,
+        cooldown_interval = 15,
+        current_cooldown = 0,
+        update_server = function(card, dt)
+            if card.current_cooldown > 0 then
+                card.current_cooldown = card.current_cooldown - dt
+            end
+        end,
+        events_server = {
+            player_damaged = function(card, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+                local damaged_unit = self.unit
+                local us = card.context.unit
+
+                if damaged_unit ~= us or damage_type == "temporary_health_degen" then
+                    return
+                end
+
+                local attacker_side = Managers.state.side.side_by_unit[attacker_unit]
+                local player_side = Managers.state.side.side_by_unit[us]
+                
+                if attacker_side == player_side or card.current_cooldown > 0 then
+                    return
+                end
+
+                card.current_cooldown = card.cooldown_interval
+                for i=1,card.times_played do
+                    for j=1,card.summon_count do
+                        enigma:spawn_pet(us, "pet_skeleton", "hireling", Vector3(0, 3, 0))
+                    end
+                end
+            end
+        },
+        description_lines = {
+            {
+                format = "base_bone_host_description",
+                parameters = { 15 }
+            }
+        }
+    },
     burly = {
         rarity = COMMON,
         cost = 0,
@@ -1295,6 +1340,27 @@ local ability_cards = {
             {
                 format = "description_draw_cards",
                 parameters = { 2 }
+            }
+        }
+    },
+    grave_legion = {
+        rarity = RARE,
+        cost = 2,
+        texture = true,
+        summon_count = 8,
+        on_play_server = function(card)
+            local angle = math.pi * 2 / card.summon_count
+            local offset = Vector3(0, 3, 0)
+            local rotation = Quaternion.axis_angle(Vector3(0, 0, 1), angle)
+            for i=1,card.summon_count do
+                enigma:spawn_pet(card.context.unit, "pet_skeleton", "hireling", offset)
+                offset = Quaternion.rotate(rotation, offset)
+            end
+        end,
+        description_lines = {
+            {
+                format = "base_grave_legion_description",
+                parameters = { 8 }
             }
         }
     },
