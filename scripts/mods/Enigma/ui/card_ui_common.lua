@@ -26,6 +26,7 @@ local DEFAULT_COST_CIRCLE_DIAMETER = 128
 local DEFAULT_CARD_NAME_FONT_SIZE = 64
 local DEFAULT_COST_FONT_SIZE = 128
 local DEFAULT_DURATION_FONT_SIZE = 72
+local DEFAULT_CHARGES_FONT_SIZE = 96
 local DEFAULT_CARD_DETAILS_FONT_SIZE = 32
 local DEFAULT_CARD_PACK_FONT_SIZE = 28
 
@@ -231,6 +232,22 @@ local add_card_scenegraph_nodes = function(scenegraph_defs, parent_id, card_scen
 		position = {
 			sizes.card_name_box_width/-2 - sizes.card_cost_circle_diameter/1.6,
 			sizes.card_cost_circle_diameter * 0.34,
+			2
+		}
+	}
+	
+	local charges_scenegraph_id = card_scenegraph_id.."_charges"
+	scenegraph_defs[charges_scenegraph_id] = {
+		parent = card_inner_scenegraph_id,
+		vertical_alignment = "bottom",
+		horizontal_alignment = "center",
+		size = {
+			sizes.card_cost_circle_diameter,
+			sizes.card_cost_circle_diameter
+		},
+		position = {
+			sizes.card_name_box_width/-2 - sizes.card_cost_circle_diameter/1.6,
+			sizes.card_cost_circle_diameter * -0.34,
 			2
 		}
 	}
@@ -790,6 +807,62 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes, enable
 		}
 	}
 
+	local card_charges_widget_name = card_scenegraph_id.."_charges"
+	widget_defs[card_charges_widget_name] = {
+		scenegraph_id = card_charges_widget_name,
+		element = {
+			passes = {
+				{
+					pass_type = "texture",
+					texture_id = "background",
+					style_id = "background"
+				},
+				{
+					pass_type = "text",
+					text_id = "charges",
+					style_id = "charges"
+				},
+			}
+		},
+		content = {
+			background = "enigma_card_charges_icon",
+			charges = ""
+		},
+		style = {
+			background = {
+				texture_size = {
+					sizes.card_cost_circle_diameter,
+					sizes.card_cost_circle_diameter
+				},
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				color = {
+					255,
+					214,
+					214,
+					30
+				},
+				offset = {
+					0,
+					0,
+					1
+				}
+			},
+			charges = {
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				font_size = sizes.card_charges_font_size,
+				font_type = CARD_NAME_FONT,
+				text_color = TEXT_COLOR,
+				offset = {
+					0,
+					sizes.card_charges_font_size / -8,
+					2
+				}
+			},
+		}
+	}
+
 	local card_image_widget_name = card_scenegraph_id.."_image"
 	widget_defs[card_image_widget_name] = {
 		scenegraph_id = card_image_widget_name,
@@ -994,6 +1067,7 @@ local calculate_card_sizes = function(card_width)
 		card_cost_circle_diameter = DEFAULT_COST_CIRCLE_DIAMETER * scaling_from_default,
 		card_cost_font_size = DEFAULT_COST_FONT_SIZE * scaling_from_default,
 		card_duration_font_size = DEFAULT_DURATION_FONT_SIZE * scaling_from_default,
+		card_charges_font_size = DEFAULT_CHARGES_FONT_SIZE * scaling_from_default,
 		card_image_width = DEFAULT_CARD_IMAGE_WIDTH * scaling_from_default,
 		card_image_height = DEFAULT_CARD_IMAGE_HEIGHT * scaling_from_default,
 		card_details_width = DEFAULT_CARD_DETAILS_WIDTH * scaling_from_default,
@@ -1012,9 +1086,10 @@ card_ui_common.add_card_display = function(scenegraph_defs, widget_defs, scenegr
 	add_card_widgets(widget_defs, card_scenegraph_id, sizes, enable_hotspot)
 end
 
-local set_widgets_visibility = function(widgets, card_node_id, visible, has_duration, glow)
+local set_widgets_visibility = function(widgets, card_node_id, visible, has_duration, has_charges, glow)
 	visible = not not visible
 	has_duration = not not has_duration
+	has_charges = not not has_charges
 	glow = not not glow
 
 	widgets[card_node_id].content.visible = visible
@@ -1025,6 +1100,7 @@ local set_widgets_visibility = function(widgets, card_node_id, visible, has_dura
 	local card_pack_node_id = card_node_id.."_pack"
 	local card_cost_node_id = card_node_id.."_cost"
 	local card_duration_node_id = card_node_id.."_duration"
+	local card_charges_node_id = card_node_id.."_charges"
 	
 	local card_widget = widgets[card_node_id]
 	card_widget.content.visible = visible
@@ -1036,6 +1112,8 @@ local set_widgets_visibility = function(widgets, card_node_id, visible, has_dura
 	card_cost_widget.content.visible = visible
 	local card_duration_widget = widgets[card_duration_node_id]
 	card_duration_widget.content.visible = visible and has_duration
+	local card_charges_widget = widgets[card_charges_node_id]
+	card_charges_widget.content.visible = visible and has_charges
 	local card_image_widget = widgets[card_image_node_id]
 	card_image_widget.content.visible = visible
 	local card_pack_widget = widgets[card_pack_node_id]
@@ -1061,7 +1139,7 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	if card_glow_override ~= nil then
 		show_glow = card_glow_override
 	end
-	set_widgets_visibility(widgets, card_node_id, card, card and card.duration, show_glow)
+	set_widgets_visibility(widgets, card_node_id, card, card and card.duration, card and card.charges, show_glow)
 	if not card then
 		return
 	end
@@ -1090,6 +1168,10 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	local card_duration_node_id = card_node_id.."_duration"
 	scenegraph_nodes[card_duration_node_id].size[1] = sizes.card_cost_circle_diameter
 	scenegraph_nodes[card_duration_node_id].size[2] = sizes.card_cost_circle_diameter
+	
+	local card_charges_node_id = card_node_id.."_charges"
+	scenegraph_nodes[card_charges_node_id].size[1] = sizes.card_cost_circle_diameter
+	scenegraph_nodes[card_charges_node_id].size[2] = sizes.card_cost_circle_diameter
 
 	local card_image_node_id = card_node_id.."_image"
 	scenegraph_nodes[card_image_node_id].size[1] = sizes.card_image_width
@@ -1195,6 +1277,7 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	local card_name_widget = widgets[card_name_node_id]
 	local card_cost_widget = widgets[card_cost_node_id]
 	local card_duration_widget = widgets[card_duration_node_id]
+	local card_charges_widget = widgets[card_charges_node_id]
 	local card_image_widget = widgets[card_image_node_id]
 	local basic_details_widget = widgets[card_node_id.."_basic_details"]
 	local additional_keywords_widget = widgets[card_node_id.."_additional_keywords"]
@@ -1246,6 +1329,15 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 		end
 	else
 		card_duration_widget.content.duration = ""
+	end
+
+	card_charges_widget.style.background.texture_size[1] = sizes.card_cost_circle_diameter
+	card_charges_widget.style.background.texture_size[2] = sizes.card_cost_circle_diameter
+	card_charges_widget.style.charges.font_size = sizes.card_charges_font_size
+	if card.charges then
+		card_charges_widget.content.charges = string.format("%i", card.charges)
+	else
+		card_charges_widget.content.charges = ""
 	end
 
 	card_image_widget.style.card_image.texture_size[1] = sizes.card_image_width
