@@ -444,6 +444,107 @@ enigma.set_taunt_unit = function (self, ai_unit, taunt_unit, taunt_bosses)
         end
     end
 end
+enigma.spawn_pet = function(self, owner_unit, breed_name, template_name, relative_position)
+    if not self:is_server() then
+        enigma:warning("Only the server can spawn pets")
+        return
+    end
+    if not owner_unit or not Unit.alive(owner_unit) then
+        return
+    end
+    if not Managers.state or not Managers.state.entity then
+        enigma:warning("Could not spawn pet, no entity state manager")
+        return
+    end
+
+    local ai_system = Managers.state.entity:system("ai_system")
+    if not ai_system then
+        enigma:warning("Could not spawn pet, no ai system")
+        return
+    end
+	local nav_world = ai_system:nav_world()
+    if not nav_world then
+        enigma:warning("Could not spawn pet, no nav world")
+        return
+    end
+
+	local owner_buff_extension = ScriptUnit.extension(owner_unit, "buff_system")
+    if not owner_buff_extension then
+        enigma:warning("Owner of a spawned pet must have a buff extension")
+        return
+    end
+    local owner_commander_extension = ScriptUnit.extension(owner_unit, "ai_commander_system")
+    if not owner_commander_extension then
+        enigma:warning("Owner of a spawned pet must have an ai commander extension")
+        return
+    end
+    
+    relative_position = relative_position or Vector3.zero()
+
+	local side_id = Managers.state.side.side_by_unit[owner_unit].side_id
+	local spawn_category = "resurrected"
+	local spawn_animation = "spawn_floor"
+	local breed = Breeds[breed_name]
+	local optional_data = {
+		ignore_breed_limits = true,
+		side_id = side_id,
+		spawned_func = function (pet_unit, breed, optional_data)
+			if ALIVE[owner_unit] then
+
+				owner_buff_extension:trigger_procs("on_pet_spawned", pet_unit)
+
+				local t = Managers.time:time("game")
+				owner_commander_extension:add_controlled_unit(pet_unit, template_name, t)
+                
+				local params = FrameTable.alloc_table()
+				params.source_attacker_unit = owner_unit
+
+				Managers.state.entity:system("buff_system"):add_buff_synced(pet_unit, "sienna_necromancer_pet_attack_sfx", BuffSyncType.Local, params, owner_commander_extension._player.peer_id)
+			end
+		end
+	}
+	local fp_rotation_flat = nil
+    
+    local first_person = ScriptUnit.extension(owner_unit, "first_person_system")
+	if first_person then
+		fp_rotation_flat = first_person:current_rotation()
+		fp_rotation_flat = Quaternion.look(Vector3.flat(Quaternion.forward(fp_rotation_flat)), Vector3.up())
+	else
+        local game_object_id = self._unit_storage:go_id(owner_unit)
+        local game = Managers.state.network:game()
+        local aim_direction = GameSession.game_object_field(game, game_object_id, "aim_direction")
+        fp_rotation_flat = Quaternion.look(Vector3.flat(aim_direction), Vector3.up())
+	end
+
+    if type(POSITION_LOOKUP[owner_unit]) == "userdata" then
+        POSITION_LOOKUP[owner_unit] = Unit.world_position(owner_unit, 0)
+    end
+	local position = POSITION_LOOKUP[owner_unit] + Quaternion.rotate(fp_rotation_flat, relative_position)
+	local unit_is_on_navmesh, z = GwNavQueries.triangle_from_position(nav_world, position, 2, 2)
+
+	if unit_is_on_navmesh then
+		position.z = z
+	else
+		position = GwNavQueries.inside_position_from_outside_position(nav_world, position, 2, 2, 5, 1)
+	end
+
+	if not position then
+		return false
+	end
+
+	--queued_pets[optional_data] = 
+    Managers.state.conflict:spawn_queued_unit(breed, Vector3Box(position), QuaternionBox(fp_rotation_flat), spawn_category, spawn_animation, nil, optional_data)
+
+	return true
+end
+enigma:command("spawn_pet", "", function()
+    local local_player_unit = enigma:local_player_unit()
+    if not local_player_unit then
+        return
+    end
+    enigma:spawn_pet(local_player_unit, "pet_skeleton", "hireling", Vector3(0, 3, 0))
+end)
+
 enigma.stagger_enemy = function(self, hit_unit, unit, distance, impact, direction, blocked)
     if not hit_unit or not Unit.alive(hit_unit) or not unit or not Unit.alive(unit) then
         return

@@ -250,7 +250,7 @@ local handle_damage_dealt = function(self, attacker_unit, damage_amount, hit_zon
         return
     end
     local self_unit = enigma.managers.game.local_data and enigma.managers.game.local_data.unit
-    if attacker_unit == self_unit or source_attacker_unit == self_unit then
+    if self_unit and attacker_unit == self_unit or source_attacker_unit == self_unit then
         local breed = Unit.get_data(self.unit, "breed")
         if breed then
             local enemy_type = breed.boss and "boss" or breed.special and "special" or breed.elite and "elite" or "trash"
