@@ -262,10 +262,10 @@ return {
         en = "Tough Skin"
     },
 
-    base_training_weights = {
-        en = "Training Weights",
+    base_leaden_boots = {
+        en = "Leaden Boots",
     },
-    base_training_weights_description = {
+    base_leaden_boots_description = {
         en = "Gain immunity to blightstormers"
     },
 

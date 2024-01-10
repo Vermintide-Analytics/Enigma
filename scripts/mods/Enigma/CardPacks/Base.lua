@@ -764,7 +764,7 @@ local passive_cards = {
             }
         }
     },
-    training_weights = {
+    leaden_boots = {
         rarity = LEGENDARY,
         cost = 2,
         texture = true,
@@ -801,7 +801,7 @@ local passive_cards = {
         },
         description_lines = {
             {
-                format = "base_training_weights_description"
+                format = "base_leaden_boots_description"
             }
         },
     },
