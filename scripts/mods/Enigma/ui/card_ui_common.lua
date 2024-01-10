@@ -132,6 +132,12 @@ local card_ui_common = {
 			165,
 			0
 		},
+		unknown = {
+			0,
+			128,
+			128,
+			128
+		}
 	}
 }
 

@@ -512,7 +512,7 @@ EnigmaDeckEditorUI.update_deck_cards_ui = function(self)
 			widget.content.visible = true
 			widget.content.card_name = card_defined and card.name or card
 			widget.content.card_cost = card_defined and card.cost or ""
-			widget.style.card_rarity.color = card_defined and card_ui_common.rarity_colors[card.rarity] or card_ui_common.rarity_colors[enigma.CARD_RARITY.common]
+			widget.style.card_rarity.color = card_defined and card_ui_common.rarity_colors[card.rarity] or card_ui_common.rarity_colors["unknown"]
 		else
 			widget.content.visible = false
 		end

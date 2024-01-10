@@ -216,6 +216,48 @@ dpm.create_prebuilt_deck = function(self, mod_id, name, game_mode, card_ids)
     self.prebuilt_deck_names[name] = true
 end
 
+local alphabet_comparator = function(str1, str2)
+	return str1 < str2
+end
+local rarity_ranks = {
+    [enigma.CARD_RARITY.legendary] = 4,
+    [enigma.CARD_RARITY.epic] = 3,
+    [enigma.CARD_RARITY.rare] = 2,
+    [enigma.CARD_RARITY.common] = 1,
+}
+local rarity_name_comparator = function(card_1, card_2)
+    if type(card_2) == "string" then
+        if type(card_1) == "string" then
+            return alphabet_comparator(card_1, card_2)
+        end
+        return true
+    end
+    if type(card_1) == "string" then
+        return false
+    end
+    if rarity_ranks[card_1.rarity] > rarity_ranks[card_2.rarity] then
+        return true
+    elseif rarity_ranks[card_1.rarity] < rarity_ranks[card_2.rarity] then
+        return false
+    end
+    return alphabet_comparator(card_1.name:lower(), card_2.name:lower())
+end
+local add_card_to_deck_cards_sorted = function(cards, new_card_template)
+    local index = 1
+    local inserted = false
+    while not inserted and index <= #cards do
+        if rarity_name_comparator(new_card_template, cards[index]) then
+            table.insert(cards, index, new_card_template)
+            inserted = true
+            break
+        end
+        index = index + 1
+    end
+    if not inserted then
+        table.insert(cards, new_card_template)
+    end
+end
+
 dpm.add_card_to_deck = function(self, card_id, deck, skip_save, force_for_prebuilt)
     if not card_id then
         enigma:echo("Must provide a card_id to add to deck")
@@ -230,7 +272,7 @@ dpm.add_card_to_deck = function(self, card_id, deck, skip_save, force_for_prebui
         enigma:echo("Could not find card by id ["..tostring(card_id).."]")
         return false
     end
-    table.insert(deck.cards, card_template)
+    add_card_to_deck_cards_sorted(deck.cards, card_template)
     self:recalculate_cp(deck)
     if not skip_save then
         self:save_decks()
@@ -553,7 +595,7 @@ dpm.create_deck_from_save_data = function(self, save_data)
     new_deck.cards = {}
     for i, id in ipairs(save_data.cards) do
         -- If card template does not exist (like if the card pack it came from is not enabled), the card will be stored as the id
-        table.insert(new_deck.cards, enigma.managers.card_template:get_card_from_id(id) or id)
+        add_card_to_deck_cards_sorted(new_deck.cards, enigma.managers.card_template:get_card_from_id(id) or id)
     end
     self:recalculate_cp(new_deck)
 
