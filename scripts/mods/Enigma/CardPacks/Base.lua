@@ -1217,6 +1217,43 @@ local ability_cards = {
             }
         }
     },
+    devour_pet = {
+        rarity = COMMON,
+        cost = 0,
+        texture = true,
+        charges = 2,
+        on_play_server = function(card)
+            local us = card.context.unit
+            local controlled_units, num_controlled_units = enigma:get_controlled_unit_data(us)
+            if num_controlled_units > 0 then
+                local unit_list = {}
+                for unit,_ in pairs(controlled_units) do
+                    table.insert(unit_list, unit)
+                end
+                local random_index = enigma:random_range_int(1, num_controlled_units)
+                enigma:execute_unit(unit_list[random_index], us)
+            end
+            enigma:heal(us, 50)
+        end,
+        condition_local = function(card)
+            local _, num_controlled_units = enigma:get_controlled_unit_data(card.context.unit)
+            if num_controlled_units and num_controlled_units > 0 then
+                return true
+            end
+            return false
+        end,
+        description_lines = {
+            {
+                format = "base_devour_pet_description",
+                parameters = { 50 }
+            }
+        },
+        condition_descriptions = {
+            {
+                format = "base_devour_pet_condition"
+            }
+        },
+    },
     divine_insurance = {
         rarity = EPIC,
         cost = 2,
@@ -1350,7 +1387,7 @@ local ability_cards = {
         summon_count = 8,
         on_play_server = function(card)
             local angle = math.pi * 2 / card.summon_count
-            local offset = Vector3(0, 3, 0)
+            local offset = Vector3(0, 2, 0)
             local rotation = Quaternion.axis_angle(Vector3(0, 0, 1), angle)
             for i=1,card.summon_count do
                 enigma:spawn_pet(card.context.unit, "pet_skeleton", "hireling", offset)

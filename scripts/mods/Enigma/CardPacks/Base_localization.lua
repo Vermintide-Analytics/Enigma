@@ -375,6 +375,16 @@ return {
         en = "After %i seconds, create a huge explosion around yourself"
     },
 
+    base_devour_pet = {
+        en = "Devour Pet"
+    },
+    base_devour_pet_description = {
+        en = "Execute a random pet you control.\nGain %i Health"
+    },
+    base_devour_pet_condition = {
+        en = "You have at least one pet"
+    },
+
     base_divine_insurance = {
         en = "Divine Insurance"
     },

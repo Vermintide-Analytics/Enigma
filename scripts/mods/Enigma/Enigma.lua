@@ -62,6 +62,7 @@ dofile("scripts/mods/Enigma/Managers/debug")
 dofile("scripts/mods/Enigma/GameLogic/target_selection_utils")
 dofile("scripts/mods/Enigma/GameLogic/player_movement")
 dofile("scripts/mods/Enigma/GameLogic/controlled_unit_templates")
+dofile("scripts/mods/Enigma/GameLogic/ai_commander_extension")
 
 enigma.queued_prebuilt_decks = {}
 local process_prebuilt_deck_registrations = function()

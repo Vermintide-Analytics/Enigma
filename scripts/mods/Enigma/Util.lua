@@ -107,6 +107,16 @@ enigma.get_ammo_extension = function(self, unit)
         return right_hand_ammo_extension or left_hand_ammo_extension
     end
 end
+enigma.get_controlled_unit_data = function(self, owner_unit)
+    if not owner_unit then
+        return
+    end
+    local commander_extension = ScriptUnit.extension(owner_unit, "ai_commander_system")
+    if not commander_extension then
+        return
+    end
+    return commander_extension:get_controlled_units(), commander_extension:get_controlled_units_count()
+end
 enigma.local_player = function(self)
     return Managers.player and Managers.player:local_human_player()
 end
@@ -537,7 +547,6 @@ enigma.spawn_pet = function(self, owner_unit, breed_name, template_name, relativ
 
 	return true
 end
-
 enigma.stagger_enemy = function(self, hit_unit, unit, distance, impact, direction, blocked)
     if not hit_unit or not Unit.alive(hit_unit) or not unit or not Unit.alive(unit) then
         return
