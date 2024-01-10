@@ -1841,6 +1841,31 @@ local ability_cards = {
             }
         }
     },
+    stupefy = {
+        rarity = EPIC,
+        cost = 0,
+        texture = true,
+        on_play_server = function(card)
+            local us = card.context.unit
+            local nearby = enigma:get_ai_units_around_unit(us, 6)
+            for _,unit in ipairs(nearby) do
+                enigma:stun_enemy(unit, us, 7)
+            end
+        end,
+        on_play_local = function(card)
+            game:draw_card()
+        end,
+        echo = true,
+        description_lines = {
+            {
+                format = "base_stupefy_description",
+                parameters = { 7 }
+            },
+            {
+                format = "description_draw_a_card"
+            }
+        }
+    },
     the_red_raven = {
         rarity = LEGENDARY,
         cost = 5,

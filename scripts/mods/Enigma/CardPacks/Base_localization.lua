@@ -503,6 +503,13 @@ return {
         en = "Skaven will prefer to attack you"
     },
 
+    base_stupefy = {
+        en = "Stupefy"
+    },
+    base_stupefy_description = {
+        en = "Stun nearby enemies for %i seconds"
+    },
+
     base_the_red_raven = {
         en = "The Red Raven"
     },

@@ -423,6 +423,29 @@ enigma.set_taunt_unit = function (self, ai_unit, taunt_unit, taunt_bosses)
         end
     end
 end
+enigma.stagger_enemy = function(self, hit_unit, unit, distance, impact, direction, blocked)
+    if not hit_unit or not Unit.alive(hit_unit) or not unit or not Unit.alive(unit) then
+        return
+    end
+    local stagger_type, stagger_duration = DamageUtils.calculate_stagger(impact, nil, hit_unit, unit, nil, nil, blocked)
+    if stagger_type > 0 then
+		local hit_unit_blackboard = BLACKBOARDS[hit_unit]
+
+        local t = Managers.time:time("game")
+		AiUtils.stagger(hit_unit, hit_unit_blackboard, unit, direction, distance, stagger_type, stagger_duration, nil, t)
+	end
+end
+enigma.stun_enemy = function(self, hit_unit, unit, duration)
+    if not hit_unit or not Unit.alive(hit_unit) or not unit or not Unit.alive(unit) then
+        return
+    end
+    local hit_unit_blackboard = BLACKBOARDS[hit_unit]
+
+    local direction = Unit.world_position(hit_unit, 0) - Unit.world_position(unit, 0)
+
+    local t = Managers.time:time("game")
+    AiUtils.stagger(hit_unit, hit_unit_blackboard, unit, direction, 0, 6, duration, nil, t)
+end
 enigma.unset_taunt_unit = function(self, ai_unit)
 	local blackboard = BLACKBOARDS[ai_unit]
     if blackboard then
