@@ -138,6 +138,27 @@ end
 
 
 -- Affect Units/Players
+enigma.add_dot = function(self, unit, attacker_unit, custom_dot, power_multiplier, is_critical_strike)
+    if not unit or not Unit.alive(unit) or not attacker_unit or not Unit.alive(attacker_unit) then
+        return
+    end
+
+    local career_ext = ScriptUnit.extension(attacker_unit, "career_system")
+    local power_level = career_ext and career_ext:get_career_power_level() or 600
+    power_level = power_level * (power_multiplier or 1)
+    local hit_zone_name = nil
+    local damage_source = nil
+    local boost_curve_multiplier = nil
+
+    if type(custom_dot) == "string" then
+        local dot_template_name = custom_dot
+        custom_dot = {
+            dot_template_name = dot_template_name
+        }
+    end
+
+    DamageUtils.apply_dot(nil, nil, power_level, unit, attacker_unit, hit_zone_name, damage_source, boost_curve_multiplier, is_critical_strike, nil, attacker_unit, custom_dot)
+end
 local adjust_direction_by_first_person_rotation = function(unit, direction, include_pitch_roll)
     local first_person = ScriptUnit.extension(unit, "first_person_system")
     local rotation = first_person:current_rotation()

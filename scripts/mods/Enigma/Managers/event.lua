@@ -156,9 +156,14 @@ reg_hook_safe(ConflictDirector, "_post_spawn_unit", function(self, ai_unit, go_i
     em:_invoke_event_callbacks(enigma.EVENTS.enemy_spawned, ai_unit, breed, spawn_pos, spawn_category, spawn_type, optional_data)
 end, "enigma_event_enemy_spawned")
 
-reg_hook_safe(GenericHealthExtension, "add_damage", function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
-    em:_invoke_event_callbacks(enigma.EVENTS.enemy_damaged, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
-end, "enigma_event_enemy_damaged")
+local reg_enemy_damage = function(health_extension_class)
+    reg_hook_safe(health_extension_class, "add_damage", function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+        em:_invoke_event_callbacks(enigma.EVENTS.enemy_damaged, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+    end, "enigma_event_enemy_damaged")
+end
+reg_enemy_damage(TrainingDummyHealthExtension)
+reg_enemy_damage(GenericHealthExtension)
+reg_enemy_damage(RatOgreHealthExtension)
 
 reg_hook_safe(PlayerUnitHealthExtension, "add_damage", function(self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
     em:_invoke_event_callbacks(enigma.EVENTS.player_damaged, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)

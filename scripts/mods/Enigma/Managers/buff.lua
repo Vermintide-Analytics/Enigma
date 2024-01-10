@@ -391,23 +391,6 @@ bm._reset_players = function(self)
     end
 end
 
-local buff_params = {}
-
-enigma.add_dot = function(dot_template_name, hit_unit, attacker_unit, damage_source, power_level, source_attacker_unit)
-	if ScriptUnit.has_extension(hit_unit, "buff_system") then
-		table.clear(buff_params)
-
-		buff_params.attacker_unit = attacker_unit
-		buff_params.damage_source = damage_source
-		buff_params.power_level = power_level
-		buff_params.source_attacker_unit = source_attacker_unit
-		local buff_extension = ScriptUnit.extension(hit_unit, "buff_system")
-
-		buff_extension:add_buff(dot_template_name, buff_params)
-	end
-end
-
-
 -- Umbrella Buff
 
 local set_default_value_based_on_application_method = function(buff_table, application_method)
