@@ -1694,11 +1694,9 @@ cgm.card_cost_changed = function(self, card)
     set_card_can_pay_warpstone(card)
 
     if card.cost == "X" then
-        local any_description_changed = enigma.managers.card_template:_update_x_cost_descriptions(card)
-        if any_description_changed then
-            card:set_dirty()
-        end
+        enigma.managers.card_template:_update_x_cost_descriptions(card)
     end
+    card:set_dirty()
 end
 cgm.set_card_cost = function(self, card, new_cost)
     if type(card) ~= "table" then

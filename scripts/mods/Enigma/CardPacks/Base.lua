@@ -100,6 +100,26 @@ local passive_cards = {
             }
         },
     },
+    continual_blows = {
+        rarity = LEGENDARY,
+        cost = 0,
+        texture = true,
+        on_any_card_played_local = function(card, played_card)
+            if played_card.card_type == enigma.CARD_TYPE.attack then
+                for i=1,card.times_played do
+                    if enigma:test_chance(0.5) then
+                        game:draw_card()
+                    end
+                end
+            end
+        end,
+        description_lines = {
+            {
+                format = "base_continual_blows_description",
+                parameters = { 50 }
+            }
+        }
+    },
     controlled_breathing = {
         rarity = EPIC,
         cost = 2,
@@ -620,6 +640,21 @@ local passive_cards = {
             {
                 format = "description_critical_strike_chance_melee",
                 parameters = { 4 }
+            }
+        }
+    },
+    raw_power = {
+        rarity = LEGENDARY,
+        cost = 0,
+        texture = true,
+        attack_card_power_modifier = 1,
+        on_play_local = function(card)
+            buff:update_stat(card.context.unit, "attack_card_power_multiplier", card.attack_card_power_modifier)
+        end,
+        description_lines = {
+            {
+                format = "description_attack_card_power",
+                parameters = { 100 }
             }
         }
     },
@@ -1686,6 +1721,24 @@ local ability_cards = {
             {
                 format = "base_rat_banker_description_on_play",
                 parameters = { 0 }
+            }
+        }
+    },
+    refined_techniques = {
+        rarity = LEGENDARY,
+        cost = 0,
+        texture = true,
+        on_play_local = function(card)
+            local cards = card.context:get_cards_in_hand(function(c) return c.card_type == enigma.CARD_TYPE.attack end)
+            for _,attack_card in ipairs(cards) do
+                attack_card.echo = true
+                game:add_card_cost(attack_card, -2)
+            end
+        end,
+        description_lines = {
+            {
+                format = "base_refined_techniques_description",
+                parameters = { -2 }
             }
         }
     },

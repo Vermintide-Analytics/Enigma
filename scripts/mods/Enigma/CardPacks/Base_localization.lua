@@ -9,6 +9,9 @@ return {
     },
 
     -- Common descriptions
+    description_attack_card_power = {
+        en = "%+.1f%% Attack Card Power",
+    },
     description_attack_speed = {
         en = "%+.1f%% Attack Speed"
     },
@@ -135,6 +138,13 @@ return {
         en = "Gain immunity to hook rats"
     },
 
+    base_continual_blows = {
+        en = "Continual Blows"
+    },
+    base_continual_blows_description = {
+        en = "After playing an Attack Card, %i%% chance to draw a card."
+    },
+
     base_controlled_breathing = {
         en = "Controlled Breathing"
     },
@@ -216,6 +226,10 @@ return {
 
     base_precise_thrusts = {
         en = "Precise Thrusts"
+    },
+
+    base_raw_power = {
+        en = "Raw Power"
     },
 
     base_refined_parts = {
@@ -452,6 +466,13 @@ return {
     },
     base_rat_banker_description_on_play = {
         en = "When played, regain all banked warpstone plus interest (%.2f)"
+    },
+
+    base_refined_techniques = {
+        en = "Refined Techniques"
+    },
+    base_refined_techniques_description = {
+        en = "Give Attack Cards in your hand Echo and %+i cost"
     },
 
     base_retreat = {
