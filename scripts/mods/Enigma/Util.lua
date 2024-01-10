@@ -537,13 +537,6 @@ enigma.spawn_pet = function(self, owner_unit, breed_name, template_name, relativ
 
 	return true
 end
-enigma:command("spawn_pet", "", function()
-    local local_player_unit = enigma:local_player_unit()
-    if not local_player_unit then
-        return
-    end
-    enigma:spawn_pet(local_player_unit, "pet_skeleton", "hireling", Vector3(0, 3, 0))
-end)
 
 enigma.stagger_enemy = function(self, hit_unit, unit, distance, impact, direction, blocked)
     if not hit_unit or not Unit.alive(hit_unit) or not unit or not Unit.alive(unit) then
