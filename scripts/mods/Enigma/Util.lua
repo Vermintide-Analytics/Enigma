@@ -620,14 +620,11 @@ enigma.get_all_enemies = function(self)
         return units
     end
 	local entries = Broadphase.all(broadphase)
-    enigma:info("Found "..tostring(#entries).." ENTRIES TOTAL")
     for i,entry in ipairs(entries) do
-        enigma:info("Found UNIT: "..tostring(entry[3]))
         if entry[3] then
             table.insert(units, entry[3])
         end
     end
-    enigma:info("Found "..tostring(#units).." UNITS TOTAL")
     return units
 end
 enigma.get_level_progress = function(self)
