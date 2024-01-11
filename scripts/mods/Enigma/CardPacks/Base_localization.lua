@@ -224,6 +224,13 @@ return {
         en = "Increase power based on recent damage dealt by allies.\nWhen allies take damage, you take damage as well."
     },
 
+    base_nurgles_brew = {
+        en = "Nurgle's Brew"
+    },
+    base_nurgles_brew_description = {
+        en = "When you drink a healing draught or a potion, create a poison cloud around you. This cloud does not damage players."
+    },
+
     base_plated_armor = {
         en = "Plated Armor"
     },
@@ -245,6 +252,16 @@ return {
 
     base_sharpshooter = {
         en = "Sharpshooter"
+    },
+
+    base_slaaneshs_ring = {
+        en = "Slaanesh's Ring"
+    },
+    base_slaaneshs_ring_description = {
+        en = "Taking damage heals nearby allies"
+    },
+    base_slaaneshs_ring_condition = {
+        en = "Taken %i damage while this card is in your hand (%i remaining)"
     },
 
     base_soul_safe = {
@@ -281,6 +298,13 @@ return {
 
     base_tough_skin = {
         en = "Tough Skin"
+    },
+
+    base_tzeentchs_sigil = {
+        en = "Tzeentch's Sigil"
+    },
+    base_tzeentchs_sigil_description = {
+        en = "When hit by an enemy, deal twice as much damage back.\nThis has up to a %.1f%% chance to execute the enemy depending on the damage dealt."
     },
 
     base_leaden_boots = {
@@ -348,6 +372,13 @@ return {
     base_slam_description = {
         en = "Jump high in the air, then come down with great force, damaging and staggering nearby enemies"
     },
+
+    base_sucker_punch = {
+        en = "Sucker Punch"
+    },
+    base_sucker_punch_description = {
+        en = "Deal a small amount of damage to enemies in front of you and stun them for %i seconds"
+    },
     
     base_thrash = {
         en = "Thrash"
@@ -361,6 +392,13 @@ return {
 
 
     -- Ability cards
+    base_battlecry = {
+        en = "Battlecry"
+    },
+    base_battlecry_description = {
+        en = "Taunt nearby enemies"
+    },
+
     base_blood_transfusion = {
         en = "Blood Transfusion"
     },
@@ -587,13 +625,26 @@ return {
         en = "Give each Charge card in your hand +1 charge"
     },
 
+    base_willing_sacrifice = {
+        en = "Willing Sacrifice"
+    },
+    base_willing_sacrifice_description = {
+        en = "Instantly revive an incapacitated ally, become incapacitated"
+    },
+    base_willing_sacrifice_condition = {
+        en = "An ally is incapacitated"
+    },
+
     base_wrath_of_khorne = {
         en = "Wrath of Khorne"
     },
 
 
     -- Chaos cards
-    
+    base_frailty = {
+        en = "Frailty"
+    },
+
     base_incompetence = {
         en = "Incompetence"
     },

@@ -10,10 +10,13 @@ enigma.EVENTS = {
 
     player_block = "player_block", -- blocking_unit, attacker_unit, fatigue_type
     player_block_broken = "player_block_broken", -- blocking_unit, attacker_unit, fatigue_type
+    player_controlled_unit_added = "player_controlled_unit_added", -- controller_unit, controlled_unit
+    player_controlled_unit_removed = "player_controlled_unit_removed", -- controller_unit, controlled_unit
     player_damaged = "player_damaged", -- health_extension, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier
     player_disabled = "player_disabled", -- disabled_unit, disable_type, disabler
     player_dodge = "player_dodge", -- dodging_player_unit, dodge_direction
     player_dodge_finished = "player_dodge_finished", -- dodging_player_unit
+    player_drank_potion = "player_drank_potion", -- player_unit, item_name
     player_freed = "player_freed",
     player_healed = "player_healed", -- health_extension, healer_unit, heal_amount, heal_source_name, heal_type
     player_hooked = "player_hooked", -- disabled_unit, disabler
@@ -194,6 +197,12 @@ reg_hook_safe(BuffExtension, "trigger_procs", function(self, event, ...)
     elseif event == "on_block_broken" then
         local arg = table.pack(...)
         em:_invoke_event_callbacks(enigma.EVENTS.player_block_broken, self._unit, arg[1], arg[2])
+    elseif event == "on_controlled_unit_added" then
+        local arg = table.pack(...)
+        em:_invoke_event_callbacks(enigma.EVENTS.player_controlled_unit_added, self._unit, arg[1])
+    elseif event == "on_controlled_unit_removed" then
+        local arg = table.pack(...)
+        em:_invoke_event_callbacks(enigma.EVENTS.player_controlled_unit_removed, self._unit, arg[1])
     elseif event == "on_dodge" then
         local arg = table.pack(...)
         em:_invoke_event_callbacks(enigma.EVENTS.player_dodge, self._unit, arg[1])
@@ -203,6 +212,9 @@ reg_hook_safe(BuffExtension, "trigger_procs", function(self, event, ...)
         em:_invoke_event_callbacks(enigma.EVENTS.player_knocked_down, self._unit)
     elseif event == "on_invisible" then
         em:_invoke_event_callbacks(enigma.EVENTS.player_invisible, self._unit)
+    elseif event == "on_potion_consumed" then
+        local arg = table.pack(...)
+        em:_invoke_event_callbacks(enigma.EVENTS.player_drank_potion, self._unit, arg[1])
     elseif event == "on_reload" then
         em:_invoke_event_callbacks(enigma.EVENTS.player_reload, self._unit)
     elseif event == "on_revived" then

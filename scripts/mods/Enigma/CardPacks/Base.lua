@@ -657,6 +657,56 @@ local passive_cards = {
             }
         }
     },
+    nurgles_brew = {
+        rarity = LEGENDARY,
+        cost = 2,
+        texture = true,
+        trigger_gas_cloud = function(card, multiplier)
+            multiplier = multiplier or 1
+            local us = card.context.unit
+            local duration = 5 * multiplier
+            local init_radius = 58 * multiplier
+            local init_damage = 15 * multiplier
+            local radius = 8 * multiplier
+            local damage = 10 * multiplier
+            local damage_interval = 0.5 * multiplier
+
+            local damage_players = false
+            enigma:create_gas_cloud(us, enigma:unit_position(us), duration, init_radius, init_damage, radius, damage, damage_interval, damage_players)
+        end,
+        events_local = {
+            player_healed = function(card, health_extension, healer_unit, heal_amount, heal_source_name, heal_type)
+                if card.times_played < 1 then
+                    return
+                end
+
+                local healed_unit = health_extension.unit
+                local us = card.context.unit
+
+                if healed_unit ~= us or (heal_type ~= "healing_draught" and heal_type ~= "healing_draught_temp_health") then
+                    return
+                end
+                card:rpc_server("trigger_gas_cloud", card.times_played)
+            end,
+            player_drank_potion = function(card, player_unit, item_name)
+                if card.times_played < 1 then
+                    return
+                end
+
+                local us = card.context.unit
+
+                if player_unit ~= us then
+                    return
+                end
+                card:rpc_server("trigger_gas_cloud", card.times_played)
+            end,
+        },
+        description_lines = {
+            {
+                format = "base_nurgles_brew_description"
+            }
+        }
+    },
     plated_armor = {
         rarity = LEGENDARY,
         cost = 2,
@@ -732,6 +782,70 @@ local passive_cards = {
                 parameters = { 2 }
             }
         }
+    },
+    slaaneshs_ring = {
+        rarity = LEGENDARY,
+        cost = 2,
+        texture = true,
+        required_damage_taken = 300,
+        events_server = {
+            player_damaged = function(card, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+                local damaged_unit = self.unit
+                local us = card.context.unit
+
+                if damaged_unit ~= us or damage_type == "temporary_health_degen" then
+                    return
+                end
+                if card.times_played == 0 then
+                    return
+                end
+
+                -- Heal nearby allies based on damage taken
+                local max_heal = damage_amount * 0.25
+                local max_heal_distance = 1
+                local min_heal_distance = 14
+                local range = min_heal_distance - max_heal_distance
+                local players_and_bots = enigma:player_and_bot_units()
+                for _,unit in ipairs(players_and_bots) do
+                    if unit ~= us then -- Skip ourselves
+                        local distance = math.clamp(enigma:distance_between_units(unit, us), max_heal_distance, min_heal_distance)
+                        local distance_lerp_value = (distance - max_heal_distance) / range
+                        local calculated_heal = math.lerp(max_heal, 0, distance_lerp_value)
+                        enigma:heal(unit, us, calculated_heal)
+                    end
+                end
+            end
+        },
+        events_local = {
+            player_damaged = function(card, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+                local damaged_unit = self.unit
+                local us = card.context.unit
+
+                if damaged_unit ~= us or damage_type == "temporary_health_degen" then
+                    return
+                end
+                if card.times_played > 0 or not card:is_in_hand() then
+                    return
+                end
+
+                card.required_damage_taken = card.required_damage_taken - damage_amount
+            end
+        },
+        condition_local = function(card)
+            return card.required_damage_taken <= 0
+        end,
+        ephemeral = true,
+        description_lines = {
+            {
+                format = "base_slaaneshs_ring_description",
+            }
+        },
+        condition_descriptions = {
+            {
+                format = "base_slaaneshs_ring_condition",
+                parameters = { 300, 300 }
+            }
+        },
     },
     soul_safe = {
         rarity = LEGENDARY,
@@ -841,6 +955,50 @@ local passive_cards = {
             {
                 format = "description_damage_taken",
                 parameters = { -2 }
+            }
+        }
+    },
+    tzeentchs_sigil = {
+        rarity = LEGENDARY,
+        cost = 2,
+        texture = true,
+        events_server = {
+            player_damaged = function(card, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+                local damaged_unit = self.unit
+                local us = card.context.unit
+
+                if card.times_played == 0 or damaged_unit ~= us or damage_type == "temporary_health_degen" then
+                    return
+                end
+                if not attacker_unit or attacker_unit == us or source_attacker_unit == us then
+                    return
+                end
+
+                -- Damage the attacker for twice what we received, with a chance to execute
+                local damage_to_deal = damage_amount * 2
+                if damage_to_deal == 0 then
+                    return
+                end
+                local enemy_health_ext = ScriptUnit.extension(attacker_unit, "health_system")
+                if not enemy_health_ext then
+                    return
+                end
+                local enemy_health = enemy_health_ext:current_health()
+                local ratio = math.clamp(damage_to_deal / enemy_health, 0, 1)
+                local max_chance = 0.1
+                local chance = max_chance * ratio
+                if enigma:test_chance(chance) then
+                    enigma:execute_unit(attacker_unit, us)
+                else
+                    enigma:force_damage(attacker_unit, damage_to_deal, us)
+                end
+            end
+        },
+        ephemeral = true,
+        description_lines = {
+            {
+                format = "base_tzeentchs_sigil_description",
+                parameters = { 10 }
             }
         }
     },
@@ -1125,6 +1283,25 @@ local attack_cards = {
             }
         }
     },
+    sucker_punch = {
+        rarity = COMMON,
+        cost = 0,
+        texture = true,
+        on_play_server = function(card)
+            local us = card.context.unit
+            local ai_units_to_stab = enigma:get_ai_units_in_front_of_unit(us, 2.5, 60)
+            for _,unit in ipairs(ai_units_to_stab) do
+                card:hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_blunt_tank, 1)
+                enigma:stun_enemy(unit, us, 3)
+            end
+        end,
+        description_lines = {
+            {
+                format = "base_sucker_punch_description",
+                parameters = { 3 }
+            }
+        }
+    },
     thrash = {
         rarity = COMMON,
         cost = 0,
@@ -1170,6 +1347,24 @@ local ability_cards = {
     --     }
     -- },
 
+    battlecry = {
+        rarity = COMMON,
+        cost = 1,
+        texture = true,
+        duration = 20,
+        on_play_server = function(card)
+            local us = card.context.unit
+            local nearby_ai_units = enigma:get_ai_units_around_unit(us, 6)
+            for _,unit in ipairs(nearby_ai_units) do
+                AiUtils.taunt_unit(unit, us, 20, false)
+            end
+        end,
+        description_lines = {
+            {
+                format = "base_battlecry_description"
+            }
+        }
+    },
     blood_transfusion = {
         rarity = COMMON,
         cost = 1,
@@ -2221,6 +2416,69 @@ local ability_cards = {
             }
         }
     },
+    willing_sacrifice = {
+        rarity = RARE,
+        cost = 0,
+        texture = true,
+        echo = true,
+        on_play_server = function(card)
+            local us = card.context.unit
+            local our_status = ScriptUnit.extension(us, "status_system")
+            if our_status:is_disabled() then
+                enigma:warning("Willing Sacrifice could not play because the player was disabled at the time")
+                return
+            end
+
+            local players_and_bots = enigma:player_and_bot_units()
+            local ally_status = nil
+            for _,unit in ipairs(players_and_bots) do
+                if unit ~= us then -- Skip ourselves
+                    local status = ScriptUnit.extension(unit, "status_system")
+                    if status:is_knocked_down() or status:get_is_ledge_hanging() then
+                        ally_status = status
+                    end
+                end
+            end
+            if not ally_status then
+                enigma:warning("Willing Sacrifice could not find a disabled ally to free")
+                return
+            end
+            if ally_status:is_knocked_down() then
+                ally_status:set_knocked_down(false)
+            elseif ally_status:get_is_ledge_hanging() then
+                ally_status:set_pulled_up(true, us)
+            end
+            our_status:set_knocked_down(true)
+        end,
+        condition_local = function(card)
+            local us = card.context.unit
+            local our_status = ScriptUnit.extension(us, "status_system")
+            if our_status:is_disabled() then
+                return false
+            end
+            -- At least one ally is disabled
+            local players_and_bots = enigma:player_and_bot_units()
+            for _,unit in ipairs(players_and_bots) do
+                if unit ~= us then -- Skip ourselves
+                    local status = ScriptUnit.extension(unit, "status_system")
+                    if status:is_knocked_down() or status:get_is_ledge_hanging() then
+                        return true
+                    end
+                end
+            end
+            return false
+        end,
+        description_lines = {
+            {
+                format = "base_willing_sacrifice_description"
+            },
+        },
+        condition_descriptions = {
+            {
+                format = "base_willing_sacrifice_condition"
+            }
+        }
+    },
     wrath_of_khorne = {
         rarity = EPIC,
         cost = 1,
@@ -2239,6 +2497,26 @@ local ability_cards = {
 }
 
 local chaos_cards = {
+    frailty = {
+        rarity = RARE,
+        cost = 1,
+        texture = true,
+        block_cost_modifier = 1,
+        on_location_changed_local = function(card, old, new)
+            if new == enigma.CARD_LOCATION.hand then
+                buff:update_stat(card.context.unit, "block_cost", card.block_cost_modifier)
+            end
+            if old == enigma.CARD_LOCATION.hand then
+                buff:update_stat(card.context.unit, "block_cost", card.block_cost_modifier * -1)
+            end
+        end,
+        description_lines = {
+            {
+                format = "description_block_cost",
+                parameters = { 100 }
+            }
+        }
+    },
     incompetence = {
         rarity = COMMON,
         cost = 1,

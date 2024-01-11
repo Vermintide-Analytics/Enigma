@@ -273,6 +273,47 @@ enigma.create_explosion = function(self, owner_unit, position, rotation, explosi
         is_critical_strike = is_critical_strike
     })
 end
+enigma.create_gas_cloud = function(self, owner_unit, position, duration, init_radius, init_damage, dot_radius, dot_damage, dot_damage_interval, damage_players)
+    if not enigma:is_server() then
+        enigma:warning("Only the server can create gas clouds")
+        return
+    end
+    if not owner_unit or not position then
+        return
+    end
+
+    local owner_unit_breed = Unit.get_data(owner_unit, "breed")
+    local damage_source = owner_unit_breed and owner_unit_breed.name or "dot_debuff"
+
+    local nav_tag_volume_layer = damage_players and "bot_poison_wind" or nil
+    local extension_init_data = {
+        area_damage_system = {
+            area_damage_template = "globadier_area_dot_damage",
+            invisible_unit = true,
+            player_screen_effect_name = "fx/screenspace_poison_globe_impact",
+            area_ai_random_death_template = "area_poison_ai_random_death",
+            dot_effect_name = "fx/wpnfx_poison_wind_globe_impact",
+            extra_dot_effect_name = "fx/chr_gutter_death",
+            damage_players = damage_players,
+            aoe_dot_damage = dot_damage or 0,
+            aoe_init_damage = init_damage or 0,
+            aoe_dot_damage_interval = dot_damage_interval or 1,
+            radius = dot_radius or 0,
+            initial_radius = init_radius or 0,
+            life_time = duration,
+            damage_source = damage_source,
+            create_nav_tag_volume = damage_players,
+            nav_tag_volume_layer = nav_tag_volume_layer,
+            source_attacker_unit = owner_unit
+        }
+    }
+    local aoe_unit_name = "units/weapons/projectile/poison_wind_globe/poison_wind_globe"
+    local aoe_unit = Managers.state.unit_spawner:spawn_network_unit(aoe_unit_name, "aoe_unit", extension_init_data, position)
+    local unit_id = Managers.state.unit_storage:go_id(aoe_unit)
+
+    Unit.set_unit_visibility(aoe_unit, false)
+    Managers.state.network.network_transmit:send_rpc_all("rpc_area_damage", unit_id, position)
+end
 enigma.force_damage = function(self, unit, damage, damager, damage_source)
     if not self:is_server() then
         enigma:warning("Only the server can damage")
