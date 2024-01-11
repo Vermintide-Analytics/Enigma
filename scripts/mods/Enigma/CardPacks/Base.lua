@@ -1555,6 +1555,37 @@ local ability_cards = {
             }
         },
     },
+    living_catalysts = {
+        rarity = RARE,
+        cost = 1,
+        texture = true,
+        duration = 300,
+        power_level_modifier = 0.02,
+        on_play_server = function(card)
+            local us = card.context.unit
+            local controlled_units, num_controlled_units = enigma:get_controlled_unit_data(us)
+            for unit,_ in pairs(controlled_units) do
+                enigma:execute_unit(unit, us)
+            end
+            local power_increase = card.power_level_modifier * num_controlled_units
+            if power_increase > 0 then
+                buff:surge_stat(card.context.unit, "power_level", power_increase, card.duration)
+            end
+        end,
+        condition_local = function(card)
+            local _, num_controlled_units = enigma:get_controlled_unit_data(card.context.unit)
+            if num_controlled_units and num_controlled_units > 0 then
+                return enigma:on_ground(card.context.unit)
+            end
+            return false
+        end,
+        description_lines = {
+            {
+                format = "base_living_catalysts_description",
+                parameters = { 2 }
+            }
+        }
+    },
     long_rest = {
         rarity = LEGENDARY,
         cost = 3,

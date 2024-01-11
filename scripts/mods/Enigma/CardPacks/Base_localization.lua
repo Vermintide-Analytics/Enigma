@@ -447,6 +447,13 @@ return {
         en = "At least one monster is alive and not already in a duel"
     },
 
+    base_living_catalysts = {
+        en = "Living Catalysts"
+    },
+    base_living_catalysts_description = {
+        en = "Execute all of your pets.\n%+.1f%% Power for each pet executed."
+    },
+
     base_long_rest = {
         en = "Long Rest"
     },
