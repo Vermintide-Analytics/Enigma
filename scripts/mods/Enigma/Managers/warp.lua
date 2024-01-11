@@ -250,18 +250,19 @@ local handle_damage_dealt = function(self, attacker_unit, damage_amount, hit_zon
         return
     end
     local self_unit = enigma.managers.game.local_data and enigma.managers.game.local_data.unit
-    if self_unit and attacker_unit == self_unit or source_attacker_unit == self_unit then
-        local breed = Unit.get_data(self.unit, "breed")
-        if breed then
-            local enemy_type = breed.boss and "boss" or breed.special and "special" or breed.elite and "elite" or "trash"
-            local gain = damage_amount * wm.warp_dust_per_damage_dealt[enemy_type]
+    if not self_unit or (attacker_unit ~= self_unit and source_attacker_unit ~= self_unit) then
+        return
+    end
+    local breed = Unit.get_data(self.unit, "breed")
+    if breed then
+        local enemy_type = breed.boss and "boss" or breed.special and "special" or breed.elite and "elite" or "trash"
+        local gain = damage_amount * wm.warp_dust_per_damage_dealt[enemy_type]
 
-            if attack_type and RangedAttackTypes[attack_type] and attack_type ~= "grenade" then
-                gain = gain * wm.ranged_damage_warp_dust_multiplier
-            end
-
-            wm:add_warp_dust(gain, "damage_dealt_"..enemy_type)
+        if attack_type and RangedAttackTypes[attack_type] and attack_type ~= "grenade" then
+            gain = gain * wm.ranged_damage_warp_dust_multiplier
         end
+
+        wm:add_warp_dust(gain, "damage_dealt_"..enemy_type)
     end
 end
 reg_prehook_safe(GenericHealthExtension, "add_damage", handle_damage_dealt, "enigma_warp_manager_damage_dealt")
