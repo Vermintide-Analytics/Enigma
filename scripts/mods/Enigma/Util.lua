@@ -389,6 +389,8 @@ enigma.multiply_player_movement_speed = function(self, unit, multiplier)
         return
     end
     move_settings.player_speed_scale = move_settings.player_speed_scale * multiplier
+    move_settings.move_acceleration_up = move_settings.move_acceleration_up * multiplier
+    move_settings.move_acceleration_down = move_settings.move_acceleration_down * multiplier
 end
 enigma.pop_unit_untargetable = function(self, unit)
     if not unit then
