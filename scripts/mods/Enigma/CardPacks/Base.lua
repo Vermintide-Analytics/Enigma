@@ -1278,14 +1278,14 @@ local attack_cards = {
             end
         end,
         on_play_local = function(card)
-            for i=1,3 do
-                game:shuffle_new_card_into_draw_pile("base/aftershock")
+            for i=1,2 do
+                game:add_new_card_to_hand("base/aftershock")
             end
         end,
         description_lines = {
             {
                 format = "base_earthquake_description",
-                parameters = { 4, 7, 3 }
+                parameters = { 4, 7, 2 }
             }
         }
     },

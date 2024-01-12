@@ -363,7 +363,7 @@ return {
         en = "Earthquake"
     },
     base_earthquake_description = {
-        en = "Create a series of %i-%i tremors, damaging and stunning nearby enemies.\n\nShuffle %i Aftershocks into your deck."
+        en = "Create a series of %i-%i tremors, damaging and stunning nearby enemies.\n\nAdd %i Aftershocks to your hand."
     },
 
     base_omnistrike = {
