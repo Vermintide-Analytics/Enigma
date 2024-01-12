@@ -335,6 +335,13 @@ return {
 
 
     -- Attack cards
+    base_aftershock = {
+        en = "Aftershock"
+    },
+    base_aftershock_description = {
+        en = "Create a series of %i-%i weak tremors, damaging and stunning nearby enemies."
+    },
+
     base_cyclone_strike = {
         en = "Cyclone Strike"
     },
@@ -350,6 +357,13 @@ return {
     },
     base_counterattack_condition = {
         en = "Blocked an enemy attack in the past 2 seconds"
+    },
+
+    base_earthquake = {
+        en = "Earthquake"
+    },
+    base_earthquake_description = {
+        en = "Create a series of %i-%i tremors, damaging and stunning nearby enemies.\n\nShuffle %i Aftershocks into your deck."
     },
 
     base_omnistrike = {

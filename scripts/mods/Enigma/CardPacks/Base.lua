@@ -829,6 +829,8 @@ local passive_cards = {
                 end
 
                 card.required_damage_taken = card.required_damage_taken - damage_amount
+                card.condition_descriptions[1].parameters[2] = card.required_damage_taken
+                card:set_dirty()
             end
         },
         condition_local = function(card)
@@ -1142,6 +1144,42 @@ local passive_cards = {
 }
 
 local attack_cards = {
+    aftershock = {
+        rarity = COMMON,
+        cost = 0,
+        texture = true,
+        min_quakes = 2,
+        max_quakes = 4,
+        camera_shake = function(card)
+            enigma:camera_shake("ring_explosion", enigma:unit_position(card.context.unit), 1.5, 4.5, 0.3, 0)
+        end,
+        do_quake = function(card)
+            local us = card.context.unit
+            local nearby_ai_units = enigma:get_ai_units_around_unit(us, 4)
+            for _,unit in ipairs(nearby_ai_units) do
+                card:damage(unit, 10, us)
+                enigma:stun_enemy(unit, us, 0.1)
+            end
+            card:camera_shake()
+            card:rpc_others("camera_shake")
+        end,
+        on_play_server = function(card)
+            local num_quakes = enigma:random_range_int(card.min_quakes, card.max_quakes)
+            for delay=1,num_quakes do
+                enigma:invoke_delayed(function()
+                    card:do_quake()
+                end, delay)
+            end
+        end,
+        description_lines = {
+            {
+                format = "base_aftershock_description",
+                parameters = { 2, 4 }
+            }
+        },
+        hide_in_deck_editor = true,
+        allow_in_deck = false
+    },
     counterattack = {
         rarity = COMMON,
         cost = 0,
@@ -1209,6 +1247,45 @@ local attack_cards = {
         description_lines = {
             {
                 format = "base_cyclone_strike_description"
+            }
+        }
+    },
+    earthquake = {
+        rarity = EPIC,
+        cost = 2,
+        texture = true,
+        min_quakes = 4,
+        max_quakes = 7,
+        camera_shake = function(card)
+            enigma:camera_shake("ring_explosion", enigma:unit_position(card.context.unit), 3, 8, 0.6, 0)
+        end,
+        do_quake = function(card)
+            local us = card.context.unit
+            local nearby_ai_units = enigma:get_ai_units_around_unit(us, 7)
+            for _,unit in ipairs(nearby_ai_units) do
+                card:damage(unit, 18, us)
+                enigma:stun_enemy(unit, us, 0.1)
+            end
+            card:camera_shake()
+            card:rpc_others("camera_shake")
+        end,
+        on_play_server = function(card)
+            local num_quakes = enigma:random_range_int(card.min_quakes, card.max_quakes)
+            for delay=1,num_quakes do
+                enigma:invoke_delayed(function()
+                    card:do_quake()
+                end, delay)
+            end
+        end,
+        on_play_local = function(card)
+            for i=1,3 do
+                game:shuffle_new_card_into_draw_pile("base/aftershock")
+            end
+        end,
+        description_lines = {
+            {
+                format = "base_earthquake_description",
+                parameters = { 4, 7, 3 }
             }
         }
     },

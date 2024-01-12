@@ -646,6 +646,23 @@ end
 
 
 -- Misc
+enigma.camera_shake = function(self, shake_name, origin, near_dist, far_dist, near_value, far_value)
+    local local_player_unit = enigma:local_player_unit()
+    if not local_player_unit or not Unit.alive(local_player_unit) or not origin then
+        return
+    end
+    
+    near_value = near_value or 1
+    far_value = far_value or 0
+
+    local scale = 1
+
+    local d = Vector3.distance(origin, enigma:unit_position(local_player_unit))
+    scale = 1 - math.clamp((d - near_dist) / (far_dist - near_dist), 0, 1)
+    scale = far_value + scale * (near_value - far_value)
+
+    Managers.state.camera:camera_effect_shake_event(shake_name, Managers.time:time("game"), scale)
+end
 enigma.echo_bad_function_call = function(self, func_name, bad_param_name, details)
     local params_details = "("
     local first = true
