@@ -98,6 +98,9 @@ local add_card_instance_functions = function(inst)
             enigma.managers.game:request_play_card(card)
         end
     end
+    inst.times_played = function(card)
+        return card._times_played
+    end
     inst.sync_property = function(card, property)
         if not property then
             enigma:warning("Cannot sync card property: "..tostring(property))
@@ -305,7 +308,7 @@ local template_template = {
         end
 
         inst.context = context
-        inst.times_played = 0
+        inst._times_played = 0
         if self.duration then
             inst.active_durations = {}
         end

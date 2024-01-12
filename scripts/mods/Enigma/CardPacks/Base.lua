@@ -81,7 +81,7 @@ local passive_cards = {
                 end
 
                 card.current_cooldown = card.cooldown_interval
-                for i=1,card.times_played do
+                for i=1,card:times_played() do
                     for j=1,card.summon_count do
                         enigma:spawn_pet(us, "pet_skeleton", "hireling", Vector3(0, 3, 0))
                     end
@@ -151,7 +151,7 @@ local passive_cards = {
         texture = true,
         on_any_card_played_local = function(card, played_card)
             if played_card.card_type == enigma.CARD_TYPE.attack then
-                for i=1,card.times_played do
+                for i=1,card:times_played() do
                     if enigma:test_chance(0.5) then
                         game:draw_card()
                     end
@@ -614,7 +614,7 @@ local passive_cards = {
             card.time_until_power_boost_update = card.power_boost_update_interval
         end,
         update_server = function(card, dt)
-            if card.times_played > 0 then
+            if card:times_played() > 0 then
                 card.time_until_power_boost_update = card.time_until_power_boost_update - dt
                 if card.time_until_power_boost_update <= 0 then
                     card.time_until_power_boost_update = card.time_until_power_boost_update + card.power_boost_update_interval
@@ -630,7 +630,7 @@ local passive_cards = {
         end,
         events_server = {
             enemy_damaged = function(card, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
-                if card.times_played > 0 then
+                if card:times_played() > 0 then
                     local attacker = attacker_unit or source_attacker_unit
                     local breed = attacker and Unit.get_data(attacker, "breed")
                     if not breed or not breed.is_player or attacker == card.context.unit then
@@ -640,7 +640,7 @@ local passive_cards = {
                 end
             end,
             player_damaged = function(card, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
-                if card.times_played > 0 then
+                if card:times_played() > 0 then
                     local damaged_unit = self.unit
                     local us = card.context.unit
                     if damaged_unit == us or damage_type == "temporary_health_degen" then
@@ -676,7 +676,7 @@ local passive_cards = {
         end,
         events_local = {
             player_healed = function(card, health_extension, healer_unit, heal_amount, heal_source_name, heal_type)
-                if card.times_played < 1 then
+                if card:times_played() < 1 then
                     return
                 end
 
@@ -686,10 +686,10 @@ local passive_cards = {
                 if healed_unit ~= us or (heal_type ~= "healing_draught" and heal_type ~= "healing_draught_temp_health") then
                     return
                 end
-                card:rpc_server("trigger_gas_cloud", card.times_played)
+                card:rpc_server("trigger_gas_cloud", card:times_played())
             end,
             player_drank_potion = function(card, player_unit, item_name)
-                if card.times_played < 1 then
+                if card:times_played() < 1 then
                     return
                 end
 
@@ -698,7 +698,7 @@ local passive_cards = {
                 if player_unit ~= us then
                     return
                 end
-                card:rpc_server("trigger_gas_cloud", card.times_played)
+                card:rpc_server("trigger_gas_cloud", card:times_played())
             end,
         },
         description_lines = {
@@ -796,7 +796,7 @@ local passive_cards = {
                 if damaged_unit ~= us or damage_type == "temporary_health_degen" then
                     return
                 end
-                if card.times_played == 0 then
+                if card:times_played() == 0 then
                     return
                 end
 
@@ -824,7 +824,7 @@ local passive_cards = {
                 if damaged_unit ~= us or damage_type == "temporary_health_degen" then
                     return
                 end
-                if card.times_played > 0 or not card:is_in_hand() then
+                if card:times_played() > 0 or not card:is_in_hand() then
                     return
                 end
 
@@ -902,11 +902,11 @@ local passive_cards = {
         effect_interval = 60,
         time_until_next_effect = 0,
         update_local = function(card, dt)
-            if card.times_played > 0 then
+            if card:times_played() > 0 then
                 card.time_until_next_effect = card.time_until_next_effect - dt
                 if card.time_until_next_effect <= 0 then
                     card.time_until_next_effect = card.time_until_next_effect + card.effect_interval
-                    for i=1,card.times_played do
+                    for i=1,card:times_played() do
                         if #game.local_data.hand > 4 then
                             local random_hand_index = enigma:random_range_int(1, 5)
                             local random_card_to_discard = game.local_data.hand[random_hand_index]
@@ -918,7 +918,7 @@ local passive_cards = {
             end
         end,
         on_play_local = function(card)
-            if card.times_played < 1 then
+            if card:times_played() < 1 then
                 card.time_until_next_effect = card.effect_interval
             end
         end,
@@ -969,7 +969,7 @@ local passive_cards = {
                 local damaged_unit = self.unit
                 local us = card.context.unit
 
-                if card.times_played == 0 or damaged_unit ~= us or damage_type == "temporary_health_degen" then
+                if card:times_played() == 0 or damaged_unit ~= us or damage_type == "temporary_health_degen" then
                     return
                 end
                 if not attacker_unit or attacker_unit == us or source_attacker_unit == us then
@@ -1102,11 +1102,11 @@ local passive_cards = {
         cost = 2,
         texture = true,
         update_server = function(card, dt)
-            if card.times_played > 0 then
+            if card:times_played() > 0 then
                 card.next_heal_time = card.next_heal_time - dt
                 if card.next_heal_time <= 0 then
                     card.next_heal_time = card.next_heal_time + card.heal_interval
-                    enigma:heal(card.context.unit, 5*card.times_played)
+                    enigma:heal(card.context.unit, 5*card:times_played())
                 end
             end
         end,

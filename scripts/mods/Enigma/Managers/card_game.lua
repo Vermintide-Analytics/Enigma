@@ -742,7 +742,7 @@ local handle_card_played = function(context, data, card, play_type, destination_
 
     invoke_card_functions(card, "on_play", context, play_type, net_x_cost)
 
-    card.times_played = card.times_played + 1
+    card._times_played = card._times_played + 1
     if card.duration then
         table.insert(card.active_durations, 1, card.duration)
     end
