@@ -1427,6 +1427,134 @@ local ability_cards = {
     --     }
     -- },
 
+    apple = {
+        rarity = COMMON,
+        cost = 0,
+        texture = true,
+        heal_amount = 10,
+        add_apple_seed_chance = 0.05,
+        on_play_server = function(card)
+            local us = card.context.unit
+            enigma:heal(us, card.heal_amount, us)
+        end,
+        on_play_local = function(card)
+            if enigma:test_chance(card.add_apple_seed_chance) then
+                game:add_new_card_to_hand("base/apple_seed")
+            end
+        end,
+        description_lines = {
+            {
+                format = "description_restore_health",
+                parameters = { 10 }
+            },
+            {
+                format = "base_apple_description",
+                parameters = { 5 }
+            },
+        },
+        ephemeral = true,
+        related_cards = {
+            "base/apple_seed"
+        },
+        hide_in_deck_editor = true,
+        allow_in_deck = false,
+    },
+    apple_seed = {
+        rarity = EPIC,
+        cost = 0,
+        texture = true,
+        growth_duration = 60,
+        on_play_local = function(card)
+            game:add_new_card_to_hand("base/apple_tree")
+        end,
+        on_location_changed_local = function(card, old, new)
+            if new == enigma.CARD_LOCATION.hand then
+                card.remaining_growth_duration = card.growth_duration
+            end
+        end,
+        update_local = function(card, dt)
+            if card:is_in_hand() then
+                card.remaining_growth_duration = card.remaining_growth_duration - dt
+                local previous_int_seconds = card.remaining_growth_duration_int
+                card.remaining_growth_duration_int = math.ceil(card.remaining_growth_duration)
+                if card.remaining_growth_duration <= 0 then
+                    local played = card:play()
+                    if not played then
+                        card.remaining_growth_duration = 1 -- If we couldn't play the card for some reason, try again in 1 second
+                    end
+                end
+                if card.remaining_growth_duration_int ~= previous_int_seconds then
+                    card.auto_descriptions[1].parameters[2] = card.remaining_growth_duration_int
+                    card:set_dirty()
+                end
+            end
+        end,
+        unplayable = true,
+        ephemeral = true,
+        description_lines = {
+            {
+                format = "base_apple_seed_description",
+            }
+        },
+        auto_descriptions = {
+            {
+                format = "base_apple_seed_auto",
+                parameters = { 60, 60 }
+            }
+        },
+        related_cards = {
+            "base/apple_tree"
+        }
+    },
+    apple_tree = {
+        rarity = EPIC,
+        cost = 2,
+        texture = true,
+        apple_interval = 60,
+        apples_when_played = 4,
+        on_play_local = function(card)
+            for i=1,5 do
+                game:add_new_card_to_hand("base/apple")
+            end
+        end,
+        on_location_changed_local = function(card, old, new)
+            if new == enigma.CARD_LOCATION.hand then
+                card.time_until_next_apple = card.apple_interval
+            end
+        end,
+        update_local = function(card, dt)
+            if card:is_in_hand() then
+                card.time_until_next_apple = card.time_until_next_apple - dt
+                local previous_int_seconds = card.time_until_next_apple_int
+                card.time_until_next_apple_int = math.ceil(card.time_until_next_apple)
+                if card.time_until_next_apple <= 0 then
+                    game:add_new_card_to_hand("base/apple")
+                    card.time_until_next_apple = card.time_until_next_apple + card.apple_interval
+                end
+                if card.time_until_next_apple_int ~= previous_int_seconds then
+                    card.retain_descriptions[1].parameters[2] = card.time_until_next_apple_int
+                    card:set_dirty()
+                end
+            end
+        end,
+        description_lines = {
+            {
+                format = "base_apple_tree_description",
+                parameters = { 4 }
+            }
+        },
+        retain_descriptions = {
+            {
+                format = "base_apple_tree_retain",
+                parameters = { 60, 60 }
+            }
+        },
+        related_cards = {
+            "base/apple"
+        },
+        hide_in_deck_editor = true,
+        allow_in_deck = false,
+    },
     battlecry = {
         rarity = COMMON,
         cost = 1,

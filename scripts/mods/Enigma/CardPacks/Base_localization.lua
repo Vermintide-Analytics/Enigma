@@ -406,6 +406,34 @@ return {
 
 
     -- Ability cards
+    base_apple = {
+        en = "Apple"
+    },
+    base_apple_description = {
+        en = "%i%% chance to add an Apple Seed to your hand"
+    },
+
+    base_apple_seed = {
+        en = "Apple Seed"
+    },
+    base_apple_seed_description = {
+        en = "Add an Apple Tree to your hand"
+    },
+    base_apple_seed_auto = {
+        en = "Retained for %i seconds\n(%is)"
+    },
+
+    base_apple_tree = {
+        en = "Apple Tree"
+    },
+    base_apple_tree_description = {
+        en = "Add %i Apples to your hand"
+    },
+    base_apple_tree_retain = {
+        en = "Every %i seconds, add an Apple to your hand\n(%is)"
+    },
+
+    
     base_battlecry = {
         en = "Battlecry"
     },
@@ -709,7 +737,7 @@ return {
         en = "Shuffle a Virus into a random ally's deck"
     },
     base_virus_auto = {
-        en = "Retained for %i seconds (%is)"
+        en = "Retained for %i seconds\n(%is)"
     },
 
     base_vulnerability = {
