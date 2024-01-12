@@ -199,13 +199,32 @@ end
 local invoke_card_event_callbacks = function(cards, func_name, ...)
     for _,other_card in ipairs(cards) do
         if other_card[func_name] then
-            local func = other_card[func_name]
-            func(other_card, ...)
+            safe(other_card[func_name], other_card, ...)
         end
     end
 end
 local invoke_card_event_callbacks_for_all_cards = function(data, func_name, ...)
     invoke_card_event_callbacks(data.all_cards, func_name, ...)
+end
+
+local invoke_card_functions = function(card, function_name, context, ...)
+    local server_func_name = function_name.."_server"
+    local other_func_name = function_name.."_"..context
+    if cgm.is_server and card[server_func_name] then
+        safe(card[server_func_name], card, ...)
+    end
+    if card[other_func_name] then
+        safe(card[other_func_name], card, ...)
+    end
+end
+
+local invoke_all_card_functions = function(data, card, function_name, context, ...)
+    local server_func_name = function_name.."_server"
+    local other_func_name = function_name.."_"..context
+    if cgm.is_server then
+        invoke_card_event_callbacks_for_all_cards(data, server_func_name, card, ...)
+    end
+    invoke_card_event_callbacks_for_all_cards(data, other_func_name, card, ...)
 end
 
 local set_card_can_pay_warpstone = function(card)
@@ -643,13 +662,7 @@ end
 local handle_card_drawn = function(context, data)
     local card = table.remove(data.draw_pile)
     enigma:info(format_drawing_card(card, data.peer_id))
-    if cgm.is_server and card.on_draw_server then
-        safe(card.on_draw_server, card)
-    end
-    local on_draw_func_name = "on_draw_"..context
-    if card[on_draw_func_name] then
-        safe(card[on_draw_func_name], card)
-    end
+    invoke_card_functions(card, "on_draw", context)
     add_card_to_pile(data, enigma.CARD_LOCATION.hand, card)
     if cgm.is_server and card.on_location_changed_server then
         safe(card.on_location_changed_server, card, enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
@@ -658,11 +671,7 @@ local handle_card_drawn = function(context, data)
     if card[on_location_changed_func_name] then
         safe(card[on_location_changed_func_name], card, enigma.CARD_LOCATION.draw_pile, enigma.CARD_LOCATION.hand)
     end
-    if cgm.is_server then
-        invoke_card_event_callbacks_for_all_cards(data, "on_any_card_drawn_server", card)
-    end
-    local on_any_card_drawn_func_name = "on_any_card_drawn_"..context
-    invoke_card_event_callbacks_for_all_cards(data, on_any_card_drawn_func_name, card)
+    invoke_all_card_functions(data, card, "on_any_card_drawn", context)
     
     if card.sounds_3D.on_draw then
         sound:trigger_at_unit(card.sounds_3D.on_draw, data.unit)
@@ -740,13 +749,7 @@ local handle_card_played = function(context, data, card, play_type, destination_
         remove_card_from_pile(data, card.location, card)
     end
 
-    if cgm.is_server and card.on_play_server then
-        safe(card.on_play_server, card, play_type, net_x_cost)
-    end
-    local on_play_func_name = "on_play_"..context
-    if card[on_play_func_name] then
-        safe(card[on_play_func_name], card, play_type, net_x_cost)
-    end
+    invoke_card_functions(card, "on_play", context, play_type, net_x_cost)
 
     card.times_played = card.times_played + 1
     if card.duration then
@@ -781,19 +784,11 @@ local handle_card_played = function(context, data, card, play_type, destination_
         else
             add_card_to_pile(data, destination_pile, card)
         end
-        if cgm.is_server and card.on_location_changed_server then
-            safe(card.on_location_changed_server, card, location, destination_pile)
-        end
-        local on_location_changed_func_name = "on_location_changed_"..context
-        if card[on_location_changed_func_name] then
-            safe(card[on_location_changed_func_name], card, location, destination_pile)
-        end
+        invoke_card_functions(card, "on_location_changed", context, location, destination_pile)
     end
-    if cgm.is_server then
-        invoke_card_event_callbacks_for_all_cards(data, "on_any_card_played_server", card)
-    end
-    local any_card_played_func = "on_any_card_played_"..context
-    invoke_card_event_callbacks_for_all_cards(data, any_card_played_func, card)
+    
+    invoke_all_card_functions(data, card, "on_any_card_played", context, play_type, net_x_cost)
+
     return destination_pile, inserted_index
 end
 local handle_local_card_played = function(card, location, index, skip_warpstone_cost, play_type)
@@ -975,28 +970,13 @@ local handle_card_discarded = function(context, data, card, discard_type)
     enigma:info(format_discarding_card(card, data.peer_id))
 
     remove_card_from_pile(data, location, card)
-    if cgm.is_server and card.on_discard_server then
-        safe(card.on_discard_server, card, discard_type)
-    end
-    local on_discard_func_name = "on_discard_"..context
-    if card[on_discard_func_name] then
-        safe(card[on_discard_func_name], card, discard_type)
-    end
+
+    invoke_card_functions(card, "on_discard", context, discard_type)
 
     local destination_pile = enigma.CARD_LOCATION.discard_pile
     add_card_to_pile(data, destination_pile, card)
-    if cgm.is_server and card.on_location_changed_server then
-        safe(card.on_location_changed_server, card, location, destination_pile)
-    end
-    local on_location_changed_func_name = "on_location_changed_"..context
-    if card[on_location_changed_func_name] then
-        safe(card[on_location_changed_func_name], card, location, destination_pile)
-    end
-    if cgm.is_server then
-        invoke_card_event_callbacks_for_all_cards(data, "on_any_card_discarded_server", card)
-    end
-    local on_any_card_discarded_func_name = "on_any_card_discarded_"..context
-    invoke_card_event_callbacks_for_all_cards(data, on_any_card_discarded_func_name, card)
+    invoke_card_functions(card, "on_location_changed", context, location, destination_pile)
+    invoke_all_card_functions(data, card, "on_any_card_played", context, discard_type)
 
     if card.sounds_3D.on_discard then
         sound:trigger_at_unit(card.sounds_3D.on_discard, data.unit)
@@ -1094,28 +1074,10 @@ local handle_shuffle_new_card_into_draw_pile = function(context, data, card_id, 
     local card = cgm:_instance_card(data, template)
 
     enigma:info(format_shuffling_card_into_draw_pile(card, data.peer_id))
+    invoke_card_functions(card, "on_created_in_game", context)
     add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, card, index)
-    if cgm.is_server and card.on_created_in_game_server then
-        safe(card.on_created_in_game_server, card)
-    end
-    local on_created_in_game_func_name = "on_created_in_game_"..context
-    if card[on_created_in_game_func_name] then
-        safe(card[on_created_in_game_func_name], card)
-    end
-    if cgm.is_server and card.on_shuffle_into_draw_pile_server then
-        safe(card.on_shuffle_into_draw_pile_server, card)
-    end
-    local on_shuffle_into_draw_pile_func_name = "on_shuffle_into_draw_pile_"..context
-    if card[on_shuffle_into_draw_pile_func_name] then
-        safe(card[on_shuffle_into_draw_pile_func_name], card)
-    end
-    if cgm.is_server and card.on_location_changed_server then
-        safe(card.on_location_changed_server, card, nil, enigma.CARD_LOCATION.draw_pile)
-    end
-    local on_location_changed_func_name = "on_location_changed_"..context
-    if card[on_location_changed_func_name] then
-        safe(card[on_location_changed_func_name], card, nil, enigma.CARD_LOCATION.draw_pile)
-    end
+    invoke_card_functions(card, "on_shuffle_into_draw_pile", context)
+    invoke_card_functions(card, "on_location_changed", context, nil, enigma.CARD_LOCATION.draw_pile)
     return card
 end
 local handle_local_shuffle_new_card_into_draw_pile = function(card_id)
@@ -1151,22 +1113,9 @@ local handle_shuffle_card_into_draw_pile = function(context, data, card, new_ind
     enigma:info(format_shuffling_card_into_draw_pile(card, data.peer_id))
 
     remove_card_from_pile(data, card.location, card)
-    if cgm.is_server and card.on_shuffle_into_draw_pile_server then
-        safe(card.on_shuffle_into_draw_pile_server, card)
-    end
-    local on_shuffle_into_draw_pile_func_name = "on_shuffle_into_draw_pile_"..context
-    if card[on_shuffle_into_draw_pile_func_name] then
-        safe(card[on_shuffle_into_draw_pile_func_name], card)
-    end
-
-    add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, card)
-    if cgm.is_server and card.on_location_changed_server then
-        safe(card.on_location_changed_server, card, location, enigma.CARD_LOCATION.draw_pile)
-    end
-    local on_location_changed_func_name = "on_location_changed_"..context
-    if card[on_location_changed_func_name] then
-        safe(card[on_location_changed_func_name], card, location, enigma.CARD_LOCATION.draw_pile)
-    end
+    invoke_card_functions(card, "on_shuffle_into_draw_pile", context)
+    add_card_to_pile(data, enigma.CARD_LOCATION.draw_pile, card, new_index)
+    invoke_card_functions(card, "on_location_changed", context, location, enigma.CARD_LOCATION.draw_pile)
 end
 local handle_local_shuffle_card_into_draw_pile = function(card)
     local draw_pile_size = #cgm.local_data.draw_pile
@@ -1214,21 +1163,9 @@ local handle_add_new_card_to_hand = function(context, data, card_id)
     local card = cgm:_instance_card(data, template)
 
     enigma:info(format_adding_new_card_to_hand(card, data.peer_id))
+    invoke_card_functions(card, "on_created_in_game", context)
     add_card_to_pile(data, enigma.CARD_LOCATION.hand, card)
-    if cgm.is_server and card.on_created_in_game_server then
-        safe(card.on_created_in_game_server, card)
-    end
-    local on_created_in_game_func_name = "on_created_in_game_"..context
-    if card[on_created_in_game_func_name] then
-        safe(card[on_created_in_game_func_name], card)
-    end
-    if cgm.is_server and card.on_location_changed_server then
-        safe(card.on_location_changed_server, card, nil, enigma.CARD_LOCATION.hand)
-    end
-    local on_location_changed_func_name = "on_location_changed_"..context
-    if card[on_location_changed_func_name] then
-        safe(card[on_location_changed_func_name], card, nil, enigma.CARD_LOCATION.hand)
-    end
+    invoke_card_functions(card, "on_location_changed", context, nil, enigma.CARD_LOCATION.hand)
     return card
 end
 local handle_local_add_new_card_to_hand = function(card_id)
