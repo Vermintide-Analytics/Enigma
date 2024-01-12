@@ -64,6 +64,34 @@ dofile("scripts/mods/Enigma/GameLogic/player_movement")
 dofile("scripts/mods/Enigma/GameLogic/controlled_unit_templates")
 dofile("scripts/mods/Enigma/GameLogic/ai_commander_extension")
 
+
+-- Process all requested network lookup values that card pack mods told us about
+-- This allows these mods to add network lookups without requiring players to
+-- make sure their mod load order is correct between Card Packs
+local add_registered_network_lookups = function()
+    local modified_tables = {}
+    local mod_names = {}
+    for name,_ in pairs(enigma.managers.mod.network_lookups) do
+        table.insert(mod_names, name)
+    end
+    table.sort(mod_names)
+    for _,name in ipairs(mod_names) do
+        for _,data in ipairs(enigma.managers.mod.network_lookups[name]) do
+            local lookup_table = data.lookup_table
+            local index = #lookup_table + 1
+            lookup_table[index] = data.value
+            lookup_table[data.value] = index
+            modified_tables[lookup_table] = true
+        end
+    end
+    enigma.managers.mod.network_lookups = nil -- Don't need this anymore
+
+    enigma:info("CARD PACK MODS MODIFIED NETWORK LOOKUP TABLES:")
+    for tbl,_ in pairs(modified_tables) do
+        enigma:dump(tbl, "MODIFIED NETWORK LOOKUP TABLE", 1)
+    end
+end
+
 enigma.queued_prebuilt_decks = {}
 local process_prebuilt_deck_registrations = function()
     if not enigma.queued_prebuilt_decks then
@@ -143,6 +171,7 @@ end
 
 enigma.on_all_mods_loaded = function()
 
+    add_registered_network_lookups()
     process_prebuilt_deck_registrations()
     add_test_deck()
 

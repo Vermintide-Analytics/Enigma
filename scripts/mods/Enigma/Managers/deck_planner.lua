@@ -216,9 +216,6 @@ dpm.create_prebuilt_deck = function(self, mod_id, name, game_mode, card_ids)
     self.prebuilt_deck_names[name] = true
 end
 
-local alphabet_comparator = function(str1, str2)
-	return str1 < str2
-end
 local rarity_ranks = {
     [enigma.CARD_RARITY.legendary] = 4,
     [enigma.CARD_RARITY.epic] = 3,
@@ -228,7 +225,7 @@ local rarity_ranks = {
 local rarity_name_comparator = function(card_1, card_2)
     if type(card_2) == "string" then
         if type(card_1) == "string" then
-            return alphabet_comparator(card_1, card_2)
+            return card_1 < card_2
         end
         return true
     end
@@ -240,7 +237,7 @@ local rarity_name_comparator = function(card_1, card_2)
     elseif rarity_ranks[card_1.rarity] < rarity_ranks[card_2.rarity] then
         return false
     end
-    return alphabet_comparator(card_1.name:lower(), card_2.name:lower())
+    return card_1.name:lower() < card_2.name:lower()
 end
 local add_card_to_deck_cards_sorted = function(cards, new_card_template)
     local index = 1

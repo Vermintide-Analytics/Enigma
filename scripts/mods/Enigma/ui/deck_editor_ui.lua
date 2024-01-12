@@ -9,12 +9,8 @@ EnigmaDeckEditorUI = class(EnigmaDeckEditorUI)
 
 local enigma = get_mod("Enigma")
 
-local alphabet_comparator = function(str1, str2)
-	return str1 < str2
-end
-
 local alphabet_card_pack_comparator = function(pack_1, pack_2)
-	return alphabet_comparator(pack_1.name:lower(), pack_2.name:lower())
+	return pack_1.name:lower() < pack_2.name:lower()
 end
 
 local card_pack_filter_options = {
@@ -568,7 +564,7 @@ EnigmaDeckEditorUI.card_matches_filter = function(self, card, filters_query)
 end
 
 local alphabet_card_comparator = function(card_1, card_2)
-	return alphabet_comparator(card_1.name:lower(), card_2.name:lower())
+	return card_1.name:lower() < card_2.name:lower()
 end
 
 EnigmaDeckEditorUI.update_filtered_cards = function(self)

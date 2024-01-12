@@ -4,6 +4,7 @@ local mim = {}
 enigma.managers.mod = mim
 
 mim.mods = {}
+mim.network_lookups = {}
 
 local create_mod_interaction_handle = function(mod_id)
     return {
@@ -27,6 +28,14 @@ local create_mod_interaction_handle = function(mod_id)
             else
                 return enigma.managers.deck_planner:create_prebuilt_deck(mod_id, name, game_mode, cards)
             end
+        end,
+        add_network_lookup = function(network_lookup_table, value)
+            local this_mods_lookups = mim.network_lookups[mod_id] or {}
+            table.insert(this_mods_lookups, {
+                lookup_table = network_lookup_table,
+                value = value
+            })
+            mim.network_lookups[mod_id] = this_mods_lookups
         end
     }
 end
