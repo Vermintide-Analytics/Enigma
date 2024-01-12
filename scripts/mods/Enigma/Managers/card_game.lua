@@ -445,15 +445,6 @@ enigma:network_register(net.card_game_init_complete, function(peer_id)
             end
         end
         local card = cgm:_instance_card(peer_data, card_template)
-        
-        if card.condition_local and not card.condition_server then
-            card.condition_server_met = true
-        end
-        if card.auto_condition_local and not card.auto_condition_server then
-            card.auto_condition_server_met = true
-        end
-        card.owner = peer_id
-        card.original_owner = card.owner
 
         table.insert(card.primordial and primordial_cards or peer_data.draw_pile, card)
         if cgm.is_server then
@@ -1203,7 +1194,7 @@ end
 ------------
 -- UPDATE --
 ------------
-enigma:network_register(net.notify_card_condition_met_changed, function(peer_id, card_local_id, satisfied)
+enigma:network_register(net.notify_card_condition_met_changed, function(peer_id, card_local_id, met)
     if peer_id ~= cgm.server_peer_id then
         enigma:warning("Only the server is allowed to tell us when a card condition met changes")
         local card = cgm.local_data.all_cards[card_local_id]
@@ -1217,8 +1208,8 @@ enigma:network_register(net.notify_card_condition_met_changed, function(peer_id,
         enigma:warning("Attempted to set card playable, invalid card local id "..tostring(card_local_id))
         return
     end
-    card.cond_satisfied_server = satisfied
-    card.cond_satisfied = card.cond_satisfied_server and ((card.cond_satisfied_local == nil) or card.cond_satisfied_local)
+    card.condition_server_met = met
+    card.condition_met = card.condition_server_met and card.condition_local_met
 end)
 enigma:network_register(net.notify_card_auto_condition_met_changed, function(peer_id, card_local_id, met)
     if peer_id ~= cgm.server_peer_id then
@@ -1235,6 +1226,7 @@ enigma:network_register(net.notify_card_auto_condition_met_changed, function(pee
         return
     end
     card.auto_condition_server_met = met
+    card.auto_condition_met = card.auto_condition_server_met and card.auto_condition_local_met
 end)
 enigma:network_register(net.broadcast_pacing_intensity, function(peer_id, pacing_intensity)
     if peer_id ~= cgm.server_peer_id then
