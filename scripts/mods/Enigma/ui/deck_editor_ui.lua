@@ -588,15 +588,15 @@ EnigmaDeckEditorUI.update_filtered_cards = function(self)
 end
 
 EnigmaDeckEditorUI.update_card_tiles_ui = function(self)
+	if self.current_page == 0 and self.num_pages > 0 then
+		self.current_page = 1
+	end
+
 	local start_offset = (self.current_page - 1) * TOTAL_CARD_TILES
 	for i=1, TOTAL_CARD_TILES do
 		local card_scenegraph_id = "card_"..i
 		local card = self.filtered_cards[start_offset + i]
 		card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, card_scenegraph_id, card, CARD_TILE_WIDTH)
-	end
-
-	if self.current_page == 0 and self.num_pages > 0 then
-		self.current_page = 1
 	end
 
 	local pagination_text = enigma:localize("page_count", self.current_page, self.num_pages)
