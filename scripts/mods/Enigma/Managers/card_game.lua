@@ -613,6 +613,8 @@ cgm.end_game = function(self)
     enigma.managers.warp:end_game()
     enigma.managers.sound:end_game()
     enigma.managers.event:remove_all_card_event_callbacks()
+    
+    enigma.card_mode = false
 
     if self.debug then
         enigma.managers.buff:_reset_players()

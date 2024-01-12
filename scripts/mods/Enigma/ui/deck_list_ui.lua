@@ -91,6 +91,18 @@ EnigmaDeckListUI._handle_input = function(self, dt, t)
 	local input_service = self:input_service()
 	local input_close_pressed = input_service:get("toggle_menu")
 
+	-- End Test Game Button
+	local start_test_game_button = self._widgets_by_name.start_test_game_button
+	UIWidgetUtils.animate_default_button(start_test_game_button, dt)
+	if start_test_game_button.content.button_hotspot.on_hover_enter then
+		self:play_sound("Play_hud_hover")
+	end
+	if UIUtils.is_button_pressed(start_test_game_button) then
+		self:play_sound("Play_hud_select")
+		Managers.ui:handle_transition("close_active", {})
+        enigma:network_send("enigma_dev_game", "all", "start")
+	end
+
 	-- Create Deck Button
 	local create_deck_button = self._widgets_by_name.create_deck_button
 	UIWidgetUtils.animate_default_button(create_deck_button, dt)

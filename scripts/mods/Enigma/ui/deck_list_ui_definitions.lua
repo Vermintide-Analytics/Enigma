@@ -18,6 +18,7 @@ local DECK_LIST_HEIGHT = (INNER_WINDOW_HEIGHT - PRETTY_MARGIN*2) * 0.7
 local PAGINATION_PANEL_WIDTH = INNER_WINDOW_WIDTH*0.5
 local PAGINATION_PANEL_HEIGHT = INNER_WINDOW_HEIGHT*0.1
 
+local BUTTON_HEIGHT = 70
 
 local scenegraph_definition = {
 	screen = {
@@ -130,17 +131,31 @@ local scenegraph_definition = {
 			10
 		}
 	},
+	start_test_game_button = {
+		parent = "inner_window",
+		vertical_alignment = "top",
+		horizontal_alignment = "center",
+		size = {
+			DECK_LIST_WIDTH/2,
+			BUTTON_HEIGHT
+		},
+		position = {
+			0,
+			PRETTY_MARGIN*-1,
+			1
+		}
+	},
 	create_deck_button = {
 		parent = "inner_window",
 		vertical_alignment = "top",
 		horizontal_alignment = "center",
 		size = {
 			DECK_LIST_WIDTH/2,
-			70
+			BUTTON_HEIGHT
 		},
 		position = {
 			0,
-			PRETTY_MARGIN*-1,
+			PRETTY_MARGIN*-2 - BUTTON_HEIGHT,
 			1
 		}
 	},
@@ -259,6 +274,7 @@ local widgets = {
 		}
 	}),
 	close_window_button = UIWidgets.create_default_button("close_window_button", scenegraph_definition.close_window_button.size, nil, nil, Localize("interaction_action_close"), 24, nil, "button_detail_04", 34, true),
+	start_test_game_button = UIWidgets.create_default_button("start_test_game_button", scenegraph_definition.start_test_game_button.size, nil, nil, enigma:localize("start_test_game"), 24, nil, nil, nil, true, true),
 	create_deck_button = UIWidgets.create_default_button("create_deck_button", scenegraph_definition.create_deck_button.size, nil, nil, enigma:localize("create_deck"), 24, nil, nil, nil, true, true),
 	deck_list = {
 		scenegraph_id = "deck_list",

@@ -213,23 +213,29 @@ local loc = {
 	edit = {
 		en = "Edit",
 	},
+	end_test_game = {
+		en = "End Test Game"
+	},
 	equip = {
 		en = "Equip",
 	},
 	equipped = {
 		en = "Equipped",
 	},
-	page_count = {
-		en = "%i of %i",
-	},
 	not_yet_implemented = {
 		en = "Does not do anything... yet",
+	},
+	page_count = {
+		en = "%i of %i",
 	},
 	rarity = {
 		en = "Rarity"
 	},
 	search = {
 		en = "Search"
+	},
+	start_test_game = {
+		en = "Start Test Game"
 	},
 	type = {
 		en = "Type"

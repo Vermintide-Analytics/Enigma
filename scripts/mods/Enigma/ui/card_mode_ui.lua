@@ -50,7 +50,7 @@ EnigmaCardModeUI.update = function (self, dt, t)
 
 	local ui_suspended = self.ingame_ui.menu_suspended
 
-	if ui_suspended or not enigma.managers.game:is_in_game() then
+	if ui_suspended then
 		return
 	end
 
@@ -62,6 +62,8 @@ EnigmaCardModeUI.update = function (self, dt, t)
 
 		self.input_manager:capture_input(ALL_INPUT_METHODS, 1, "card_mode_ui", "card_mode_ui")
 
+		self._widgets_by_name.end_test_game_button.content.visible = enigma.managers.game.debug or false
+
 	elseif cached_card_mode and not enigma.card_mode then
 		-- on exit
 		self.input_manager:device_unblock_all_services("keyboard", 1)
@@ -71,6 +73,10 @@ EnigmaCardModeUI.update = function (self, dt, t)
 		self.input_manager:release_input(ALL_INPUT_METHODS, 1, "card_mode_ui", "card_mode_ui")
 	end
 	cached_card_mode = enigma.card_mode
+
+	if not enigma.managers.game:is_in_game() then
+		return
+	end
 	
 	card_ui_common.update_hand_display(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, CARD_WIDTH, PRETTY_MARGIN, enigma.managers.ui.card_mode_ui_data, "dirty_card_mode_ui")
 
@@ -100,6 +106,17 @@ EnigmaCardModeUI._handle_input = function(self, dt, t)
 			enigma.managers.user_interaction.request_play_card_from_hand_next_update = i
 		end
 	end
+
+	-- End Test Game Button
+	local end_test_game_button = self._widgets_by_name.end_test_game_button
+	UIWidgetUtils.animate_default_button(end_test_game_button, dt)
+	if end_test_game_button.content.button_hotspot.on_hover_enter then
+		self:play_sound("Play_hud_hover")
+	end
+	if UIUtils.is_button_pressed(end_test_game_button) then
+		self:play_sound("Play_hud_select")
+		enigma.managers.game:end_game()
+	end
 end
 
 EnigmaCardModeUI.draw = function (self, dt)
@@ -109,4 +126,8 @@ EnigmaCardModeUI.draw = function (self, dt)
 	UIRenderer.begin_pass(ui_renderer, self.ui_scenegraph, input_service, dt)
 	UIRenderer.draw_all_widgets(ui_renderer, self._widgets)
 	UIRenderer.end_pass(ui_renderer)
+end
+
+EnigmaCardModeUI.play_sound = function (self, event)
+	WwiseWorld.trigger_event(self.wwise_world, event)
 end
