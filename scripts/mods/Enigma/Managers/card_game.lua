@@ -1211,7 +1211,7 @@ local handle_add_new_card_to_hand = function(context, data, card_id)
         enigma:warning("Could not add new card to hand, card not defined. ("..card_id..")")
         return false, "invalid_card_id"
     end
-    local card = cgm._instance_card(data, template)
+    local card = cgm:_instance_card(data, template)
 
     enigma:info(format_adding_new_card_to_hand(card, data.peer_id))
     add_card_to_pile(data, enigma.CARD_LOCATION.hand, card)
