@@ -1,4 +1,6 @@
 local definitions = local_require("scripts/mods/Enigma/ui/big_card_ui_definitions")
+local BIG_CARD_WIDTH = definitions.big_card_width
+local RELATED_CARD_WIDTH = definitions.related_card_width
 local card_ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
 local DO_RELOAD = true
 EnigmaBigCardUI = class(EnigmaBigCardUI)
@@ -33,11 +35,15 @@ EnigmaBigCardUI.create_ui_elements = function (self)
 
 	self.background_widget = self._widgets_by_name.background
 
+	local related_card_1_widget = self._widgets_by_name.related_card_1
+	local related_card_2_widget = self._widgets_by_name.related_card_2
+	related_card_1_widget.cached_card = 1
+	related_card_2_widget.cached_card = 1
+
 	UIRenderer.clear_scenegraph_queue(self.ui_renderer)
 end
 
 local cached_card
-local x_scale = 512
 EnigmaBigCardUI.update = function (self, dt, t)
 	if DO_RELOAD then
 		self:create_ui_elements()
@@ -56,7 +62,7 @@ EnigmaBigCardUI.update = function (self, dt, t)
 
 		self.input_manager:capture_input(ALL_INPUT_METHODS, 1, "big_card_ui", "big_card_ui")
 		local background_color = self.background_widget.style.fullscreen_shade.color
-		background_color[1] = enigma.managers.ui.big_card_showcase_mode and 255 or 150
+		background_color[1] = enigma.managers.ui.big_card_showcase_mode and 255 or 180
 
 	elseif cached_card and not card then
 		-- on exit
@@ -73,19 +79,19 @@ EnigmaBigCardUI.update = function (self, dt, t)
 
 	self:_handle_input(dt, t)
 
-	--x_scale = x_scale - dt*50
-	--if x_scale < 10 then
-	--	x_scale = 800
-	--end
+	local related_card_1 = enigma.managers.ui.big_card_related_card_1
+	local related_card_2 = enigma.managers.ui.big_card_related_card_2
 
-	card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, "card", card, x_scale)
+	card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, "card", card, BIG_CARD_WIDTH)
+	card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, "related_card_1", related_card_1, RELATED_CARD_WIDTH)
+	card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, "related_card_2", related_card_2, RELATED_CARD_WIDTH)
 	self:draw(dt)
 end
 
 EnigmaBigCardUI._handle_input = function(self, dt, t)
 	local keystrokes = Keyboard.keystrokes()
 	if #keystrokes > 0 or self._widgets_by_name.background.content.screen_hotspot.on_pressed then
-		enigma.managers.ui.big_card_to_display = nil
+		enigma.managers.ui:hide_big_card()
 	end
 end
 

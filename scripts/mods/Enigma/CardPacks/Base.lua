@@ -1287,6 +1287,9 @@ local attack_cards = {
                 format = "base_earthquake_description",
                 parameters = { 4, 7, 2 }
             }
+        },
+        related_cards = {
+            "base/aftershock"
         }
     },
     omnistrike = {
@@ -1969,6 +1972,9 @@ local ability_cards = {
                 format = "base_harness_discord_description",
                 parameters = { 75, 25 }
             },
+        },
+        related_cards = {
+            "base/dormant_crystal"
         }
     },
     planestrider = {

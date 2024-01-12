@@ -366,7 +366,7 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 					enigma:echo("That card is not defined. Either it was removed from the card pack, or you do not have that card pack.")
 				else
 					self:play_sound("Play_hud_select")
-					enigma.managers.ui.big_card_to_display = card
+					enigma.managers.ui:show_big_card(card, false)
 				end
 			elseif item.content.item_hotspot.on_right_click then
 				self:play_sound("Play_hud_select")
@@ -417,7 +417,7 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 		if card then
 			if card_interaction_widget.content.hotspot.on_pressed then
 				self:play_sound("Play_hud_select")
-				enigma.managers.ui.big_card_to_display = card
+				enigma.managers.ui:show_big_card(card, false)
 			end
 			if card_interaction_widget.content.hotspot.on_right_click then
 				-- Add card to deck, if allowed

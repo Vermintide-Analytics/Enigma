@@ -5,6 +5,8 @@ dofile("scripts/mods/Enigma/ui/deck_list_ui")
 
 local uim = {
     big_card_to_display = nil,
+	big_card_related_card_1 = nil,
+	big_card_related_card_2 = nil,
 
 	hud_data = {
 		hand_indexes_just_removed = {
@@ -35,12 +37,21 @@ local uim = {
 }
 enigma.managers.ui = uim
 
-uim.show_big_card = function(self, card)
+uim.show_big_card = function(self, card, showcase)
     self.big_card_to_display = card
+	self.big_card_showcase_mode = showcase
+	if card.related_cards then
+		local id_1 = card.related_cards[1]
+		local id_2 = card.related_cards[2]
+		self.big_card_related_card_1 = enigma.managers.card_template:get_card_from_id(id_1)
+		self.big_card_related_card_2 = enigma.managers.card_template:get_card_from_id(id_2)
+	end
 end
 
 uim.hide_big_card = function(self)
     self.big_card_to_display = nil
+	self.big_card_related_card_1 = nil
+	self.big_card_related_card_2 = nil
 end
 
 uim.show_deck_editor = function(self)
