@@ -2721,7 +2721,7 @@ local chaos_cards = {
                 buff:update_stat(card.context.unit, "block_cost", card.block_cost_modifier * -1)
             end
         end,
-        description_lines = {
+        retain_descriptions = {
             {
                 format = "description_block_cost",
                 parameters = { 100 }
