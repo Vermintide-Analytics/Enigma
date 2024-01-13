@@ -119,6 +119,13 @@ return {
     },
 
     -- Passive cards
+    base_battle_scars = {
+        en = "Battle Scars"
+    },
+    base_battle_scars_retain = {
+        en = "Reduce this card's cost by %i for every %i damage you take"
+    },
+
     base_bigger_bombs = {
         en = "Bigger Bombs"
     },
@@ -490,6 +497,13 @@ return {
     },
     base_dubious_insurance_description = {
         en = "Instantly execute your disabler"
+    },
+
+    base_fanaticism = {
+        en = "Fanaticism"
+    },
+    base_fanaticism_description = {
+        en = "Halve your Current Health %s times.\n%+.1f%%*%s Temporary Health gained"
     },
 
     base_field_medicine = {

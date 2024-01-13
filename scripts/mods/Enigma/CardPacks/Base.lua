@@ -35,6 +35,50 @@ local warp = enigma.managers.warp
 ]]
 
 local passive_cards = {
+    battle_scars = {
+        rarity = EPIC,
+        cost = 6,
+        initial_cost = 6,
+        texture = true,
+        damage_taken_modifier = -0.10,
+        damage_taken = 0,
+        on_play_server = function(card)
+            buff:update_stat(card.context.unit, "damage_taken", card.damage_taken_modifier)
+        end,
+        events_local = {
+            player_damaged = function(card, self, attacker_unit, damage_amount, hit_zone_name, damage_type, hit_position, damage_direction, damage_source_name, hit_ragdoll_actor, source_attacker_unit, hit_react_type, is_critical_strike, added_dot, first_hit, total_hits, attack_type, backstab_multiplier)
+                local damaged_unit = self.unit
+                local us = card.context.unit
+
+                if not card:is_in_hand() or damaged_unit ~= us or damage_type == "temporary_health_degen" then
+                    return
+                end
+
+                card.damage_taken = card.damage_taken + damage_amount
+                local previous_card_cost = card.cost
+                while card.damage_taken >= 100 do
+                    card.damage_taken = card.damage_taken - 100
+                    card.cost = card.cost - 1
+                end
+                if previous_card_cost ~= card.cost then
+                    card:set_dirty()
+                end
+            end
+        },
+        ephemeral = true,
+        description_lines = {
+            {
+                format = "description_damage_taken",
+                parameters = { -10 }
+            },
+        },
+        retain_descriptions = {
+            {
+                format = "base_battle_scars_retain",
+                parameters = { 1, 100 }
+            }
+        }
+    },
     bigger_bombs = {
         rarity = RARE,
         cost = 1,
@@ -1748,6 +1792,35 @@ local ability_cards = {
         auto_descriptions = {
             {
                 format = "base_dubious_insurance_auto"
+            }
+        }
+    },
+    fanaticism = {
+        rarity = RARE,
+        cost = X,
+        texture = true,
+        duration = 200,
+        base_temporary_healing_received_modifier = 0.3,
+        on_play_server = function(card, play_type, net_x_cost)
+            local us = card.context.unit
+            local health_ext = ScriptUnit.extension(us, "health_system")
+            if not health_ext then
+                return
+            end
+
+            local current_health = health_ext:current_health()
+            local desired_health = math.max(current_health / math.pow(2, net_x_cost), 1)
+            local damage_to_deal = current_health - desired_health
+            enigma:force_damage(us, damage_to_deal)
+
+            local healing_buff = card.base_temporary_healing_received_modifier * net_x_cost
+            buff:surge_stat(us, "temporary_healing_received", healing_buff, card.duration)
+        end,
+        description_lines = {
+            {
+                format = "base_fanaticism_description",
+                parameters = { X, 30, X },
+                x_cost_parameters = { 0, false, 0 }
             }
         }
     },
