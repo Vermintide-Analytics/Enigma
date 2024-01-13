@@ -397,6 +397,60 @@ local GLOW_RETAIN_PLAYABLE = {
 	136
 }
 
+local add_black_box_test_passes = function(widget, pass_id, area_size, font_size, font, color, outline_color)
+	local passes = widget.element.passes
+	local styles = widget.style
+	local content = widget.content
+	
+	local rect_id = pass_id.."_box"
+	table.insert(passes, {
+		pass_type = "texture",
+		texture_id = rect_id,
+		style_id = rect_id
+	})
+	content[rect_id] = "enigma_card_card_glow"
+	styles[rect_id] = {
+		color = outline_color,
+		texture_size = area_size or {0, 0},
+		vertical_alignment = "center",
+		horizontal_alignment = "center",
+		offset = {
+			0,
+			0,
+			0
+		}
+	}
+
+	table.insert(passes, {
+		pass_type = "text",
+		text_id = pass_id,
+		style_id = pass_id
+	})
+	content[pass_id] = ""
+	styles[pass_id] = {
+		vertical_alignment = "center",
+		horizontal_alignment = "center",
+		font_size = font_size,
+		allow_fractions = true,
+		localize = false,
+		word_wrap = true,
+		area_size = area_size,
+		dynamic_font_size_word_wrap = true,
+		font_type = font,
+		text_color = color,
+		offset = {
+			0,
+			0,
+			1
+		}
+	}
+
+end
+
+local add_keyword_text_passes = function(widget, pass_id, area_size, font_size)
+	add_black_box_test_passes(widget, pass_id, area_size, font_size, CARD_DETAILS_FONT, KEYWORD_COLOR, { 150, 0, 0, 0})
+end
+
 local add_described_keyword_widget = function(widget_defs, card_scenegraph_id, index, sizes)
 	local scenegraph_id = card_scenegraph_id.."_keyword_details_"..index
 
@@ -406,66 +460,15 @@ local add_described_keyword_widget = function(widget_defs, card_scenegraph_id, i
 			passes = {
 				{
 					pass_type = "text",
-					text_id = "title",
-					style_id = "title"
-				},
-				{
-					pass_type = "text",
-					text_id = "title",
-					style_id = "title_shadow"
-				},
-				{
-					pass_type = "text",
 					text_id = "details",
 					style_id = "details"
 				},
 			}
 		},
 		content = {
-			title = "",
 			details = ""
 		},
 		style = {
-			title = {
-				vertical_alignment = "center",
-				horizontal_alignment = "center",
-				font_size = sizes.card_details_font_size,
-				allow_fractions = true,
-				localize = false,
-				word_wrap = true,
-				area_size = {
-					sizes.card_inner_width,
-					0
-				},
-				dynamic_font_size_word_wrap = true,
-				font_type = CARD_DETAILS_FONT,
-				text_color = KEYWORD_COLOR,
-				offset = {
-					0,
-					0,
-					1
-				}
-			},
-			title_shadow = {
-				vertical_alignment = "center",
-				horizontal_alignment = "center",
-				font_size = sizes.card_details_font_size,
-				allow_fractions = true,
-				localize = false,
-				word_wrap = true,
-				area_size = {
-					sizes.card_inner_width,
-					0
-				},
-				dynamic_font_size_word_wrap = true,
-				font_type = CARD_DETAILS_FONT,
-				text_color = Colors.get_color_table_with_alpha("black", 255),
-				offset = {
-					1,
-					-1,
-					0
-				}
-			},
 			details = {
 				vertical_alignment = "center",
 				horizontal_alignment = "center",
@@ -488,6 +491,11 @@ local add_described_keyword_widget = function(widget_defs, card_scenegraph_id, i
 			}
 		}
 	}
+	local title_area_size = {
+		sizes.card_inner_width,
+		0
+	}
+	add_keyword_text_passes(widget_defs[scenegraph_id], "title", title_area_size, sizes.card_details_font_size)
 end
 
 local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes, enable_hotspot)
@@ -1003,54 +1011,14 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes, enable
 		scenegraph_id = additional_keywords_widget_name,
 		element = {
 			passes = {
-				{
-					pass_type = "text",
-					text_id = "keywords",
-					style_id = "keywords"
-				},
-				{
-					pass_type = "text",
-					text_id = "keywords",
-					style_id = "keywords_shadow"
-				},
 			}
 		},
 		content = {
-			keywords = ""
 		},
 		style = {
-			keywords = {
-				vertical_alignment = "center",
-				horizontal_alignment = "center",
-				font_size = sizes.card_details_font_size,
-				allow_fractions = true,
-				word_wrap = true,
-				dynamic_font_size_word_wrap = true,
-				font_type = CARD_DETAILS_FONT,
-				text_color = KEYWORD_COLOR,
-				offset = {
-					0,
-					0,
-					1
-				}
-			},
-			keywords_shadow = {
-				vertical_alignment = "center",
-				horizontal_alignment = "center",
-				font_size = sizes.card_details_font_size,
-				allow_fractions = true,
-				word_wrap = true,
-				dynamic_font_size_word_wrap = true,
-				font_type = CARD_DETAILS_FONT,
-				text_color = Colors.get_color_table_with_alpha("black", 255),
-				offset = {
-					1,
-					-1,
-					0
-				}
-			},
 		}
 	}
+	add_keyword_text_passes(widget_defs[additional_keywords_widget_name], "keywords", nil, sizes.card_details_font_size)
 end
 
 local calculate_card_sizes = function(card_width)
@@ -1134,7 +1102,25 @@ local set_widgets_visibility = function(widgets, card_node_id, visible, has_dura
 	additional_keywords_widget.content.visible = visible
 end
 
+local update_outline_text_widget = function(widget, pass_id, width, height, vertical_offset, font_size, scaling)
+	scaling = scaling or 1
+	local text_style = widget.style[pass_id]
+	if text_style.area_size then
+		text_style.area_size[1] = width or text_style.area_size[1]
+		text_style.area_size[2] = height or text_style.area_size[2]
+	end
+	text_style.offset[2] = vertical_offset or text_style.offset[2]
+	text_style._dynamic_wraped_text = ""
+	text_style.font_size = font_size or text_style.font_size
+
+	local box_style = widget.style[pass_id.."_box"]
+	box_style.texture_size[1] = width or box_style.texture_size[1]
+	box_style.texture_size[2] = height or box_style.texture_size[2]
+	box_style.offset[2] = vertical_offset or box_style.offset[2]
+end
+
 card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name, card_glow_override)
+	local scaling_from_default = card_width / DEFAULT_CARD_WIDTH
 	local sizes = calculate_card_sizes(card_width)
 	local pretty_margin = sizes.pretty_margin
 
@@ -1235,6 +1221,38 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 
 	local any_simple_keywords = card.channel or card.charges or card.double_agent or card.ephemeral or card.echo or card.primordial or card.unplayable or card.warp_hungry
 	local simple_keywords_vertical_spacing = any_simple_keywords and 1 or 0
+	
+	local additional_keywords_text = ""
+	if any_simple_keywords then
+		local keywords = {}
+		if card.channel then
+			table.insert(keywords, enigma:localize("channel", card.channel))
+		end
+		if card.charges then
+			table.insert(keywords, enigma:localize("charges", card.charges))
+		end
+		if card.double_agent then
+			table.insert(keywords, enigma:localize("double_agent"))
+		end
+		if card.ephemeral then
+			table.insert(keywords, enigma:localize("ephemeral"))
+		end
+		if card.echo then
+			table.insert(keywords, enigma:localize("echo"))
+		end
+		if card.primordial then
+			table.insert(keywords, enigma:localize("primordial"))
+		end
+		if card.unplayable then
+			table.insert(keywords, enigma:localize("unplayable"))
+		end
+		if card.warp_hungry then
+			table.insert(keywords, enigma:localize("warp_hungry", card.warp_hungry))
+		end
+		additional_keywords_text = table.concat(keywords, ", ")
+	end
+
+	local simple_keyword_lines = UIRenderer.word_wrap(ui_renderer, additional_keywords_text, details_font_material, sizes.card_details_font_size * RESOLUTION_LOOKUP.scale, sizes.card_details_width, nil, CARD_DETAILS_FONT)
 
 	local total_vertical_spacing = math.max(description_vertical_spacing + retain_vertical_spacing + auto_vertical_spacing + condition_vertical_spacing + simple_keywords_vertical_spacing, 1)
 
@@ -1379,8 +1397,6 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 		local total_vertical_size = scenegraph_nodes[widget_name].size[2]
 		local keyword_details_widget = widgets[widget_name]
 
-		local title_style = keyword_details_widget.style.title
-		local title_shadow_style = keyword_details_widget.style.title_shadow
 		local text_style = keyword_details_widget.style.details
 
 		local total_lines = (described_keyword_line_counts[i] or 1)
@@ -1390,17 +1406,7 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 		local title_height = math.clamp((1 / total_lines), 1/5, 1/2) * required_height
 		local description_height = required_height - title_height
 
-		title_style.area_size[1] = sizes.card_inner_width - pretty_margin*2
-		title_style.area_size[2] = title_height
-		title_style.offset[2] = (required_height - title_height - pretty_margin)/2
-		title_style._dynamic_wraped_text = ""
-		title_style.font_size = sizes.card_details_font_size
-		title_shadow_style.area_size[1] = title_style.area_size[1]
-		title_shadow_style.area_size[2] = title_height
-		title_shadow_style.offset[2] = title_style.offset[2] - 1
-		title_shadow_style._dynamic_wraped_text = ""
-		title_shadow_style.font_size = sizes.card_details_font_size
-		
+		update_outline_text_widget(keyword_details_widget, "title", sizes.card_inner_width - pretty_margin*2, title_height, (required_height - title_height - pretty_margin)/2, sizes.card_details_font_size, scaling_from_default)		
 		
 		text_style.area_size[1] = sizes.card_inner_width - pretty_margin*2
 		text_style.area_size[2] = description_height
@@ -1415,80 +1421,63 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	end
 
 	local described_keyword_index = 1
-	for _,retain_description_table in ipairs(card.retain_descriptions) do
-		if described_keyword_index > 5 then
-			break
-		end
+	local set_described_keyword_content = function(title_localized, details_localized)
 		local widget_name = card_node_id.."_keyword_details_"..described_keyword_index
 		local keyword_details_widget = widgets[widget_name]
 		local content = keyword_details_widget.content
 
-		content.title = enigma:localize("retain")
-		content.details = retain_description_table.localized
+		content.title = title_localized
+		content.details = details_localized
 		
 		described_keyword_index = described_keyword_index + 1
+
+		local font_material, font_size = nil, nil
+		if keyword_details_widget.style.title.font_type then
+			local font, size_of_font = UIFontByResolution(keyword_details_widget.style.title)
+			font_size = size_of_font
+			font_material = font[1]
+		end
+		-- Update width/height of keyword box here, based on UIRenderer.text_size
+		local title_text_width, title_text_height = UIRenderer.text_size(ui_renderer, content.title, font_material, font_size)
+		keyword_details_widget.style.title_box.texture_size[1] = title_text_width*1.2 + 12*scaling_from_default
+		keyword_details_widget.style.title_box.texture_size[2] = title_text_height*1.45 + 6*scaling_from_default
+	end
+	for _,retain_description_table in ipairs(card.retain_descriptions) do
+		if described_keyword_index > 5 then
+			break
+		end
+		set_described_keyword_content(enigma:localize("retain"), retain_description_table.localized)
 	end
 	for _,auto_description_table in ipairs(card.auto_descriptions) do
 		if described_keyword_index > 5 then
 			break
 		end
-		local widget_name = card_node_id.."_keyword_details_"..described_keyword_index
-		local keyword_details_widget = widgets[widget_name]
-		local content = keyword_details_widget.content
-
-		content.title = enigma:localize("auto")
-		content.details = auto_description_table.localized
-		
-		described_keyword_index = described_keyword_index + 1
+		set_described_keyword_content(enigma:localize("auto"), auto_description_table.localized)
 	end
 	for _,condition_description_table in ipairs(card.condition_descriptions) do
 		if described_keyword_index > 5 then
 			break
 		end
-		local widget_name = card_node_id.."_keyword_details_"..described_keyword_index
-		local keyword_details_widget = widgets[widget_name]
-		local content = keyword_details_widget.content
-
-		content.title = enigma:localize("condition")
-		content.details = condition_description_table.localized
-		
-		described_keyword_index = described_keyword_index + 1
+		set_described_keyword_content(enigma:localize("condition"), condition_description_table.localized)
 	end
 
-	additional_keywords_widget.style.keywords._dynamic_wraped_text = ""
-	additional_keywords_widget.style.keywords.font_size = sizes.card_details_font_size
-	additional_keywords_widget.style.keywords_shadow._dynamic_wraped_text = ""
-	additional_keywords_widget.style.keywords_shadow.font_size = sizes.card_details_font_size
+	update_outline_text_widget(additional_keywords_widget, "keywords", nil, nil, nil, sizes.card_details_font_size, scaling_from_default)
+	additional_keywords_widget.content.keywords = additional_keywords_text
+	
+	local font_material, font_size = nil, nil
+	if additional_keywords_widget.style.keywords.font_type then
+		local font, size_of_font = UIFontByResolution(additional_keywords_widget.style.keywords)
+		font_size = size_of_font
+		font_material = font[1]
+	end
+	-- Update width/height of keyword box here, based on UIRenderer.text_size
+	local keywords_text_width, keywords_text_height = UIRenderer.text_size(ui_renderer, additional_keywords_widget.content.keywords, font_material, font_size)
+	additional_keywords_widget.style.keywords_box.texture_size[1] = any_simple_keywords and math.min(keywords_text_width*1.2 + 12*scaling_from_default, sizes.card_details_width) or 0
+	local keywords_box_height = any_simple_keywords and (keywords_text_height*1.45 + 6*scaling_from_default) or 0
 	if any_simple_keywords then
-		local keywords = {}
-		if card.channel then
-			table.insert(keywords, enigma:localize("channel", card.channel))
-		end
-		if card.charges then
-			table.insert(keywords, enigma:localize("charges", card.charges))
-		end
-		if card.double_agent then
-			table.insert(keywords, enigma:localize("double_agent"))
-		end
-		if card.ephemeral then
-			table.insert(keywords, enigma:localize("ephemeral"))
-		end
-		if card.echo then
-			table.insert(keywords, enigma:localize("echo"))
-		end
-		if card.primordial then
-			table.insert(keywords, enigma:localize("primordial"))
-		end
-		if card.unplayable then
-			table.insert(keywords, enigma:localize("unplayable"))
-		end
-		if card.warp_hungry then
-			table.insert(keywords, enigma:localize("warp_hungry", card.warp_hungry))
-		end
-		additional_keywords_widget.content.keywords = table.concat(keywords, ", ")
-	else
-		additional_keywords_widget.content.keywords = ""
+		keywords_box_height = keywords_box_height * #simple_keyword_lines
 	end
+	additional_keywords_widget.style.keywords_box.texture_size[2] = keywords_box_height
 end
 
 card_ui_common.update_card_display_if_needed = function(ui_renderer, scenegraph_nodes, widgets, card_node_id, card, card_width, dirty_property_name, card_glow_override)
