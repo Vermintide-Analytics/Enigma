@@ -1236,7 +1236,7 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	local any_simple_keywords = card.channel or card.charges or card.double_agent or card.ephemeral or card.echo or card.primordial or card.unplayable or card.warp_hungry
 	local simple_keywords_vertical_spacing = any_simple_keywords and 1 or 0
 
-	local total_vertical_spacing = description_vertical_spacing + retain_vertical_spacing + auto_vertical_spacing + condition_vertical_spacing + simple_keywords_vertical_spacing
+	local total_vertical_spacing = math.max(description_vertical_spacing + retain_vertical_spacing + auto_vertical_spacing + condition_vertical_spacing + simple_keywords_vertical_spacing, 1)
 
 	local num_detailed_keywords = math.min(num_retain_descriptions + num_auto_descriptions + num_condition_descriptions, 5)
 	local num_section_padding = math.max((num_description_lines > 0 and 1 or 0) + num_detailed_keywords + (any_simple_keywords and 1 or 0) - 1, 0)
