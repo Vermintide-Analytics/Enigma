@@ -1455,22 +1455,6 @@ local attack_cards = {
 }
 
 local ability_cards = {
-    -- example_x_cost_card = {
-    --     rarity = COMMON,
-    --     cost = X,
-    --     texture = false,
-    --     on_play_local = function(card, play_type, net_x_cost)
-    --         buff:surge_stat(card.context.unit, "attack_speed", 0.33*(net_x_cost+2), 10)
-    --     end,
-    --     description_lines = {
-    --         {
-    --             format = "example_x_cost_card_description",
-    --             parameters = { 33, "X" },
-    --             x_cost_parameters = { false, 2 }
-    --         }
-    --     }
-    -- },
-
     apple = {
         rarity = COMMON,
         cost = 0,
