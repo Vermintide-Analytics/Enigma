@@ -1,7 +1,9 @@
 local definitions = local_require("scripts/mods/Enigma/ui/card_game_hud_definitions")
-local CARD_WIDTH = definitions.card_width
+local card_width = definitions.card_width
+local DEFAULT_CARD_WIDTH = definitions.default_card_width
 local MAX_PLAYED_CARD_WIDTH = definitions.played_card_width
-local PRETTY_MARGIN = 10
+local DEFAULT_HAND_CARD_MARGIN = definitions.default_hand_card_margin
+local hand_card_margin = definitions.hand_card_margin
 local CHANNEL_BAR_INNER_WIDTH = definitions.channel_bar_inner_width
 local card_ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
 local DO_RELOAD = true
@@ -27,6 +29,8 @@ EnigmaCardGameHud.init = function(self, parent, ingame_ui_context)
 	self.wwise_world = Managers.world:wwise_world(world)
 
 	self:create_ui_elements()
+	
+	enigma:register_mod_event_callback("on_setting_changed", self, "on_setting_changed")
 end
 
 local set_color_table = function(color_table, color)
@@ -195,7 +199,7 @@ EnigmaCardGameHud.update = function (self, dt, t)
 	self:update_hand_panel_color()
 
 	-- Hand display
-	card_ui_common.update_hand_display(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, CARD_WIDTH, PRETTY_MARGIN, enigma.managers.ui.hud_data, "dirty_hud_ui")
+	card_ui_common.update_hand_display(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, card_width, hand_card_margin, enigma.managers.ui.hud_data, "dirty_hud_ui")
 
 	-- Played card display
 	self:update_played_card_display(dt, t)
@@ -254,4 +258,31 @@ EnigmaCardGameHud.draw = function (self, dt)
 	local widgets_to_draw = enigma.managers.game.local_data and not enigma.managers.game:unable_to_play() and self._widgets or self._widgets_except_hand
 	UIRenderer.draw_all_widgets(ui_renderer, widgets_to_draw)
 	UIRenderer.end_pass(ui_renderer)
+end
+
+EnigmaCardGameHud.on_setting_changed = function(self, setting_id)
+	local hand_panel_node = self.ui_scenegraph["hand_panel"]
+	if setting_id == "hand_anchor_horizontal" then
+		hand_panel_node.horizontal_alignment = enigma:get(setting_id)
+		return
+	end
+	if setting_id == "hand_offset_horizontal" then
+		hand_panel_node.position[1] = enigma:get(setting_id) * 19.2 -- (divide by 100 because it's a percentage, then scale to 1920)
+		return
+	end
+	if setting_id == "hand_anchor_vertical" then
+		hand_panel_node.vertical_alignment = enigma:get(setting_id)
+		return
+	end
+	if setting_id == "hand_offset_vertical" then
+		hand_panel_node.position[2] = enigma:get(setting_id) * 10.8 -- (divide by 100 because it's a percentage, then scale to 1080)
+		return
+	end
+	if setting_id == "hand_scale" then
+		local scale = enigma:get(setting_id)
+		hand_panel_node.size[1] = hand_panel_node.default_size[1] * scale
+		hand_panel_node.size[2] = hand_panel_node.default_size[2] * scale
+		card_width = DEFAULT_CARD_WIDTH * scale
+		hand_card_margin = DEFAULT_HAND_CARD_MARGIN * scale
+	end
 end

@@ -741,7 +741,7 @@ local add_card_widgets = function(widget_defs, card_scenegraph_id, sizes, enable
 				},
 				offset = {
 					1,
-					sizes.card_cost_font_size / -7,
+					sizes.card_cost_font_size / -8 - 1,
 					2
 				}
 			},
@@ -1144,6 +1144,10 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	-- Set scenegraph node sizes and positions
 	scenegraph_nodes[card_node_id].size[1] = card_width
 	scenegraph_nodes[card_node_id].size[2] = sizes.card_height
+	
+	local card_glow_node_id = card_node_id.."_inner"
+	scenegraph_nodes[card_glow_node_id].size[1] = sizes.card_glow_width
+	scenegraph_nodes[card_glow_node_id].size[2] = sizes.card_glow_height
 
 	local card_inner_node_id = card_node_id.."_inner"
 	scenegraph_nodes[card_inner_node_id].size[1] = sizes.card_inner_width
@@ -1156,14 +1160,20 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	local card_cost_node_id = card_node_id.."_cost"
 	scenegraph_nodes[card_cost_node_id].size[1] = sizes.card_cost_circle_diameter
 	scenegraph_nodes[card_cost_node_id].size[2] = sizes.card_cost_circle_diameter
+	scenegraph_nodes[card_cost_node_id].position[1] = sizes.card_name_box_width/2 + sizes.card_cost_circle_diameter/1.6
+	scenegraph_nodes[card_cost_node_id].position[2] = sizes.card_cost_circle_diameter * 0.34
 
 	local card_duration_node_id = card_node_id.."_duration"
 	scenegraph_nodes[card_duration_node_id].size[1] = sizes.card_cost_circle_diameter
 	scenegraph_nodes[card_duration_node_id].size[2] = sizes.card_cost_circle_diameter
+	scenegraph_nodes[card_duration_node_id].position[1] = sizes.card_name_box_width/-2 - sizes.card_cost_circle_diameter/1.6
+	scenegraph_nodes[card_duration_node_id].position[2] = sizes.card_cost_circle_diameter * 0.34
 	
 	local card_charges_node_id = card_node_id.."_charges"
 	scenegraph_nodes[card_charges_node_id].size[1] = sizes.card_cost_circle_diameter
 	scenegraph_nodes[card_charges_node_id].size[2] = sizes.card_cost_circle_diameter
+	scenegraph_nodes[card_charges_node_id].position[1] = sizes.card_name_box_width/-2 - sizes.card_cost_circle_diameter/1.6
+	scenegraph_nodes[card_charges_node_id].position[2] = sizes.card_cost_circle_diameter * -0.34
 
 	local card_image_node_id = card_node_id.."_image"
 	scenegraph_nodes[card_image_node_id].size[1] = sizes.card_image_width
@@ -1314,13 +1324,14 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 
 	card_widget.style.card_background.color = card_ui_common.card_colors[card.card_type] or card_ui_common.card_colors.default
 
-	-- Glow color
+	-- Glow color and size
 	local glow_color = GLOW_PLAYABLE
 	if has_retain and in_hand then
 		glow_color = playable and GLOW_RETAIN_PLAYABLE or GLOW_RETAIN
 	end
 	card_glow_widget.style.glow.color = glow_color
-
+	card_glow_widget.style.glow.texture_size[1] = sizes.card_glow_width
+	card_glow_widget.style.glow.texture_size[2] = sizes.card_glow_height
 
 	card_name_widget.style.card_name._dynamic_wraped_text = ""
 	card_name_widget.style.card_name.font_size = sizes.card_name_font_size
@@ -1335,6 +1346,9 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	card_cost_widget.style.background.texture_size[1] = sizes.card_cost_circle_diameter
 	card_cost_widget.style.background.texture_size[2] = sizes.card_cost_circle_diameter
 	card_cost_widget.style.cost.font_size = sizes.card_cost_font_size
+	card_cost_widget.style.cost.offset[2] = sizes.card_cost_font_size / -8
+	card_cost_widget.style.shadow.font_size = sizes.card_cost_font_size
+	card_cost_widget.style.shadow.offset[2] = sizes.card_cost_font_size / -8 - 1
 	card_cost_widget.content.cost = card.cost
 	if card.local_id then
 		card_cost_widget.content.cost = enigma.managers.buff:get_final_warpstone_cost(card)
@@ -1343,6 +1357,7 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	card_duration_widget.style.background.texture_size[1] = sizes.card_cost_circle_diameter
 	card_duration_widget.style.background.texture_size[2] = sizes.card_cost_circle_diameter
 	card_duration_widget.style.duration.font_size = sizes.card_duration_font_size
+	card_duration_widget.style.duration.offset[2] = sizes.card_duration_font_size / -8
 	if card.duration_localized then
 		card_duration_widget.content.duration = card.duration_localized
 	elseif card.duration then
@@ -1358,6 +1373,7 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	card_charges_widget.style.background.texture_size[1] = sizes.card_cost_circle_diameter
 	card_charges_widget.style.background.texture_size[2] = sizes.card_cost_circle_diameter
 	card_charges_widget.style.charges.font_size = sizes.card_charges_font_size
+	card_charges_widget.style.charges.offset[2] = sizes.card_charges_font_size / -8
 	if card.charges then
 		card_charges_widget.content.charges = string.format("%i", card.charges)
 	else
@@ -1377,7 +1393,12 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 		card_image_widget.style.card_image.color = card.texture_tint
 	end
 
+	card_pack_widget.style.background.texture_size[1] = sizes.card_pack_width
+	card_pack_widget.style.background.texture_size[2] = sizes.card_pack_height
 	card_pack_widget.content.pack_name = card.card_pack.name
+	card_pack_widget.style.pack_name._dynamic_wraped_text = ""
+	card_pack_widget.style.pack_name.font_size = sizes.card_pack_font_size
+
 
 	if num_description_lines > 0 then
 		local lines = {}

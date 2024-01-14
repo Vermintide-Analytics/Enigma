@@ -193,6 +193,61 @@ local loc = {
 	quick_play_5_hotkey_description = {
 		en = "Play the 5th card from your hand"
 	},
+	
+	ui_customization_group_title = {
+		en = "UI Customization"
+	},
+	hud_customization_group_title = {
+		en = "HUD Customization"
+	},
+	hand_customization_group_title = {
+		en = "Hand Display"
+	},
+	anchor_vertical_title = {
+		en = "Anchor (Vertical)"
+	},
+	anchor_vertical_description = {
+		en = "Where on the screen to position the UI element relative to (vertically)."
+	},
+	top = {
+		en = "Top"
+	},
+	center = {
+		en = "Center"
+	},
+	bottom = {
+		en = "Bottom"
+	},
+	left = {
+		en = "Left"
+	},
+	right = {
+		en = "Right"
+	},
+	offset_vertical_title = {
+		en = "Offset (Vertical)"
+	},
+	offset_vertical_description = {
+		en = "Percentage of the screen space to offset the UI element (vertically)\nPositive values move it up\nNegative values move it down"
+	},
+	anchor_horizontal_title = {
+		en = "Anchor (Horizontal)"
+	},
+	anchor_horizontal_description = {
+		en = "Where on the screen to position the UI element relative to (horizontally)."
+	},
+	offset_horizontal_title = {
+		en = "Offset (Horizontal)"
+	},
+	offset_horizontal_description = {
+		en = "Percentage of the screen space to offset the UI element (horizontally)\nPositive values move it right\nNegative values move it left"
+	},
+	scale_title = {
+		en = "Scale"
+	},
+	scale_description = {
+		en = "Size multiplier of the UI element"
+	},
 
 	-- UI
 	channeling = {

@@ -1,5 +1,16 @@
 local enigma = get_mod("Enigma")
 
+local horizontal_anchor_options = {
+	{ text = "left", value = "left" },
+	{ text = "center", value = "center" },
+	{ text = "right", value = "right" },
+}
+local vertical_anchor_options = {
+	{ text = "top", value = "top" },
+	{ text = "center", value = "center" },
+	{ text = "bottom", value = "bottom" },
+}
+
 return {
 	name = "Enigma",
 	description = enigma:localize("mod_description"),
@@ -187,6 +198,70 @@ return {
 						}
 					}
 				}
+			},
+			{
+				setting_id = "ui_customization_group",
+				type = "group",
+				title = "ui_customization_group_title",
+				sub_widgets = {
+					{
+						setting_id = "hud_customization_group",
+						type = "group",
+						title = "hud_customization_group_title",
+						sub_widgets = {
+							{
+								setting_id = "hand_customization_group",
+								type = "group",
+								title = "hand_customization_group_title",
+								sub_widgets = {
+									{
+										setting_id = "hand_anchor_vertical",
+										type = "dropdown",
+										title = "anchor_vertical_title",
+										tooltip = "anchor_vertical_description",
+										default_value = "top",
+										options = vertical_anchor_options
+									},
+									{
+										setting_id = "hand_offset_vertical",
+										type = "numeric",
+										title = "offset_vertical_title",
+										tooltip = "offset_vertical_description",
+										default_value = 0,
+										range = { -100, 100 },
+										decimals_number = 2
+									},
+									{
+										setting_id = "hand_anchor_horizontal",
+										type = "dropdown",
+										title = "anchor_horizontal_title",
+										tooltip = "anchor_horizontal_description",
+										default_value = "right",
+										options = horizontal_anchor_options
+									},
+									{
+										setting_id = "hand_offset_horizontal",
+										type = "numeric",
+										title = "offset_horizontal_title",
+										tooltip = "offset_horizontal_description",
+										default_value = 0,
+										range = { -100, 100 },
+										decimals_number = 2
+									},
+									{
+										setting_id = "hand_scale",
+										type = "numeric",
+										title = "scale_title",
+										tooltip = "scale_description",
+										default_value = 1,
+										range = { 0, 2 },
+										decimals_number = 3
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		}
 	},
