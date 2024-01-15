@@ -584,7 +584,7 @@ return {
         en = "Ranald's Touch"
     },
     base_ranalds_touch_description = {
-        en = "Shuffle %i Rare, %i Epic, and %i Legendary cards into your deck.\nReduce their costs by %i and give them \"Draw a card\" when played"
+        en = "Shuffle %i Rare, %i Epic, and %i Legendary card(s) into your deck.\nReduce their costs by %i and give them the added effect \"Draw a card\""
     },
 
     base_rat_banker = {
