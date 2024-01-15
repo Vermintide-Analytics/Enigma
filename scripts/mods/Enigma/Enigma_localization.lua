@@ -248,6 +248,9 @@ local loc = {
 	scale_description = {
 		en = "Size multiplier of the UI element"
 	},
+	info_customization_group_title = {
+		en = "Info Display"
+	},
 
 	-- UI
 	channeling = {

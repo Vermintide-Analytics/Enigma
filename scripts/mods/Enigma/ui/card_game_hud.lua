@@ -1,4 +1,5 @@
 local definitions = local_require("scripts/mods/Enigma/ui/card_game_hud_definitions")
+local set_info_scale = definitions.set_info_panel_sizes
 local card_width = definitions.card_width
 local DEFAULT_CARD_WIDTH = definitions.default_card_width
 local MAX_PLAYED_CARD_WIDTH = definitions.played_card_width
@@ -261,7 +262,29 @@ EnigmaCardGameHud.draw = function (self, dt)
 end
 
 EnigmaCardGameHud.on_setting_changed = function(self, setting_id)
-	local hand_panel_node = self.ui_scenegraph["hand_panel"]
+	local info_panel_node = self.ui_scenegraph.info_panel
+	local hand_panel_node = self.ui_scenegraph.hand_panel
+
+	if setting_id == "info_anchor_horizontal" then
+		info_panel_node.horizontal_alignment = enigma:get(setting_id)
+		return
+	end
+	if setting_id == "info_offset_horizontal" then
+		info_panel_node.position[1] = enigma:get(setting_id) * 19.2 -- (divide by 100 because it's a percentage, then scale to 1920)
+		return
+	end
+	if setting_id == "info_anchor_vertical" then
+		info_panel_node.vertical_alignment = enigma:get(setting_id)
+		return
+	end
+	if setting_id == "info_offset_vertical" then
+		info_panel_node.position[2] = enigma:get(setting_id) * 10.8 -- (divide by 100 because it's a percentage, then scale to 1080)
+		return
+	end
+	if setting_id == "info_scale" then
+		set_info_scale(self.ui_scenegraph, self._widgets_by_name, enigma:get(setting_id))
+	end
+
 	if setting_id == "hand_anchor_horizontal" then
 		hand_panel_node.horizontal_alignment = enigma:get(setting_id)
 		return

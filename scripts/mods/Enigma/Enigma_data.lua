@@ -259,6 +259,56 @@ return {
 									},
 								},
 							},
+							{
+								setting_id = "info_customization_group",
+								type = "group",
+								title = "info_customization_group_title",
+								sub_widgets = {
+									{
+										setting_id = "info_anchor_vertical",
+										type = "dropdown",
+										title = "anchor_vertical_title",
+										tooltip = "anchor_vertical_description",
+										default_value = "top",
+										options = vertical_anchor_options
+									},
+									{
+										setting_id = "info_offset_vertical",
+										type = "numeric",
+										title = "offset_vertical_title",
+										tooltip = "offset_vertical_description",
+										default_value = 0,
+										range = { -100, 100 },
+										decimals_number = 2
+									},
+									{
+										setting_id = "info_anchor_horizontal",
+										type = "dropdown",
+										title = "anchor_horizontal_title",
+										tooltip = "anchor_horizontal_description",
+										default_value = "left",
+										options = horizontal_anchor_options
+									},
+									{
+										setting_id = "info_offset_horizontal",
+										type = "numeric",
+										title = "offset_horizontal_title",
+										tooltip = "offset_horizontal_description",
+										default_value = 12.24,
+										range = { -100, 100 },
+										decimals_number = 2
+									},
+									{
+										setting_id = "info_scale",
+										type = "numeric",
+										title = "scale_title",
+										tooltip = "scale_description",
+										default_value = 1,
+										range = { 0, 2 },
+										decimals_number = 3
+									},
+								},
+							},
 						},
 					},
 				},

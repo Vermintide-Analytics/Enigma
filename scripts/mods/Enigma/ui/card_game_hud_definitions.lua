@@ -1,28 +1,36 @@
 local enigma = get_mod("Enigma")
 
+local info_panel_anchor_horizontal = enigma:get("info_anchor_horizontal")
+local info_panel_anchor_vertical = enigma:get("info_anchor_vertical")
+local info_panel_offset_horizontal = enigma:get("info_offset_horizontal") * 19.2 -- (divide by 100 because it's a percentage, then scale to 1920)
+local info_panel_offset_vertical = enigma:get("info_offset_vertical") * 10.8 -- (divide by 100 because it's a percentage, then scale to 1080)
+
+local info_panel_scale = enigma:get("info_scale")
+
+
 local hand_panel_anchor_horizontal = enigma:get("hand_anchor_horizontal")
 local hand_panel_anchor_vertical = enigma:get("hand_anchor_vertical")
-local hand_panel_offset_horizontal = enigma:get("hand_offset_horizontal")
-local hand_panel_offset_vertical = enigma:get("hand_offset_vertical")
+local hand_panel_offset_horizontal = enigma:get("hand_offset_horizontal") * 19.2 -- (divide by 100 because it's a percentage, then scale to 1920)
+local hand_panel_offset_vertical = enigma:get("hand_offset_vertical") * 10.8 -- (divide by 100 because it's a percentage, then scale to 1080)
 
 local hand_panel_scale = enigma:get("hand_scale")
 
 local card_ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
 
 -- Info Panel Sizing
-local INFO_PANEL_WIDTH = 414
-local INFO_PANEL_HEIGHT = 158
+local DEFAULT_INFO_PANEL_WIDTH = 414
+local DEFAULT_INFO_PANEL_HEIGHT = 158
+local info_panel_width = DEFAULT_INFO_PANEL_WIDTH * info_panel_scale
+local info_panel_height = DEFAULT_INFO_PANEL_HEIGHT * info_panel_scale
 
-local COLUMN_WIDTH = 64
-local BAR_WIDTH = 12
-local FONT_SIZE = 64
 local PRETTY_MARGIN = 10
 
-local CHANNEL_BAR_WIDTH = 600
-local CHANNEL_BAR_HEIGHT = 28
-
-local PLAYED_CARD_WIDTH = 240
-local PLAYED_CARD_HEIGHT = 388
+local DEFAULT_INFO_COLUMN_WIDTH = 64
+local DEFAULT_INFO_COLUMN_HEIGHT = DEFAULT_INFO_PANEL_HEIGHT - PRETTY_MARGIN*2
+local DEFAULT_BAR_WIDTH = 12
+local DEFAULT_BAR_INNER_PADDING = 2
+local DEFAULT_BAR_INNER_WIDTH = DEFAULT_BAR_WIDTH - DEFAULT_BAR_INNER_PADDING*2
+local DEFAULT_BAR_INNER_HEIGHT = DEFAULT_INFO_COLUMN_HEIGHT - DEFAULT_BAR_INNER_PADDING*2
 
 -- Hand Panel Sizing
 local DEFAULT_HAND_PANEL_WIDTH = 700
@@ -33,6 +41,69 @@ local hand_panel_card_margin = PRETTY_MARGIN * hand_panel_scale
 
 local DEFAULT_CARD_WIDTH = 128
 local card_width = DEFAULT_CARD_WIDTH * hand_panel_scale
+
+-- Other Element Sizing
+local CHANNEL_BAR_WIDTH = 600
+local CHANNEL_BAR_HEIGHT = 28
+
+local PLAYED_CARD_WIDTH = 240
+local PLAYED_CARD_HEIGHT = 388
+
+local set_info_panel_sizes = function(scenegraph, widgets, scale)
+	local scaled_column_width = DEFAULT_INFO_COLUMN_WIDTH * scale
+
+	local sg = scenegraph
+	sg.info_panel.size[1] = DEFAULT_INFO_PANEL_WIDTH * scale
+	sg.info_panel.size[2] = DEFAULT_INFO_PANEL_HEIGHT * scale
+
+	sg.draw_pile_column.size[1] = scaled_column_width
+	sg.draw_pile_column.size[2] = DEFAULT_INFO_COLUMN_HEIGHT * scale
+	sg.draw_pile_column.position[1] = PRETTY_MARGIN * scale
+
+	sg.discard_pile_column.size[1] = scaled_column_width
+	sg.discard_pile_column.size[2] = DEFAULT_INFO_COLUMN_HEIGHT * scale
+	sg.discard_pile_column.position[1] = (PRETTY_MARGIN*2 + DEFAULT_INFO_COLUMN_WIDTH) * scale
+	
+	sg.warp_dust_bar.size[1] = DEFAULT_BAR_WIDTH * scale
+	sg.warp_dust_bar.size[2] = DEFAULT_INFO_COLUMN_HEIGHT * scale
+	sg.warp_dust_bar.position[1] = (PRETTY_MARGIN*4 + DEFAULT_INFO_COLUMN_WIDTH*3) * scale
+	sg.warp_dust_bar_inner.size[1] = DEFAULT_BAR_INNER_WIDTH * scale
+	sg.warp_dust_bar_inner.size[2] = DEFAULT_BAR_INNER_HEIGHT * scale
+	sg.warp_dust_bar_inner.position[2] = DEFAULT_BAR_INNER_PADDING * scale
+	
+	sg.warpstone_column.size[1] = scaled_column_width
+	sg.warpstone_column.size[2] = DEFAULT_INFO_COLUMN_HEIGHT * scale
+	sg.warpstone_column.position[1] = (PRETTY_MARGIN*4.5 + DEFAULT_INFO_COLUMN_WIDTH*3 + DEFAULT_BAR_WIDTH) * scale
+	
+	sg.card_draw_bar.size[1] = DEFAULT_BAR_WIDTH * scale
+	sg.card_draw_bar.size[2] = DEFAULT_INFO_COLUMN_HEIGHT * scale
+	sg.card_draw_bar.position[1] = (PRETTY_MARGIN*5.5 + DEFAULT_INFO_COLUMN_WIDTH*4 + DEFAULT_BAR_WIDTH) * scale
+	sg.card_draw_bar_inner.size[1] = DEFAULT_BAR_INNER_WIDTH * scale
+	sg.card_draw_bar_inner.size[2] = DEFAULT_BAR_INNER_HEIGHT * scale
+	sg.card_draw_bar_inner.position[2] = DEFAULT_BAR_INNER_PADDING * scale
+	
+	sg.card_draw_column.size[1] = scaled_column_width
+	sg.card_draw_column.size[2] = DEFAULT_INFO_COLUMN_HEIGHT * scale
+	sg.card_draw_column.position[1] = (PRETTY_MARGIN*6 + DEFAULT_INFO_COLUMN_WIDTH*4 + DEFAULT_BAR_WIDTH*2) * scale
+
+	local w = widgets
+	w.draw_pile_column.style.icon.texture_size[1] = scaled_column_width
+	w.draw_pile_column.style.icon.texture_size[2] = scaled_column_width
+	w.draw_pile_column.style.text.font_size = scaled_column_width
+	
+	w.discard_pile_column.style.icon.texture_size[1] = scaled_column_width
+	w.discard_pile_column.style.icon.texture_size[2] = scaled_column_width
+	w.discard_pile_column.style.text.font_size = scaled_column_width
+	
+	w.warpstone_column.style.icon.texture_size[1] = scaled_column_width
+	w.warpstone_column.style.icon.texture_size[2] = scaled_column_width
+	w.warpstone_column.style.text.font_size = scaled_column_width
+	
+	w.card_draw_column.style.icon.texture_size[1] = scaled_column_width
+	w.card_draw_column.style.icon.texture_size[2] = scaled_column_width
+	w.card_draw_column.style.text.font_size = scaled_column_width
+end
+
 
 local scenegraph_definition = {
 	screen = {
@@ -49,15 +120,15 @@ local scenegraph_definition = {
 	},
 	info_panel = {
 		parent = "screen",
-		vertical_alignment = "top",
-		horizontal_alignment = "left",
+		vertical_alignment = info_panel_anchor_vertical,
+		horizontal_alignment = info_panel_anchor_horizontal,
 		size = {
-			INFO_PANEL_WIDTH,
-			INFO_PANEL_HEIGHT
+			info_panel_width,
+			info_panel_height
 		},
 		position = {
-			235,
-			0,
+			info_panel_offset_horizontal,
+			info_panel_offset_vertical,
 			0
 		}
 	},
@@ -66,11 +137,11 @@ local scenegraph_definition = {
 		vertical_alignment = "center",
 		horizontal_alignment = "left",
 		size = {
-			COLUMN_WIDTH,
-			INFO_PANEL_HEIGHT - PRETTY_MARGIN*2
+			0,
+			0
 		},
 		position = {
-			PRETTY_MARGIN,
+			0,
 			0,
 			1
 		}
@@ -80,11 +151,11 @@ local scenegraph_definition = {
 		vertical_alignment = "center",
 		horizontal_alignment = "left",
 		size = {
-			COLUMN_WIDTH,
-			INFO_PANEL_HEIGHT - PRETTY_MARGIN*2
+			0,
+			0
 		},
 		position = {
-			PRETTY_MARGIN*2 + COLUMN_WIDTH,
+			0,
 			0,
 			1
 		}
@@ -94,11 +165,11 @@ local scenegraph_definition = {
 		vertical_alignment = "center",
 		horizontal_alignment = "left",
 		size = {
-			BAR_WIDTH,
-			INFO_PANEL_HEIGHT - PRETTY_MARGIN*2
+			0,
+			0
 		},
 		position = {
-			PRETTY_MARGIN*4 + COLUMN_WIDTH*3,
+			0,
 			0,
 			1
 		}
@@ -108,12 +179,12 @@ local scenegraph_definition = {
 		vertical_alignment = "bottom",
 		horizontal_alignment = "center",
 		size = {
-			BAR_WIDTH - 4,
-			INFO_PANEL_HEIGHT - PRETTY_MARGIN*2 - 4
+			0,
+			0
 		},
 		position = {
 			0,
-			2,
+			0,
 			1
 		}
 	},
@@ -122,11 +193,11 @@ local scenegraph_definition = {
 		vertical_alignment = "center",
 		horizontal_alignment = "left",
 		size = {
-			COLUMN_WIDTH,
-			INFO_PANEL_HEIGHT - PRETTY_MARGIN*2
+			0,
+			0
 		},
 		position = {
-			PRETTY_MARGIN*4.5 + COLUMN_WIDTH*3 + BAR_WIDTH,
+			0,
 			0,
 			1
 		}
@@ -136,11 +207,11 @@ local scenegraph_definition = {
 		vertical_alignment = "center",
 		horizontal_alignment = "left",
 		size = {
-			BAR_WIDTH,
-			INFO_PANEL_HEIGHT - PRETTY_MARGIN*2
+			0,
+			0
 		},
 		position = {
-			PRETTY_MARGIN*5.5 + COLUMN_WIDTH*4 + BAR_WIDTH,
+			0,
 			0,
 			1
 		}
@@ -150,12 +221,12 @@ local scenegraph_definition = {
 		vertical_alignment = "bottom",
 		horizontal_alignment = "center",
 		size = {
-			BAR_WIDTH - 4,
-			INFO_PANEL_HEIGHT - PRETTY_MARGIN*2 - 4
+			0,
+			0
 		},
 		position = {
 			0,
-			2,
+			0,
 			1
 		}
 	},
@@ -164,11 +235,11 @@ local scenegraph_definition = {
 		vertical_alignment = "center",
 		horizontal_alignment = "left",
 		size = {
-			COLUMN_WIDTH,
-			INFO_PANEL_HEIGHT - PRETTY_MARGIN*2
+			0,
+			0
 		},
 		position = {
-			PRETTY_MARGIN*6 + COLUMN_WIDTH*4 + BAR_WIDTH*2,
+			0,
 			0,
 			1
 		}
@@ -284,15 +355,15 @@ local widgets = {
 				vertical_alignment = "bottom",
 				horizontal_alignment = "center",
 				texture_size = {
-					COLUMN_WIDTH,
-					COLUMN_WIDTH
+					0,
+					0
 				},
 				color = Colors.get_color_table_with_alpha("white", 255),
 			},
 			text = {
 				vertical_alignment = "top",
 				horizontal_alignment = "center",
-				font_size = COLUMN_WIDTH,
+				font_size = 0,
 				font_type = "hell_shark",
 				text_color = Colors.get_color_table_with_alpha("white", 255),
 			},
@@ -330,14 +401,14 @@ local widgets = {
 				vertical_alignment = "bottom",
 				horizontal_alignment = "center",
 				texture_size = {
-					COLUMN_WIDTH,
-					COLUMN_WIDTH
+					0,
+					0
 				}
 			},
 			text = {
 				vertical_alignment = "top",
 				horizontal_alignment = "center",
-				font_size = COLUMN_WIDTH,
+				font_size = 0,
 				font_type = "hell_shark",
 				text_color = Colors.get_color_table_with_alpha("white", 255),
 			},
@@ -414,15 +485,15 @@ local widgets = {
 				vertical_alignment = "bottom",
 				horizontal_alignment = "center",
 				texture_size = {
-					COLUMN_WIDTH,
-					COLUMN_WIDTH
+					0,
+					0
 				},
 				color = Colors.get_color_table_with_alpha("white", 255),
 			},
 			text = {
 				vertical_alignment = "top",
 				horizontal_alignment = "center",
-				font_size = COLUMN_WIDTH,
+				font_size = 0,
 				font_type = "hell_shark",
 				text_color = {
 					255,
@@ -517,15 +588,15 @@ local widgets = {
 				vertical_alignment = "bottom",
 				horizontal_alignment = "center",
 				texture_size = {
-					COLUMN_WIDTH,
-					COLUMN_WIDTH
+					0,
+					0
 				},
 				color = Colors.get_color_table_with_alpha("white", 255),
 			},
 			text = {
 				vertical_alignment = "top",
 				horizontal_alignment = "center",
-				font_size = COLUMN_WIDTH,
+				font_size = 0,
 				font_type = "hell_shark",
 				text_color = Colors.get_color_table_with_alpha("white", 255),
 			},
@@ -659,12 +730,17 @@ local widgets = {
 	},
 }
 
+set_info_panel_sizes(scenegraph_definition, widgets, info_panel_scale)
+
 card_ui_common.add_hand_display(scenegraph_definition, widgets, "hand_panel", card_width)
 card_ui_common.add_card_display(scenegraph_definition, widgets, "played_card_container", "played_card", PLAYED_CARD_WIDTH)
 
 return {
 	scenegraph_definition = scenegraph_definition,
 	widgets = widgets,
+
+	set_info_panel_sizes = set_info_panel_sizes,
+
 	default_card_width = DEFAULT_CARD_WIDTH,
 	card_width = card_width,
 	played_card_width = PLAYED_CARD_WIDTH,
