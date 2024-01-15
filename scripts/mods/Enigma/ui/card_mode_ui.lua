@@ -115,7 +115,7 @@ EnigmaCardModeUI._handle_input = function(self, dt, t)
 	end
 	if UIUtils.is_button_pressed(end_test_game_button) then
 		self:play_sound("Play_hud_select")
-		enigma.managers.game:end_game()
+		enigma:network_send("enigma_dev_game", "all", "end")
 	end
 end
 
