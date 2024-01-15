@@ -275,7 +275,20 @@ cgm._instance_card = function(self, context, card_template)
     if self.is_server and card.init_server then
         safe(card.init_server, card)
     end
-    local init_func_name = "init_"..(context == self.local_data and "local" or "remote")
+
+    local is_local = context == self.local_data
+    local is_server = self.is_server
+
+    if is_server then
+        enigma.managers.event:_add_card_server_event_callbacks(card)
+    end
+    if is_local then
+        enigma.managers.event:_add_card_local_event_callbacks(card)
+    else
+        enigma.managers.event:_add_card_remote_event_callbacks(card)
+    end
+
+    local init_func_name = "init_"..(is_local and "local" or "remote")
     if card[init_func_name] then
         safe(card[init_func_name], card)
     end
@@ -344,7 +357,6 @@ cgm.init_game = function(self, game_init_data, debug)
         if self.is_server then
             enigma.managers.event:_add_card_server_event_callbacks(card)
         end
-        enigma.managers.event:_add_card_local_event_callbacks(card)
     end
 
     for _,card in ipairs(primordial_cards) do
@@ -447,10 +459,6 @@ enigma:network_register(net.card_game_init_complete, function(peer_id)
         local card = cgm:_instance_card(peer_data, card_template)
 
         table.insert(card.primordial and primordial_cards or peer_data.draw_pile, card)
-        if cgm.is_server then
-            enigma.managers.event:_add_card_server_event_callbacks(card)
-        end
-        enigma.managers.event:_add_card_remote_event_callbacks(card)
     end
 
     for _,card in ipairs(primordial_cards) do
@@ -1082,6 +1090,7 @@ local handle_local_shuffle_new_card_into_draw_pile = function(card_id)
     if added_card then
         set_card_can_pay_warpstone(added_card)
     end
+    return added_card or false
 end
 enigma:network_register(net.event_new_card_shuffled_into_draw_pile, function(peer_id, card_id, index)
     local peer_data = cgm.peer_data[peer_id]
@@ -1095,8 +1104,8 @@ cgm.shuffle_new_card_into_draw_pile = function(self, card_id)
     if not self:is_in_game() then
         return false, "not_in_game"
     end
-    handle_local_shuffle_new_card_into_draw_pile(card_id)
-    return true
+    local added_card = handle_local_shuffle_new_card_into_draw_pile(card_id)
+    return added_card
 end
 
 local handle_shuffle_card_into_draw_pile = function(context, data, card, new_index)
