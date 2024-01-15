@@ -632,6 +632,7 @@ cgm.end_game = function(self)
 
     if self.debug then
         enigma.managers.buff:_reset_players()
+        enigma:_reset_time_scale_multiplier()
     end
 end
 

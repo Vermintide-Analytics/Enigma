@@ -730,12 +730,27 @@ enigma.lerp_yaw_pitch_roll = function(self, initial_yaw, initial_pitch, initial_
 
     return Quaternion.multiply(Quaternion.multiply(yaw_rot, pitch_rot), roll_rot)
 end
+local enigma_time_scale_multiplier = 1
+enigma._reset_time_scale_multiplier = function(self)
+    if not Managers.time then
+        enigma:warning("Could not reset time scale, no time manager")
+        return
+    end
+
+    Managers.time:set_global_time_scale(Managers.time._global_time_scale / enigma_time_scale_multiplier)
+    enigma_time_scale_multiplier = 1
+end
 enigma.multiply_time_scale = function(self, multiplier)
     if not Managers.time then
         enigma:warning("Could not multiply time scale, no time manager")
         return
     end
+    if multiplier <= 0 then
+        enigma:warning("Cannot multiply time by: "..tostring(multiplier))
+        return
+    end
     
+    enigma_time_scale_multiplier = enigma_time_scale_multiplier * multiplier
     Managers.time:set_global_time_scale(Managers.time._global_time_scale * multiplier)
 end
 
