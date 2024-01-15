@@ -286,7 +286,7 @@ local template_template = {
         end
 
         inst.local_id = context.next_card_local_id
-        enigma:debug("New card local id: "..tostring(inst.local_id))
+        enigma:info("New ["..tostring(inst.id).."] local id: "..tostring(inst.local_id))
         table.insert(context.all_cards, inst)
         context.next_card_local_id = context.next_card_local_id + 1
 
@@ -300,12 +300,13 @@ local template_template = {
             inst.condition_local_met = true
         end
         inst.condition_met = inst.condition_server_met and inst.condition_local_met or false
-        if inst.auto_condition_local and not inst.auto_condition_server then
+        if not inst.auto_condition_server then
             inst.auto_condition_server_met = true
         end
-        if inst.auto_condition_server and not inst.auto_condition_local then
+        if not inst.auto_condition_local then
             inst.auto_condition_local_met = true
         end
+        inst.auto_condition_met = inst.auto_condition_server_met and inst.auto_condition_local_met
 
         inst.context = context
         inst._times_played = 0
