@@ -1016,7 +1016,14 @@ local passive_cards = {
                 if card:times_played() == 0 or damaged_unit ~= us or damage_type == "temporary_health_degen" then
                     return
                 end
-                if not attacker_unit or attacker_unit == us or source_attacker_unit == us then
+                local attacker = attacker_unit or source_attacker_unit
+                if not attacker or attacker_unit == us or source_attacker_unit == us then
+                    return
+                end
+
+                -- Ignore specials
+                local attacker_breed = Unit.get_data(attacker, "breed")
+                if not attacker_breed or attacker_breed.special then
                     return
                 end
 

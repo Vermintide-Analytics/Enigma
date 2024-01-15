@@ -156,7 +156,7 @@ return {
         en = "Continual Blows"
     },
     base_continual_blows_description = {
-        en = "After playing an Attack Card, %i%% chance to draw a card."
+        en = "Whenever you play an Attack Card, %i%% chance to draw a card."
     },
 
     base_controlled_breathing = {
@@ -311,7 +311,7 @@ return {
         en = "Tzeentch's Sigil"
     },
     base_tzeentchs_sigil_description = {
-        en = "When hit by an enemy, deal twice as much damage back.\nThis has up to a %.1f%% chance to execute the enemy depending on the damage dealt."
+        en = "When hit by an enemy (except specials), deal twice as much damage back.\nThis has up to a %.1f%% chance to execute the enemy depending on the damage dealt."
     },
 
     base_leaden_boots = {
