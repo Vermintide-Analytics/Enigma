@@ -1868,6 +1868,101 @@ local ability_cards = {
             }
         }
     },
+    harness_discord = {
+        rarity = LEGENDARY,
+        cost = 2,
+        texture = true,
+        duration = 15,
+        on_game_start_local = function()
+            for i=1,4 do
+                game:shuffle_new_card_into_draw_pile("base/dormant_crystal")
+            end
+        end,
+        multiply_time_scale = function(card, multiplier)
+            enigma:multiply_time_scale(multiplier)
+        end,
+        on_play_local = function(card)
+            local time_multiplier = 1
+            local increased_duration_per_crystal = 0.25
+            local crystals = card.context:get_cards_in_hand("base/dormant_crystal")
+            time_multiplier = time_multiplier + (#crystals * increased_duration_per_crystal)
+
+            local effect = 4 -- Slow down time to 1/effect
+            local effect_inv = 1 / effect
+            local calculated_duration = card.duration * effect_inv * time_multiplier
+
+            enigma:multiply_time_scale(effect_inv)
+            card:rpc_others("multiply_time_scale", effect_inv)
+            enigma:multiply_player_gravity_scale(card.context.unit, effect)
+            enigma:multiply_player_movement_speed(card.context.unit, effect)
+
+            local multiply_stat = function(stat_name, stat_base_value, multiplier)
+                local current_value = buff:get_current_stat_value(card.context.unit, stat_name)
+                local desired_value = (current_value + stat_base_value) * multiplier - stat_base_value
+                local buff_amount = desired_value - current_value
+                buff:update_stat(card.context.unit, stat_name, buff_amount)
+            end
+            local divide_stat = function(stat_name, multiplier)
+                local buff_amount = (1 - 1/multiplier) * -1
+                buff:update_stat(card.context.unit, stat_name, buff_amount)
+            end
+            local undivide_stat = function(stat_name, multiplier)
+                local buff_amount = (1 - 1/multiplier)
+                buff:update_stat(card.context.unit, stat_name, buff_amount)
+            end
+            
+            for _,crystal in ipairs(crystals) do
+                crystal:activate()
+            end
+
+            multiply_stat("attack_speed", 1, effect)
+            multiply_stat("cooldown_regen", 1, effect)
+            multiply_stat("vent_speed", 1, effect)
+            multiply_stat("dodge_speed", 0, effect)
+            multiply_stat("jump_force", 0, effect/2)
+            divide_stat("reload_speed", effect)
+            multiply_stat("overcharge_regen", 1, effect)
+            multiply_stat("fatigue_regen", 1, effect)
+            divide_stat("faster_revive", effect)
+            divide_stat("reduced_ranged_charge_time", effect)
+
+            enigma:invoke_delayed(function()
+                enigma:multiply_time_scale(effect)
+                card:rpc_others("multiply_time_scale", effect)
+                enigma:multiply_player_gravity_scale(card.context.unit, effect_inv)
+                enigma:multiply_player_movement_speed(card.context.unit, effect_inv)
+
+                multiply_stat("attack_speed", 1, effect_inv)
+                multiply_stat("cooldown_regen", 1, effect_inv)
+                multiply_stat("vent_speed", 1, effect_inv)
+                multiply_stat("dodge_speed", 0, effect_inv)
+                multiply_stat("jump_force", 0, effect_inv*2)
+                undivide_stat("reload_speed", effect)
+                multiply_stat("overcharge_regen", 1, effect_inv)
+                multiply_stat("fatigue_regen", 1, effect_inv)
+                undivide_stat("faster_revive", effect)
+                undivide_stat("reduced_ranged_charge_time", effect)
+
+                for _,crystal in ipairs(crystals) do
+                    crystal:deactivate()
+                    game:discard_card(crystal)
+                end
+            end, calculated_duration)
+        end,
+        description_lines = {
+            {
+                format = "base_harness_discord_description_game_start",
+                parameters = { 4 }
+            },
+            {
+                format = "base_harness_discord_description",
+                parameters = { 75, 25 }
+            },
+        },
+        related_cards = {
+            "base/dormant_crystal"
+        }
+    },
     honorable_duel = {
         rarity = EPIC,
         cost = 3,
@@ -2072,101 +2167,6 @@ local ability_cards = {
                 format = "base_long_rest_description",
                 parameters = { 5 }
             }
-        }
-    },
-    harness_discord = {
-        rarity = LEGENDARY,
-        cost = 2,
-        texture = true,
-        duration = 15,
-        on_game_start_local = function()
-            for i=1,4 do
-                game:shuffle_new_card_into_draw_pile("base/dormant_crystal")
-            end
-        end,
-        multiply_time_scale = function(card, multiplier)
-            enigma:multiply_time_scale(multiplier)
-        end,
-        on_play_local = function(card)
-            local time_multiplier = 1
-            local increased_duration_per_crystal = 0.25
-            local crystals = card.context:get_cards_in_hand("base/dormant_crystal")
-            time_multiplier = time_multiplier + (#crystals * increased_duration_per_crystal)
-
-            local effect = 4 -- Slow down time to 1/effect
-            local effect_inv = 1 / effect
-            local calculated_duration = card.duration * effect_inv * time_multiplier
-
-            enigma:multiply_time_scale(effect_inv)
-            card:rpc_others("multiply_time_scale", effect_inv)
-            enigma:multiply_player_gravity_scale(card.context.unit, effect)
-            enigma:multiply_player_movement_speed(card.context.unit, effect)
-
-            local multiply_stat = function(stat_name, stat_base_value, multiplier)
-                local current_value = buff:get_current_stat_value(card.context.unit, stat_name)
-                local desired_value = (current_value + stat_base_value) * multiplier - stat_base_value
-                local buff_amount = desired_value - current_value
-                buff:update_stat(card.context.unit, stat_name, buff_amount)
-            end
-            local divide_stat = function(stat_name, multiplier)
-                local buff_amount = (1 - 1/multiplier) * -1
-                buff:update_stat(card.context.unit, stat_name, buff_amount)
-            end
-            local undivide_stat = function(stat_name, multiplier)
-                local buff_amount = (1 - 1/multiplier)
-                buff:update_stat(card.context.unit, stat_name, buff_amount)
-            end
-            
-            for _,crystal in ipairs(crystals) do
-                crystal:activate()
-            end
-
-            multiply_stat("attack_speed", 1, effect)
-            multiply_stat("cooldown_regen", 1, effect)
-            multiply_stat("vent_speed", 1, effect)
-            multiply_stat("dodge_speed", 0, effect)
-            multiply_stat("jump_force", 0, effect/2)
-            divide_stat("reload_speed", effect)
-            multiply_stat("overcharge_regen", 1, effect)
-            multiply_stat("fatigue_regen", 1, effect)
-            divide_stat("faster_revive", effect)
-            divide_stat("reduced_ranged_charge_time", effect)
-
-            enigma:invoke_delayed(function()
-                enigma:multiply_time_scale(effect)
-                card:rpc_others("multiply_time_scale", effect)
-                enigma:multiply_player_gravity_scale(card.context.unit, effect_inv)
-                enigma:multiply_player_movement_speed(card.context.unit, effect_inv)
-
-                multiply_stat("attack_speed", 1, effect_inv)
-                multiply_stat("cooldown_regen", 1, effect_inv)
-                multiply_stat("vent_speed", 1, effect_inv)
-                multiply_stat("dodge_speed", 0, effect_inv)
-                multiply_stat("jump_force", 0, effect_inv*2)
-                undivide_stat("reload_speed", effect)
-                multiply_stat("overcharge_regen", 1, effect_inv)
-                multiply_stat("fatigue_regen", 1, effect_inv)
-                undivide_stat("faster_revive", effect)
-                undivide_stat("reduced_ranged_charge_time", effect)
-
-                for _,crystal in ipairs(crystals) do
-                    crystal:deactivate()
-                    game:discard_card(crystal)
-                end
-            end, calculated_duration)
-        end,
-        description_lines = {
-            {
-                format = "base_harness_discord_description_game_start",
-                parameters = { 4 }
-            },
-            {
-                format = "base_harness_discord_description",
-                parameters = { 75, 25 }
-            },
-        },
-        related_cards = {
-            "base/dormant_crystal"
         }
     },
     planestrider = {
