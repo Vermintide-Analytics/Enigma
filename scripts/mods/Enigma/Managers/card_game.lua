@@ -331,6 +331,7 @@ cgm.init_game = function(self, game_init_data, debug)
 
         peer_id = Network.peer_id(),
     }
+    self.local_data = local_data
     add_context_functions(local_data)
 
     local_data.available_card_draws = enigma.mega_resource_start and 99 or local_data.available_card_draws
@@ -354,16 +355,11 @@ cgm.init_game = function(self, game_init_data, debug)
         local card = cgm:_instance_card(local_data, card_template)
         
         table.insert(card.primordial and primordial_cards or local_data.draw_pile, card)
-        if self.is_server then
-            enigma.managers.event:_add_card_server_event_callbacks(card)
-        end
     end
 
     for _,card in ipairs(primordial_cards) do
         table.insert(local_data.draw_pile, card)
     end
-
-    self.local_data = local_data
 
     self.statistics = {
         earned_card_draw = {
