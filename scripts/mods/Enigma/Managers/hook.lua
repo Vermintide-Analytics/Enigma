@@ -122,6 +122,11 @@ add_complex_hook(PlayerUnitHealthExtension, "add_damage", function(func, self, a
     local player_unit = self.unit
     local attacker = attacker_unit or source_attacker_unit
 
+    local buff_ext = player_unit and Unit.alive(player_unit) and ScriptUnit.extension(player_unit, "buff_system")
+    if buff_ext and buff_ext:has_buff_perk("invincible") then
+        return
+    end
+
     local can_only_damage_unit = attacker and Unit.has_data(attacker, "can_only_damage_unit") and Unit.get_data(attacker, "can_only_damage_unit")
     if can_only_damage_unit and can_only_damage_unit ~= player_unit then
         return

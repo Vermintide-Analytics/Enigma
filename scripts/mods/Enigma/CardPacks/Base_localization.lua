@@ -580,6 +580,13 @@ return {
         en = "Tiny chance to play at a random time"
     },
 
+    base_ranalds_touch = {
+        en = "Ranald's Touch"
+    },
+    base_ranalds_touch_description = {
+        en = "Shuffle %i Rare, %i Epic, and %i Legendary cards into your deck.\nReduce their costs by %i and give them \"Draw a card\" when played"
+    },
+
     base_rat_banker = {
         en = "Rat Banker",
     },
@@ -598,6 +605,16 @@ return {
     },
     base_refined_techniques_description = {
         en = "Give Attack Cards in your hand Echo and %+i cost"
+    },
+
+    base_renewal = {
+        en = "Renewal"
+    },
+    base_renewal_description = {
+        en = "Restore all health"
+    },
+    base_renewal_condition = {
+        en = "You have less than %i%% green health"
     },
 
     base_retreat = {
@@ -679,6 +696,13 @@ return {
     },
     base_warp_charge_reserve_description = {
         en = "Give each Charge card in your hand +1 charge"
+    },
+    
+    base_warp_inoculation = {
+        en = "Warp Inoculation"
+    },
+    base_warp_inoculation_description = {
+        en = "Become drunk\nBecome invincible\n%+.1f%%*%s invincibilty duration"
     },
 
     base_willing_sacrifice = {

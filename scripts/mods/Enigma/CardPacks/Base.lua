@@ -2271,6 +2271,47 @@ local ability_cards = {
             }
         }
     },
+    ranalds_touch = {
+        rarity = LEGENDARY,
+        cost = 0,
+        texture = true,
+        cards_to_add_by_rarity = {
+            [enigma.CARD_RARITY.rare] = 1,
+            [enigma.CARD_RARITY.epic] = 1,
+            [enigma.CARD_RARITY.legendary] = 1,
+        },
+        added_cards = {},
+        on_play_local = function(card)
+            for rarity,num_to_add in pairs(card.cards_to_add_by_rarity) do
+                for i=1,num_to_add do
+                    local random_card_predicate = function(template)
+                        return template.rarity == rarity
+                    end
+                    local random_card_template = enigma:get_random_card_definition(random_card_predicate)
+                    local new_card = game:shuffle_new_card_into_draw_pile(random_card_template.id)
+                    game:add_card_cost(new_card, -1)
+                    table.insert(new_card.description_lines, {
+                        format = "description_draw_a_card"
+                    })
+                    new_card:set_dirty()
+                    card.added_cards[new_card] = true
+                end
+            end
+        end,
+        on_any_card_played_local = function(card, played_card)
+            if card.added_cards[played_card] then
+                game:draw_card()
+            end
+        end,
+        primordial = true,
+        ephemeral = true,
+        description_lines = {
+            {
+                format = "base_ranalds_touch_description",
+                parameters = { 1, 1, 1, 1 }
+            }
+        }
+    },
     rat_banker = {
         rarity = EPIC,
         cost = 0,
@@ -2336,6 +2377,39 @@ local ability_cards = {
             {
                 format = "base_refined_techniques_description",
                 parameters = { -2 }
+            }
+        }
+    },
+    renewal = {
+        rarity = RARE,
+        cost = 1,
+        texture = true,
+        health_percent_threshold = 0.1,
+        on_play_server = function(card)
+            local us = card.context.unit
+            local health_extension = ScriptUnit.extension(us, "health_system")
+            if not health_extension then
+                return
+            end
+            local max = health_extension:get_max_health()
+            local current_permanent = health_extension:current_permanent_health()
+            local heal_amount = max - current_permanent
+            enigma:heal(us, heal_amount)
+        end,
+        condition_local = function(card)
+            local us = card.context.unit
+            local health_ext = ScriptUnit.extension(us, "health_system")
+            return health_ext and health_ext:current_permanent_health_percent() <= card.health_percent_threshold
+        end,
+        description_lines = {
+            {
+                format = "base_renewal_description"
+            }
+        },
+        condition_descriptions = {
+            {
+                format = "base_renewal_condition",
+                parameters = { 10 }
             }
         }
     },
@@ -2681,6 +2755,47 @@ local ability_cards = {
             {
                 format = "base_warp_charge_reserve_description",
                 parameters = { 1 }
+            }
+        }
+    },
+    warp_inoculation = {
+        rarity = COMMON,
+        cost = X,
+        texture = true,
+        duration = 20,
+        increased_invincible_duration_per_warpstone = 0.2,
+        apply_invincible = function(card, duration)
+            local us = card.context.unit
+            enigma:apply_perk(us, "invincible")
+            enigma:invoke_delayed(function()
+                enigma:remove_perk(us, "invincible")
+            end, duration)
+        end,
+        apply_drunk = function(card, duration)
+            local us = card.context.unit
+            local status = ScriptUnit.extension(us, "status_system")
+            if not us or not status then
+                return
+            end
+            enigma:apply_perk(us, "drunk_stagger")
+            status:add_intoxication_level(3)
+            enigma:invoke_delayed(function()
+                enigma:remove_perk(us, "drunk_stagger")
+                status:add_intoxication_level(-3)
+            end, duration)
+        end,
+        on_play_local = function(card, play_type, net_x_cost)
+            local drunk_duration = card.duration
+            local invincible_duration_multiplier = 1 + (net_x_cost * card.increased_invincible_duration_per_warpstone)
+            local invincible_duration = drunk_duration * invincible_duration_multiplier
+            card:apply_drunk(drunk_duration)
+            card:rpc_server("apply_invincible", invincible_duration)
+        end,
+        description_lines = {
+            {
+                format = "base_warp_inoculation_description",
+                parameters = { 20, X },
+                x_cost_parameters = { false, 0}
             }
         }
     },
