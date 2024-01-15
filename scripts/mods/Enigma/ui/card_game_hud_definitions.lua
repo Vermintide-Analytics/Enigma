@@ -670,5 +670,5 @@ return {
 	played_card_width = PLAYED_CARD_WIDTH,
 	channel_bar_inner_width = CHANNEL_BAR_WIDTH - 8,
 	default_hand_card_margin = PRETTY_MARGIN,
-	hand_card_margin = PRETTY_MARGIN * hand_panel_scale
+	hand_card_margin = hand_panel_card_margin
 }
