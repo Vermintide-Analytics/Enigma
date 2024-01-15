@@ -220,7 +220,7 @@ return {
 										title = "anchor_vertical_title",
 										tooltip = "anchor_vertical_description",
 										default_value = "top",
-										options = vertical_anchor_options
+										options = table.clone(vertical_anchor_options)
 									},
 									{
 										setting_id = "hand_offset_vertical",
@@ -237,7 +237,7 @@ return {
 										title = "anchor_horizontal_title",
 										tooltip = "anchor_horizontal_description",
 										default_value = "right",
-										options = horizontal_anchor_options
+										options = table.clone(horizontal_anchor_options)
 									},
 									{
 										setting_id = "hand_offset_horizontal",
@@ -270,7 +270,7 @@ return {
 										title = "anchor_vertical_title",
 										tooltip = "anchor_vertical_description",
 										default_value = "top",
-										options = vertical_anchor_options
+										options = table.clone(vertical_anchor_options)
 									},
 									{
 										setting_id = "info_offset_vertical",
@@ -287,7 +287,7 @@ return {
 										title = "anchor_horizontal_title",
 										tooltip = "anchor_horizontal_description",
 										default_value = "left",
-										options = horizontal_anchor_options
+										options = table.clone(horizontal_anchor_options)
 									},
 									{
 										setting_id = "info_offset_horizontal",
@@ -300,6 +300,56 @@ return {
 									},
 									{
 										setting_id = "info_scale",
+										type = "numeric",
+										title = "scale_title",
+										tooltip = "scale_description",
+										default_value = 1,
+										range = { 0, 2 },
+										decimals_number = 3
+									},
+								},
+							},
+							{
+								setting_id = "channel_bar_customization_group",
+								type = "group",
+								title = "channel_bar_customization_group_title",
+								sub_widgets = {
+									{
+										setting_id = "channel_bar_anchor_vertical",
+										type = "dropdown",
+										title = "anchor_vertical_title",
+										tooltip = "anchor_vertical_description",
+										default_value = "top",
+										options = table.clone(vertical_anchor_options)
+									},
+									{
+										setting_id = "channel_bar_offset_vertical",
+										type = "numeric",
+										title = "offset_vertical_title",
+										tooltip = "offset_vertical_description",
+										default_value = -21.94,
+										range = { -100, 100 },
+										decimals_number = 2
+									},
+									{
+										setting_id = "channel_bar_anchor_horizontal",
+										type = "dropdown",
+										title = "anchor_horizontal_title",
+										tooltip = "anchor_horizontal_description",
+										default_value = "right",
+										options = table.clone(horizontal_anchor_options)
+									},
+									{
+										setting_id = "channel_bar_offset_horizontal",
+										type = "numeric",
+										title = "offset_horizontal_title",
+										tooltip = "offset_horizontal_description",
+										default_value = -2.6,
+										range = { -100, 100 },
+										decimals_number = 2
+									},
+									{
+										setting_id = "channel_bar_scale",
 										type = "numeric",
 										title = "scale_title",
 										tooltip = "scale_description",

@@ -1,5 +1,7 @@
 local enigma = get_mod("Enigma")
 
+local card_ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
+
 local info_panel_anchor_horizontal = enigma:get("info_anchor_horizontal")
 local info_panel_anchor_vertical = enigma:get("info_anchor_vertical")
 local info_panel_offset_horizontal = enigma:get("info_offset_horizontal") * 19.2 -- (divide by 100 because it's a percentage, then scale to 1920)
@@ -15,7 +17,14 @@ local hand_panel_offset_vertical = enigma:get("hand_offset_vertical") * 10.8 -- 
 
 local hand_panel_scale = enigma:get("hand_scale")
 
-local card_ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
+
+local channel_bar_anchor_horizontal = enigma:get("channel_bar_anchor_horizontal")
+local channel_bar_anchor_vertical = enigma:get("channel_bar_anchor_vertical")
+local channel_bar_offset_horizontal = enigma:get("channel_bar_offset_horizontal") * 19.2 -- (divide by 100 because it's a percentage, then scale to 1920)
+local channel_bar_offset_vertical = enigma:get("channel_bar_offset_vertical") * 10.8 -- (divide by 100 because it's a percentage, then scale to 1080)
+
+local channel_bar_scale = enigma:get("channel_bar_scale")
+
 
 -- Info Panel Sizing
 local DEFAULT_INFO_PANEL_WIDTH = 414
@@ -43,8 +52,12 @@ local DEFAULT_CARD_WIDTH = 128
 local card_width = DEFAULT_CARD_WIDTH * hand_panel_scale
 
 -- Other Element Sizing
-local CHANNEL_BAR_WIDTH = 600
-local CHANNEL_BAR_HEIGHT = 28
+local DEFAULT_CHANNEL_BAR_WIDTH = 600
+local DEFAULT_CHANNEL_BAR_HEIGHT = 28
+local DEFAULT_CHANNEL_BAR_INNER_PADDING = 2
+local DEFAULT_CHANNEL_BAR_INNER_WIDTH = DEFAULT_CHANNEL_BAR_WIDTH - DEFAULT_CHANNEL_BAR_INNER_PADDING*2
+local DEFAULT_CHANNEL_BAR_INNER_HEIGHT = DEFAULT_CHANNEL_BAR_HEIGHT - DEFAULT_CHANNEL_BAR_INNER_PADDING*2
+local DEFAULT_CHANNEL_BAR_FONT_SIZE = 20
 
 local PLAYED_CARD_WIDTH = 240
 local PLAYED_CARD_HEIGHT = 388
@@ -102,6 +115,17 @@ local set_info_panel_sizes = function(scenegraph, widgets, scale)
 	w.card_draw_column.style.icon.texture_size[1] = scaled_column_width
 	w.card_draw_column.style.icon.texture_size[2] = scaled_column_width
 	w.card_draw_column.style.text.font_size = scaled_column_width
+end
+local set_channel_bar_sizes = function(scenegraph, widgets, scale)
+	local sg = scenegraph
+	sg.channel_bar.size[1] = DEFAULT_CHANNEL_BAR_WIDTH * scale
+	sg.channel_bar.size[2] = DEFAULT_CHANNEL_BAR_HEIGHT * scale
+	sg.channel_bar_inner.size[1] = DEFAULT_CHANNEL_BAR_INNER_WIDTH * scale
+	sg.channel_bar_inner.size[2] = DEFAULT_CHANNEL_BAR_INNER_HEIGHT * scale
+	sg.channel_bar_inner.position[1] = DEFAULT_CHANNEL_BAR_INNER_PADDING * scale
+
+	local w = widgets
+	w.channel_bar.style.text.font_size = DEFAULT_CHANNEL_BAR_FONT_SIZE * scale
 end
 
 
@@ -259,16 +283,30 @@ local scenegraph_definition = {
 		}
 	},
 	channel_bar = {
-		parent = "hand_panel",
-		vertical_alignment = "bottom",
-		horizontal_alignment = "center",
+		parent = "screen",
+		vertical_alignment = channel_bar_anchor_vertical,
+		horizontal_alignment = channel_bar_anchor_horizontal,
 		size = {
-			CHANNEL_BAR_WIDTH,
-			CHANNEL_BAR_HEIGHT
+			0,
+			0
+		},
+		position = {
+			channel_bar_offset_horizontal,
+			channel_bar_offset_vertical,
+			1
+		}
+	},
+	channel_bar_inner = {
+		parent = "channel_bar",
+		vertical_alignment = "center",
+		horizontal_alignment = "left",
+		size = {
+			0,
+			0
 		},
 		position = {
 			0,
-			CHANNEL_BAR_HEIGHT*-1 - PRETTY_MARGIN,
+			0,
 			1
 		}
 	},
@@ -286,20 +324,6 @@ local scenegraph_definition = {
 			1
 		}
 	},
-	channel_bar_inner = {
-		parent = "channel_bar",
-		vertical_alignment = "center",
-		horizontal_alignment = "left",
-		size = {
-			CHANNEL_BAR_WIDTH - 8,
-			CHANNEL_BAR_HEIGHT - 8
-		},
-		position = {
-			4,
-			0,
-			1
-		}
-	}
 }
 
 local widgets = {
@@ -727,6 +751,7 @@ local widgets = {
 }
 
 set_info_panel_sizes(scenegraph_definition, widgets, info_panel_scale)
+set_channel_bar_sizes(scenegraph_definition, widgets, channel_bar_scale)
 
 card_ui_common.add_hand_display(scenegraph_definition, widgets, "hand_panel", card_width)
 card_ui_common.add_card_display(scenegraph_definition, widgets, "played_card_container", "played_card", PLAYED_CARD_WIDTH)
@@ -736,13 +761,15 @@ return {
 	widgets = widgets,
 
 	set_info_panel_sizes = set_info_panel_sizes,
+	set_channel_bar_sizes = set_channel_bar_sizes,
 
 	default_hand_panel_width = DEFAULT_HAND_PANEL_WIDTH,
 	default_hand_panel_height = DEFAULT_HAND_PANEL_HEIGHT,
 	default_card_width = DEFAULT_CARD_WIDTH,
 	card_width = card_width,
 	played_card_width = PLAYED_CARD_WIDTH,
-	channel_bar_inner_width = CHANNEL_BAR_WIDTH - 8,
+	default_channel_bar_inner_width = DEFAULT_CHANNEL_BAR_INNER_WIDTH,
+	channel_bar_inner_width = DEFAULT_CHANNEL_BAR_INNER_WIDTH * channel_bar_scale,
 	default_hand_card_margin = PRETTY_MARGIN,
 	hand_card_margin = hand_panel_card_margin
 }

@@ -251,6 +251,9 @@ local loc = {
 	info_customization_group_title = {
 		en = "Info Display"
 	},
+	channel_bar_customization_group_title = {
+		en = "Channel Bar"
+	},
 
 	-- UI
 	channeling = {

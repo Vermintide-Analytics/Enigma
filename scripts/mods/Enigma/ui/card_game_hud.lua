@@ -1,5 +1,6 @@
 local definitions = local_require("scripts/mods/Enigma/ui/card_game_hud_definitions")
 local set_info_scale = definitions.set_info_panel_sizes
+local set_channel_bar_scale = definitions.set_channel_bar_sizes
 local card_width = definitions.card_width
 local DEFAULT_HAND_PANEL_WIDTH = definitions.default_hand_panel_width
 local DEFAULT_HAND_PANEL_HEIGHT = definitions.default_hand_panel_height
@@ -7,7 +8,8 @@ local DEFAULT_CARD_WIDTH = definitions.default_card_width
 local MAX_PLAYED_CARD_WIDTH = definitions.played_card_width
 local DEFAULT_HAND_CARD_MARGIN = definitions.default_hand_card_margin
 local hand_card_margin = definitions.hand_card_margin
-local CHANNEL_BAR_INNER_WIDTH = definitions.channel_bar_inner_width
+local DEFAULT_CHANNEL_BAR_INNER_WIDTH = definitions.default_channel_bar_inner_width
+local channel_bar_inner_width = definitions.channel_bar_inner_width
 local card_ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
 local DO_RELOAD = true
 EnigmaCardGameHud = class(EnigmaCardGameHud)
@@ -244,7 +246,7 @@ EnigmaCardGameHud.update = function (self, dt, t)
 		self.channel_bar_widget.content.visible = true
 		self.channel_bar_inner_widget.content.visible = true
 		self.channel_bar_inner_widget.style.background.color = self.channel_bar_inner_widget.style.background.color_progress
-		self.channel_bar_node_inner.size[1] = CHANNEL_BAR_INNER_WIDTH * math.clamp(1 - active_channel.remaining_duration/active_channel.total_duration, 0, 1)
+		self.channel_bar_node_inner.size[1] = channel_bar_inner_width * math.clamp(1 - active_channel.remaining_duration/active_channel.total_duration, 0, 1)
 		self.channel_bar_widget.style.background.color[1] = 255
 		self.channel_bar_widget.style.text.text_color[1] = 255
 		self.channel_bar_widget.content.text = self.channeling_message
@@ -266,7 +268,9 @@ end
 EnigmaCardGameHud.on_setting_changed = function(self, setting_id)
 	local info_panel_node = self.ui_scenegraph.info_panel
 	local hand_panel_node = self.ui_scenegraph.hand_panel
+	local channel_bar_node = self.ui_scenegraph.channel_bar
 
+	-- INFO PANEL
 	if setting_id == "info_anchor_horizontal" then
 		info_panel_node.horizontal_alignment = enigma:get(setting_id)
 		return
@@ -287,6 +291,7 @@ EnigmaCardGameHud.on_setting_changed = function(self, setting_id)
 		set_info_scale(self.ui_scenegraph, self._widgets_by_name, enigma:get(setting_id))
 	end
 
+	-- HAND PANEL
 	if setting_id == "hand_anchor_horizontal" then
 		hand_panel_node.horizontal_alignment = enigma:get(setting_id)
 		return
@@ -309,5 +314,28 @@ EnigmaCardGameHud.on_setting_changed = function(self, setting_id)
 		hand_panel_node.size[2] = DEFAULT_HAND_PANEL_HEIGHT * scale
 		card_width = DEFAULT_CARD_WIDTH * scale
 		hand_card_margin = DEFAULT_HAND_CARD_MARGIN * scale
+	end
+
+	-- CHANNEL BAR
+	if setting_id == "channel_bar_anchor_horizontal" then
+		channel_bar_node.horizontal_alignment = enigma:get(setting_id)
+		return
+	end
+	if setting_id == "channel_bar_offset_horizontal" then
+		channel_bar_node.position[1] = enigma:get(setting_id) * 19.2 -- (divide by 100 because it's a percentage, then scale to 1920)
+		return
+	end
+	if setting_id == "channel_bar_anchor_vertical" then
+		channel_bar_node.vertical_alignment = enigma:get(setting_id)
+		return
+	end
+	if setting_id == "channel_bar_offset_vertical" then
+		channel_bar_node.position[2] = enigma:get(setting_id) * 10.8 -- (divide by 100 because it's a percentage, then scale to 1080)
+		return
+	end
+	if setting_id == "channel_bar_scale" then
+		local scale = enigma:get(setting_id)
+		set_channel_bar_scale(self.ui_scenegraph, self._widgets_by_name, scale)
+		channel_bar_inner_width = DEFAULT_CHANNEL_BAR_INNER_WIDTH * scale
 	end
 end
