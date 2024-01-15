@@ -93,8 +93,8 @@ local widgets = {
 }
 
 card_ui_common.add_card_display(scenegraph_definition, widgets, "big_card", "card", CARD_WIDTH)
-card_ui_common.add_card_display(scenegraph_definition, widgets, "related_card_1_container", "related_card_1", RELATED_CARD_WIDTH)
-card_ui_common.add_card_display(scenegraph_definition, widgets, "related_card_2_container", "related_card_2", RELATED_CARD_WIDTH)
+card_ui_common.add_card_display(scenegraph_definition, widgets, "related_card_1_container", "related_card_1", RELATED_CARD_WIDTH, true)
+card_ui_common.add_card_display(scenegraph_definition, widgets, "related_card_2_container", "related_card_2", RELATED_CARD_WIDTH, true)
 
 return {
 	scenegraph_definition = scenegraph_definition,

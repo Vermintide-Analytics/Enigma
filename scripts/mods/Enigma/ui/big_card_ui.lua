@@ -90,7 +90,22 @@ end
 
 EnigmaBigCardUI._handle_input = function(self, dt, t)
 	local keystrokes = Keyboard.keystrokes()
-	if #keystrokes > 0 or self._widgets_by_name.background.content.screen_hotspot.on_pressed then
+	
+	local related_card_1 = enigma.managers.ui.big_card_related_card_1
+	local related_card_2 = enigma.managers.ui.big_card_related_card_2
+	card_ui_common.handle_card_input(self._widgets_by_name, "related_card_1", related_card_1, self.wwise_world)
+	card_ui_common.handle_card_input(self._widgets_by_name, "related_card_2", related_card_2, self.wwise_world)
+
+	local related_card_1_interaction_widget = self._widgets_by_name["related_card_1_interaction"]
+	local related_card_2_interaction_widget = self._widgets_by_name["related_card_2_interaction"]
+
+	if related_card_1 and related_card_1_interaction_widget.content.hotspot.on_pressed then
+		self:play_sound("Play_hud_select")
+		enigma.managers.ui:show_big_card(related_card_1, enigma.managers.ui.big_card_showcase_mode)
+	elseif related_card_2 and related_card_2_interaction_widget.content.hotspot.on_pressed then
+		self:play_sound("Play_hud_select")
+		enigma.managers.ui:show_big_card(related_card_2, enigma.managers.ui.big_card_showcase_mode)
+	elseif #keystrokes > 0 or self._widgets_by_name.background.content.screen_hotspot.on_pressed then
 		enigma.managers.ui:hide_big_card()
 	end
 end
@@ -102,4 +117,8 @@ EnigmaBigCardUI.draw = function (self, dt)
 	UIRenderer.begin_pass(ui_renderer, self.ui_scenegraph, input_service, dt)
 	UIRenderer.draw_all_widgets(ui_renderer, self._widgets)
 	UIRenderer.end_pass(ui_renderer)
+end
+
+EnigmaBigCardUI.play_sound = function (self, event)
+	WwiseWorld.trigger_event(self.wwise_world, event)
 end
