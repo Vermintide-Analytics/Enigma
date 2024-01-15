@@ -1,5 +1,4 @@
 local enigma = get_mod("Enigma")
-
 local card_ui_common = local_require("scripts/mods/Enigma/ui/card_ui_common")
 
 local info_panel_anchor_horizontal = enigma:get("info_anchor_horizontal")
@@ -24,6 +23,14 @@ local channel_bar_offset_horizontal = enigma:get("channel_bar_offset_horizontal"
 local channel_bar_offset_vertical = enigma:get("channel_bar_offset_vertical") * 10.8 -- (divide by 100 because it's a percentage, then scale to 1080)
 
 local channel_bar_scale = enigma:get("channel_bar_scale")
+
+
+local played_card_anchor_horizontal = enigma:get("played_card_anchor_horizontal")
+local played_card_anchor_vertical = enigma:get("played_card_anchor_vertical")
+local played_card_offset_horizontal = enigma:get("played_card_offset_horizontal") * 19.2 -- (divide by 100 because it's a percentage, then scale to 1920)
+local played_card_offset_vertical = enigma:get("played_card_offset_vertical") * 10.8 -- (divide by 100 because it's a percentage, then scale to 1080)
+
+local played_card_scale = enigma:get("played_card_scale")
 
 
 -- Info Panel Sizing
@@ -51,7 +58,7 @@ local hand_panel_card_margin = PRETTY_MARGIN * hand_panel_scale
 local DEFAULT_CARD_WIDTH = 128
 local card_width = DEFAULT_CARD_WIDTH * hand_panel_scale
 
--- Other Element Sizing
+-- Channel Bar Sizing
 local DEFAULT_CHANNEL_BAR_WIDTH = 600
 local DEFAULT_CHANNEL_BAR_HEIGHT = 28
 local DEFAULT_CHANNEL_BAR_INNER_PADDING = 2
@@ -59,8 +66,9 @@ local DEFAULT_CHANNEL_BAR_INNER_WIDTH = DEFAULT_CHANNEL_BAR_WIDTH - DEFAULT_CHAN
 local DEFAULT_CHANNEL_BAR_INNER_HEIGHT = DEFAULT_CHANNEL_BAR_HEIGHT - DEFAULT_CHANNEL_BAR_INNER_PADDING*2
 local DEFAULT_CHANNEL_BAR_FONT_SIZE = 20
 
-local PLAYED_CARD_WIDTH = 240
-local PLAYED_CARD_HEIGHT = 388
+-- Played Card Sizing
+local DEFAULT_PLAYED_CARD_WIDTH = 240
+local DEFAULT_PLAYED_CARD_HEIGHT = 388
 
 local set_info_panel_sizes = function(scenegraph, widgets, scale)
 	local scaled_column_width = DEFAULT_INFO_COLUMN_WIDTH * scale
@@ -126,6 +134,11 @@ local set_channel_bar_sizes = function(scenegraph, widgets, scale)
 
 	local w = widgets
 	w.channel_bar.style.text.font_size = DEFAULT_CHANNEL_BAR_FONT_SIZE * scale
+end
+local set_played_card_sizes = function(scenegraph, widgets, scale)
+	local sg = scenegraph
+	sg.played_card_container.size[1] = DEFAULT_PLAYED_CARD_WIDTH * scale
+	sg.played_card_container.size[2] = DEFAULT_PLAYED_CARD_HEIGHT * scale
 end
 
 
@@ -311,16 +324,16 @@ local scenegraph_definition = {
 		}
 	},
 	played_card_container = {
-		parent = "channel_bar",
-		vertical_alignment = "bottom",
-		horizontal_alignment = "right",
+		parent = "screen",
+		vertical_alignment = played_card_anchor_vertical,
+		horizontal_alignment = played_card_anchor_horizontal,
 		size = {
-			PLAYED_CARD_WIDTH,
-			PLAYED_CARD_HEIGHT
+			0,
+			0
 		},
 		position = {
-			0,
-			PLAYED_CARD_HEIGHT*-1 - PRETTY_MARGIN*2,
+			played_card_offset_horizontal,
+			played_card_offset_vertical,
 			1
 		}
 	},
@@ -750,11 +763,12 @@ local widgets = {
 	},
 }
 
+card_ui_common.add_hand_display(scenegraph_definition, widgets, "hand_panel", card_width)
+card_ui_common.add_card_display(scenegraph_definition, widgets, "played_card_container", "played_card", DEFAULT_PLAYED_CARD_WIDTH * played_card_scale)
+
 set_info_panel_sizes(scenegraph_definition, widgets, info_panel_scale)
 set_channel_bar_sizes(scenegraph_definition, widgets, channel_bar_scale)
-
-card_ui_common.add_hand_display(scenegraph_definition, widgets, "hand_panel", card_width)
-card_ui_common.add_card_display(scenegraph_definition, widgets, "played_card_container", "played_card", PLAYED_CARD_WIDTH)
+set_played_card_sizes(scenegraph_definition, widgets, played_card_scale)
 
 return {
 	scenegraph_definition = scenegraph_definition,
@@ -762,12 +776,14 @@ return {
 
 	set_info_panel_sizes = set_info_panel_sizes,
 	set_channel_bar_sizes = set_channel_bar_sizes,
+	set_played_card_sizes = set_played_card_sizes,
 
 	default_hand_panel_width = DEFAULT_HAND_PANEL_WIDTH,
 	default_hand_panel_height = DEFAULT_HAND_PANEL_HEIGHT,
 	default_card_width = DEFAULT_CARD_WIDTH,
 	card_width = card_width,
-	played_card_width = PLAYED_CARD_WIDTH,
+	default_played_card_width = DEFAULT_PLAYED_CARD_WIDTH,
+	played_card_width = DEFAULT_PLAYED_CARD_WIDTH * played_card_scale,
 	default_channel_bar_inner_width = DEFAULT_CHANNEL_BAR_INNER_WIDTH,
 	channel_bar_inner_width = DEFAULT_CHANNEL_BAR_INNER_WIDTH * channel_bar_scale,
 	default_hand_card_margin = PRETTY_MARGIN,

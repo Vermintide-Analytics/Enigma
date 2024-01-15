@@ -359,6 +359,56 @@ return {
 									},
 								},
 							},
+							{
+								setting_id = "played_card_customization_group",
+								type = "group",
+								title = "played_card_customization_group_title",
+								sub_widgets = {
+									{
+										setting_id = "played_card_anchor_vertical",
+										type = "dropdown",
+										title = "anchor_vertical_title",
+										tooltip = "anchor_vertical_description",
+										default_value = "top",
+										options = table.clone(vertical_anchor_options)
+									},
+									{
+										setting_id = "played_card_offset_vertical",
+										type = "numeric",
+										title = "offset_vertical_title",
+										tooltip = "offset_vertical_description",
+										default_value = -27,
+										range = { -100, 100 },
+										decimals_number = 2
+									},
+									{
+										setting_id = "played_card_anchor_horizontal",
+										type = "dropdown",
+										title = "anchor_horizontal_title",
+										tooltip = "anchor_horizontal_description",
+										default_value = "right",
+										options = table.clone(horizontal_anchor_options)
+									},
+									{
+										setting_id = "played_card_offset_horizontal",
+										type = "numeric",
+										title = "offset_horizontal_title",
+										tooltip = "offset_horizontal_description",
+										default_value = -2.6,
+										range = { -100, 100 },
+										decimals_number = 2
+									},
+									{
+										setting_id = "played_card_scale",
+										type = "numeric",
+										title = "scale_title",
+										tooltip = "scale_description",
+										default_value = 1,
+										range = { 0, 2 },
+										decimals_number = 3
+									},
+								},
+							},
 						},
 					},
 				},

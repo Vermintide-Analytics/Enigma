@@ -254,6 +254,9 @@ local loc = {
 	channel_bar_customization_group_title = {
 		en = "Channel Bar"
 	},
+	played_card_customization_group_title = {
+		en = "Played Card Display"
+	},
 
 	-- UI
 	channeling = {

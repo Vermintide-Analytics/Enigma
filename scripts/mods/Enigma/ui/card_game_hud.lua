@@ -1,11 +1,13 @@
 local definitions = local_require("scripts/mods/Enigma/ui/card_game_hud_definitions")
 local set_info_scale = definitions.set_info_panel_sizes
 local set_channel_bar_scale = definitions.set_channel_bar_sizes
+local set_played_card_scale = definitions.set_played_card_sizes
 local card_width = definitions.card_width
 local DEFAULT_HAND_PANEL_WIDTH = definitions.default_hand_panel_width
 local DEFAULT_HAND_PANEL_HEIGHT = definitions.default_hand_panel_height
 local DEFAULT_CARD_WIDTH = definitions.default_card_width
-local MAX_PLAYED_CARD_WIDTH = definitions.played_card_width
+local DEFAULT_MAX_PLAYED_CARD_WIDTH = definitions.default_played_card_width
+local max_played_card_width = definitions.played_card_width
 local DEFAULT_HAND_CARD_MARGIN = definitions.default_hand_card_margin
 local hand_card_margin = definitions.hand_card_margin
 local DEFAULT_CHANNEL_BAR_INNER_WIDTH = definitions.default_channel_bar_inner_width
@@ -112,9 +114,9 @@ EnigmaCardGameHud.update_played_card_display = function(self, dt, t)
 	end
 
 	local card_to_display = ui_manager.time_since_card_played < show_played_card_duration and ui_manager.last_played_card
-	local width = MAX_PLAYED_CARD_WIDTH
+	local width = max_played_card_width
 	if card_to_display and ui_manager.time_since_card_played < played_card_grow_duration then
-		width = math.lerp(0, MAX_PLAYED_CARD_WIDTH, ui_manager.time_since_card_played / played_card_grow_duration)
+		width = math.lerp(0, max_played_card_width, ui_manager.time_since_card_played / played_card_grow_duration)
 	end
 
 	card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, "played_card", card_to_display, width, "dirty_hud_ui_played_card", false)
@@ -269,6 +271,7 @@ EnigmaCardGameHud.on_setting_changed = function(self, setting_id)
 	local info_panel_node = self.ui_scenegraph.info_panel
 	local hand_panel_node = self.ui_scenegraph.hand_panel
 	local channel_bar_node = self.ui_scenegraph.channel_bar
+	local played_card_node = self.ui_scenegraph.played_card_container
 
 	-- INFO PANEL
 	if setting_id == "info_anchor_horizontal" then
@@ -337,5 +340,28 @@ EnigmaCardGameHud.on_setting_changed = function(self, setting_id)
 		local scale = enigma:get(setting_id)
 		set_channel_bar_scale(self.ui_scenegraph, self._widgets_by_name, scale)
 		channel_bar_inner_width = DEFAULT_CHANNEL_BAR_INNER_WIDTH * scale
+	end
+
+	-- PLAYED CARD DISPLAY
+	if setting_id == "played_card_anchor_horizontal" then
+		played_card_node.horizontal_alignment = enigma:get(setting_id)
+		return
+	end
+	if setting_id == "played_card_offset_horizontal" then
+		played_card_node.position[1] = enigma:get(setting_id) * 19.2 -- (divide by 100 because it's a percentage, then scale to 1920)
+		return
+	end
+	if setting_id == "played_card_anchor_vertical" then
+		played_card_node.vertical_alignment = enigma:get(setting_id)
+		return
+	end
+	if setting_id == "played_card_offset_vertical" then
+		played_card_node.position[2] = enigma:get(setting_id) * 10.8 -- (divide by 100 because it's a percentage, then scale to 1080)
+		return
+	end
+	if setting_id == "played_card_scale" then
+		local scale = enigma:get(setting_id)
+		set_played_card_scale(self.ui_scenegraph, self._widgets_by_name, scale)
+		max_played_card_width = DEFAULT_MAX_PLAYED_CARD_WIDTH * scale
 	end
 end
