@@ -252,10 +252,6 @@ local scenegraph_definition = {
 			hand_panel_width,
 			hand_panel_height
 		},
-		default_size = {
-			DEFAULT_HAND_PANEL_WIDTH,
-			DEFAULT_HAND_PANEL_HEIGHT
-		},
 		position = {
 			hand_panel_offset_horizontal,
 			hand_panel_offset_vertical,
@@ -741,6 +737,8 @@ return {
 
 	set_info_panel_sizes = set_info_panel_sizes,
 
+	default_hand_panel_width = DEFAULT_HAND_PANEL_WIDTH,
+	default_hand_panel_height = DEFAULT_HAND_PANEL_HEIGHT,
 	default_card_width = DEFAULT_CARD_WIDTH,
 	card_width = card_width,
 	played_card_width = PLAYED_CARD_WIDTH,

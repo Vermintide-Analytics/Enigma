@@ -1,6 +1,8 @@
 local definitions = local_require("scripts/mods/Enigma/ui/card_game_hud_definitions")
 local set_info_scale = definitions.set_info_panel_sizes
 local card_width = definitions.card_width
+local DEFAULT_HAND_PANEL_WIDTH = definitions.default_hand_panel_width
+local DEFAULT_HAND_PANEL_HEIGHT = definitions.default_hand_panel_height
 local DEFAULT_CARD_WIDTH = definitions.default_card_width
 local MAX_PLAYED_CARD_WIDTH = definitions.played_card_width
 local DEFAULT_HAND_CARD_MARGIN = definitions.default_hand_card_margin
@@ -303,8 +305,8 @@ EnigmaCardGameHud.on_setting_changed = function(self, setting_id)
 	end
 	if setting_id == "hand_scale" then
 		local scale = enigma:get(setting_id)
-		hand_panel_node.size[1] = hand_panel_node.default_size[1] * scale
-		hand_panel_node.size[2] = hand_panel_node.default_size[2] * scale
+		hand_panel_node.size[1] = DEFAULT_HAND_PANEL_WIDTH * scale
+		hand_panel_node.size[2] = DEFAULT_HAND_PANEL_HEIGHT * scale
 		card_width = DEFAULT_CARD_WIDTH * scale
 		hand_card_margin = DEFAULT_HAND_CARD_MARGIN * scale
 	end
