@@ -2200,6 +2200,9 @@ local ability_cards = {
                 end
             end,
         },
+        sounds_2D = {
+            on_play = "boxing_bell"
+        },
         description_lines = {
             {
                 format = "base_honorable_duel_description",
