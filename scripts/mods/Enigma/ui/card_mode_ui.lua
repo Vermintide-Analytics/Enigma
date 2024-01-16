@@ -102,7 +102,7 @@ EnigmaCardModeUI._handle_input = function(self, dt, t)
 	local hand_size = #hand
 	for i=1,hand_size do
 		local interaction_widget = self._widgets_by_name["hand_card_"..i.."_interaction"]
-		if interaction_widget.content.hotspot.on_pressed then
+		if UIUtils.is_button_pressed(interaction_widget) then
 			enigma.managers.user_interaction.request_play_card_from_hand_next_update = i
 		end
 	end

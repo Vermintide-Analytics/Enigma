@@ -99,13 +99,13 @@ EnigmaBigCardUI._handle_input = function(self, dt, t)
 	local related_card_1_interaction_widget = self._widgets_by_name["related_card_1_interaction"]
 	local related_card_2_interaction_widget = self._widgets_by_name["related_card_2_interaction"]
 
-	if related_card_1 and related_card_1_interaction_widget.content.hotspot.on_pressed then
+	if related_card_1 and UIUtils.is_button_pressed(related_card_1_interaction_widget) then
 		self:play_sound("Play_hud_select")
 		enigma.managers.ui:show_big_card(related_card_1, enigma.managers.ui.big_card_showcase_mode)
-	elseif related_card_2 and related_card_2_interaction_widget.content.hotspot.on_pressed then
+	elseif related_card_2 and UIUtils.is_button_pressed(related_card_2_interaction_widget) then
 		self:play_sound("Play_hud_select")
 		enigma.managers.ui:show_big_card(related_card_2, enigma.managers.ui.big_card_showcase_mode)
-	elseif #keystrokes > 0 or self._widgets_by_name.background.content.screen_hotspot.on_pressed then
+	elseif #keystrokes > 0 or UIUtils.is_button_pressed(self._widgets_by_name.background, "screen_hotspot") then
 		enigma.managers.ui:hide_big_card()
 	end
 end

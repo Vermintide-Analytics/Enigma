@@ -284,10 +284,10 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 	local filters_toggle_button = self._widgets_by_name.filters_button
 	local screen_hotspot = self._widgets_by_name.background.content.screen_hotspot
 	local panel_hotspot = self._widgets_by_name.filters.content.panel_hotspot
-	if filters_toggle_button.content.search_filters_hotspot.on_pressed then
+	if UIUtils.is_button_pressed(filters_toggle_button, "search_filters_hotspot") then
 		self.filters_panel_active = not self.filters_panel_active
 		self._widgets_by_name.filters.content.visible = self.filters_panel_active
-	elseif self.filters_panel_active and screen_hotspot.on_pressed and not panel_hotspot.on_pressed then
+	elseif self.filters_panel_active and UIUtils.is_button_pressed(self._widgets_by_name.background, "screen_hotspot") and not UIUtils.is_button_pressed(self._widgets_by_name.filters, "panel_hotspot") then
 		self.filters_panel_active = false
 		self._widgets_by_name.filters.content.visible = self.filters_panel_active
 		return
@@ -357,7 +357,7 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 				self:play_sound("Play_hud_hover")
 			end
 	
-			if item.content.item_hotspot.on_pressed then
+			if UIUtils.is_button_pressed(item, "item_hotspot") then
 				if type(card) == "string" then
 					enigma:echo("That card is not defined. Either it was removed from the card pack, or you do not have that card pack.")
 				else
@@ -411,7 +411,7 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 		card_ui_common.handle_card_input(self._widgets_by_name, card_scenegraph_id, card, self.wwise_world)
 		
 		if card then
-			if card_interaction_widget.content.hotspot.on_pressed then
+			if UIUtils.is_button_pressed(card_interaction_widget) then
 				self:play_sound("Play_hud_select")
 				enigma.managers.ui:show_big_card(card, false)
 			end
