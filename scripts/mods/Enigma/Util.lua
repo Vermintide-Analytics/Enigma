@@ -563,7 +563,7 @@ enigma.spawn_pet = function(self, owner_unit, breed_name, template_name, relativ
 		fp_rotation_flat = first_person:current_rotation()
 		fp_rotation_flat = Quaternion.look(Vector3.flat(Quaternion.forward(fp_rotation_flat)), Vector3.up())
 	else
-        local game_object_id = self._unit_storage:go_id(owner_unit)
+        local game_object_id = Managers.state.unit_storage:go_id(owner_unit)
         local game = Managers.state.network:game()
         local aim_direction = GameSession.game_object_field(game, game_object_id, "aim_direction")
         fp_rotation_flat = Quaternion.look(Vector3.flat(aim_direction), Vector3.up())
