@@ -282,8 +282,6 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 	-- Filters
 	local card_filter_update_needed = false
 	local filters_toggle_button = self._widgets_by_name.filters_button
-	local screen_hotspot = self._widgets_by_name.background.content.screen_hotspot
-	local panel_hotspot = self._widgets_by_name.filters.content.panel_hotspot
 	if UIUtils.is_button_pressed(filters_toggle_button, "search_filters_hotspot") then
 		self.filters_panel_active = not self.filters_panel_active
 		self._widgets_by_name.filters.content.visible = self.filters_panel_active
