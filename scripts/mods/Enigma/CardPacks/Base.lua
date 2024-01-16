@@ -14,6 +14,7 @@ local pack_handle = enigma.managers.card_pack:register_card_pack("Enigma", "base
 local game = enigma.managers.game
 local buff = enigma.managers.buff
 local warp = enigma.managers.warp
+local sound = enigma.managers.sound
 
 --[[ CARD DEFINITION TEMPLATE
 
@@ -132,6 +133,9 @@ local passive_cards = {
                 end
             end
         },
+        sounds_2D = {
+            on_play = "legendary_buff_2"
+        },
         description_lines = {
             {
                 format = "base_bone_host_description",
@@ -171,7 +175,10 @@ local passive_cards = {
         on_play_local = function(card)
             buff:update_stat(card.context.unit, "attack_speed", 0.03)
             buff:update_stat(card.context.unit, "movement_speed", 0.05)
-        end
+        end,
+        sounds_2D = {
+            on_play = "sip_swallow"
+        },
     },
     collar_cage = {
         rarity = LEGENDARY,
@@ -181,7 +188,7 @@ local passive_cards = {
             buff:update_stat(card.context.unit, "chance_ignore_packmaster", 1.0)
         end,
         sounds_2D = {
-            on_play = "legendary_buff"
+            on_play = "legendary_buff_2"
         },
         description_lines = {
             {
@@ -202,6 +209,9 @@ local passive_cards = {
                 end
             end
         end,
+        sounds_2D = {
+            on_play = "legendary_buff_2"
+        },
         description_lines = {
             {
                 format = "base_continual_blows_description",
@@ -222,7 +232,10 @@ local passive_cards = {
                 format = "description_stamina_regen",
                 parameters = { 30 }
             }
-        }
+        },
+        sounds_2D = {
+            on_play = "deep_breath"
+        },
     },
     cooperation = {
         rarity = COMMON,
@@ -506,6 +519,9 @@ local passive_cards = {
         on_play_local = function(card)
             buff:update_stat(card.context.unit, "added_card_cost_attack", -1)
         end,
+        sounds_2D = {
+            on_play = "legendary_buff_2"
+        },
         description_lines = {
             {
                 format = "base_efficient_strikes_description",
@@ -521,7 +537,7 @@ local passive_cards = {
             buff:update_stat(card.context.unit, "chance_ignore_assassin", 1.0)
         end,
         sounds_2D = {
-            on_play = "legendary_buff"
+            on_play = "legendary_buff_2"
         },
         description_lines = {
             {
@@ -695,6 +711,9 @@ local passive_cards = {
             end,
         },
         ephemeral = true,
+        sounds_2D = {
+            on_play = "legendary_buff_2"
+        },
         description_lines = {
             {
                 format = "base_khornes_pact_description",
@@ -745,6 +764,9 @@ local passive_cards = {
                 card:rpc_server("trigger_gas_cloud", card:times_played())
             end,
         },
+        sounds_2D = {
+            on_play = "legendary_buff_2"
+        },
         description_lines = {
             {
                 format = "base_nurgles_brew_description"
@@ -759,7 +781,7 @@ local passive_cards = {
             buff:update_stat(card.context.unit, "chance_ignore_gunner", 1.0)
         end,
         sounds_2D = {
-            on_play = "legendary_buff"
+            on_play = "legendary_buff_2"
         },
         description_lines = {
             {
@@ -790,6 +812,9 @@ local passive_cards = {
         on_play_local = function(card)
             buff:update_stat(card.context.unit, "attack_card_power_multiplier", card.attack_card_power_modifier)
         end,
+        sounds_2D = {
+            on_play = "legendary_buff_2"
+        },
         description_lines = {
             {
                 format = "description_attack_card_power",
@@ -881,6 +906,9 @@ local passive_cards = {
             return card.required_damage_taken <= 0
         end,
         ephemeral = true,
+        sounds_2D = {
+            on_play = "legendary_buff_2"
+        },
         description_lines = {
             {
                 format = "base_slaaneshs_ring_description",
@@ -901,7 +929,7 @@ local passive_cards = {
             buff:update_stat(card.context.unit, "chance_ignore_leech", 1.0)
         end,
         sounds_2D = {
-            on_play = "legendary_buff"
+            on_play = "legendary_buff_2"
         },
         description_lines = {
             {
@@ -931,7 +959,7 @@ local passive_cards = {
             buff:update_stat(card.context.unit, "chance_ignore_globadier", 1.0)
         end,
         sounds_2D = {
-            on_play = "legendary_buff"
+            on_play = "legendary_buff_2"
         },
         description_lines = {
             {
@@ -967,6 +995,9 @@ local passive_cards = {
             end
         end,
         ephemeral = true,
+        sounds_2D = {
+            on_play = "legendary_buff_2"
+        },
         description_lines = {
             {
                 format = "base_the_mill_description",
@@ -982,7 +1013,7 @@ local passive_cards = {
             buff:update_stat(card.context.unit, "chance_ignore_fire_rat", 1.0)
         end,
         sounds_2D = {
-            on_play = "legendary_buff"
+            on_play = "legendary_buff_2"
         },
         description_lines = {
             {
@@ -1048,6 +1079,9 @@ local passive_cards = {
             end
         },
         ephemeral = true,
+        sounds_2D = {
+            on_play = "legendary_buff_2"
+        },
         description_lines = {
             {
                 format = "base_tzeentchs_sigil_description",
@@ -1088,7 +1122,7 @@ local passive_cards = {
             end
         end,
         sounds_2D = {
-            on_play = "legendary_buff"
+            on_play = "legendary_buff_2"
         },
         description_lines = {
             {
@@ -1201,8 +1235,10 @@ local attack_cards = {
         texture = true,
         min_quakes = 2,
         max_quakes = 4,
-        camera_shake = function(card)
-            enigma:camera_shake("ring_explosion", enigma:unit_position(card.context.unit), 1.5, 4.5, 0.3, 0)
+        quake_effects = function(card)
+            local us = card.context.unit
+            sound:trigger_at_unit("rumble", us)
+            enigma:camera_shake("ring_explosion", enigma:unit_position(us), 1.5, 4.5, 0.3, 0)
         end,
         do_quake = function(card)
             local us = card.context.unit
@@ -1211,8 +1247,8 @@ local attack_cards = {
                 card:damage(unit, 10, us)
                 enigma:stun_enemy(unit, us, 0.1)
             end
-            card:camera_shake()
-            card:rpc_others("camera_shake")
+            card:quake_effects()
+            card:rpc_others("quake_effects")
         end,
         on_play_server = function(card)
             local num_quakes = enigma:random_range_int(card.min_quakes, card.max_quakes)
@@ -1279,7 +1315,10 @@ local attack_cards = {
                 format = "base_counterattack_condition",
                 parameters = { 2 }
             }
-        }
+        },
+        sounds_2D = {
+            on_play = "parry_slice"
+        },
     },
     cyclone_strike = {
         rarity = RARE,
@@ -1307,8 +1346,10 @@ local attack_cards = {
         texture = true,
         min_quakes = 4,
         max_quakes = 7,
-        camera_shake = function(card)
-            enigma:camera_shake("ring_explosion", enigma:unit_position(card.context.unit), 3, 8, 0.6, 0)
+        quake_effects = function(card)
+            local us = card.context.unit
+            sound:trigger_at_unit("rumble", us)
+            enigma:camera_shake("ring_explosion", enigma:unit_position(us), 3, 8, 0.6, 0)
         end,
         do_quake = function(card)
             local us = card.context.unit
@@ -1317,8 +1358,8 @@ local attack_cards = {
                 card:damage(unit, 18, us)
                 enigma:stun_enemy(unit, us, 0.1)
             end
-            card:camera_shake()
-            card:rpc_others("camera_shake")
+            card:quake_effects()
+            card:rpc_others("quake_effects")
         end,
         on_play_server = function(card)
             local num_quakes = enigma:random_range_int(card.min_quakes, card.max_quakes)
@@ -1360,7 +1401,10 @@ local attack_cards = {
             {
                 format = "base_omnistrike_description"
             }
-        }
+        },
+        sounds_2D = {
+            on_play = "big_slice"
+        },
     },
     quick_stab = {
         rarity = COMMON,
@@ -1491,6 +1535,9 @@ local ability_cards = {
         related_cards = {
             "base/apple_seed"
         },
+        sounds_2D = {
+            on_play = "apple_crunch"
+        },
         hide_in_deck_editor = true,
         allow_in_deck = false,
     },
@@ -1536,6 +1583,9 @@ local ability_cards = {
                 format = "base_apple_seed_auto",
                 parameters = { 60, 60 }
             }
+        },
+        sounds_2D = {
+            on_play = "tree_grow"
         },
         related_cards = {
             "base/apple_tree"
@@ -1583,6 +1633,9 @@ local ability_cards = {
                 format = "base_apple_tree_retain",
                 parameters = { 60, 60 }
             }
+        },
+        sounds_2D = {
+            on_play = "tree_chop"
         },
         related_cards = {
             "base/apple"
@@ -1637,13 +1690,20 @@ local ability_cards = {
                 format = "base_blood_transfusion_description",
                 parameters = { 60 }
             }
-        }
+        },
+        sounds_2D = {
+            on_play = "wisp_sigh"
+        },
     },
     delayed_bomb = {
         rarity = RARE,
         cost = 2,
         texture = true,
         on_play_server = function(card)
+            sound:trigger("clock_ticking_fade_out")
+            enigma:invoke_delayed(function()
+                sound:trigger("clock_ticking_fade_in")
+            end, 60 - 4.96)
             enigma:invoke_delayed(function()
                 enigma:create_explosion(card.context.unit, enigma:unit_position(card.context.unit), Quaternion.identity(), "grenade_no_ff_scaled_x3", 1, "undefined", nil, false)
             end, 60)
@@ -1690,6 +1750,9 @@ local ability_cards = {
             {
                 format = "base_devour_pet_condition"
             }
+        },
+        sounds_2D = {
+            on_play = "crunch"
         },
     },
     divine_insurance = {
@@ -1746,7 +1809,10 @@ local ability_cards = {
             {
                 format = "base_douse_description"
             },
-        }
+        },
+        sounds_2D = {
+            on_play = "flame_extinguish"
+        },
     },
     dubious_insurance = {
         rarity = EPIC,
@@ -1878,6 +1944,12 @@ local ability_cards = {
                 game:shuffle_new_card_into_draw_pile("base/dormant_crystal")
             end
         end,
+        play_slowdown_sound = function(card)
+            sound:trigger("time_slowdown")
+        end,
+        play_speedup_sound = function(card)
+            sound:trigger("time_speedup")
+        end,
         multiply_time_scale = function(card, multiplier)
             enigma:multiply_time_scale(multiplier)
         end,
@@ -1892,6 +1964,8 @@ local ability_cards = {
             local calculated_duration = card.duration * effect_inv * time_multiplier
 
             enigma:multiply_time_scale(effect_inv)
+            card:play_slowdown_sound()
+            card:rpc_others("play_slowdown_sound")
             card:rpc_others("multiply_time_scale", effect_inv)
             enigma:multiply_player_gravity_scale(card.context.unit, effect)
             enigma:multiply_player_movement_speed(card.context.unit, effect)
@@ -1926,6 +2000,10 @@ local ability_cards = {
             divide_stat("faster_revive", effect)
             divide_stat("reduced_ranged_charge_time", effect)
 
+            enigma:invoke_delayed(function()
+                card:play_speedup_sound()
+                card:rpc_others("play_speedup_sound")
+            end, calculated_duration - 3.46*effect_inv)
             enigma:invoke_delayed(function()
                 enigma:multiply_time_scale(effect)
                 card:rpc_others("multiply_time_scale", effect)
@@ -2063,22 +2141,36 @@ local ability_cards = {
             end
         end,
         condition_server = function(card)
+            -- DEBUG
+            local cached_condition_met = card.condition_server_met
+
             if not card.living_monsters then
+                if cached_condition_met then -- DEBUG
+                    enigma:info("Honorable Duel condition: previously "..tostring(cached_condition_met)..", now false because not card.living monsters")
+                end
                 return false
             end
             for unit,state in pairs(card.living_monsters) do
                 if state == "alive" then
                     if not Unit.alive(unit) then
                         card.living_monsters[unit] = nil
+                    else
+                        if not cached_condition_met then -- DEBUG
+                            enigma:info("Honorable Duel condition: previously "..tostring(cached_condition_met)..", now true because found an \"alive\" monster")
+                        end
+                        return true
                     end
-                    return true
                 end
+            end
+            if cached_condition_met then -- DEBUG
+                enigma:info("Honorable Duel condition: previously "..tostring(cached_condition_met)..", now false because no \"alive\" monster found")
             end
             return false
         end,
         events_server = {
             enemy_spawned = function(card, spawned_unit, breed, ...)
                 if enigma:breed_is_monster(breed) then
+                    enigma:info("Honorable Duel tracking spawned monster: "..tostring(spawned_unit))
                     card.living_monsters[spawned_unit] = "alive"
                 end
             end,
@@ -2088,6 +2180,7 @@ local ability_cards = {
                     return
                 end
                 
+                enigma:info("Honorable Duel no longer tracking dead monster: "..tostring(killed_unit))
                 card.living_monsters[killed_unit] = nil
 
                 local us = card.context.unit
@@ -2101,6 +2194,8 @@ local ability_cards = {
                     return
                 end
                 if card.dueling_monster then
+                    enigma:info("Honorable Duel resetting monster state: "..tostring(card.dueling_monster))
+                    card.living_monsters[card.dueling_monster] = nil
                     card:end_duel()
                 end
             end,
@@ -2162,6 +2257,9 @@ local ability_cards = {
         end,
         channel = 10,
         ephemeral = true,
+        sounds_2D = {
+            on_play = "legendary_buff_2"
+        },
         description_lines = {
             {
                 format = "base_long_rest_description",
@@ -2312,6 +2410,9 @@ local ability_cards = {
         end,
         primordial = true,
         ephemeral = true,
+        sounds_2D = {
+            on_play = "legendary_buff_2"
+        },
         description_lines = {
             {
                 format = "base_ranalds_touch_description",
@@ -2380,6 +2481,9 @@ local ability_cards = {
                 game:add_card_cost(attack_card, -2)
             end
         end,
+        sounds_2D = {
+            on_play = "legendary_buff_2"
+        },
         description_lines = {
             {
                 format = "base_refined_techniques_description",
@@ -2473,6 +2577,9 @@ local ability_cards = {
                 game:shuffle_card_into_draw_pile(attack_card)
             end
         end,
+        sounds_2D = {
+            on_play = "legendary_buff_2"
+        },
         description_lines = {
             {
                 format = "base_revitalize_description",
@@ -3132,6 +3239,9 @@ local chaos_cards = {
                 format = "base_virus_auto",
                 parameters = { 60, 60 }
             }
+        },
+        sounds_2D = {
+            on_draw = "curse_terror"
         },
         ephemeral = true,
         unplayable = true

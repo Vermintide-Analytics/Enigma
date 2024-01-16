@@ -1200,6 +1200,12 @@ end
 ------------
 -- UPDATE --
 ------------
+local set_card_condition_met = function(card, condition_met)
+    if card.condition_met ~= condition_met then
+        card:set_dirty()
+    end
+    card.condition_met = condition_met
+end
 enigma:network_register(net.notify_card_condition_met_changed, function(peer_id, card_local_id, met)
     if peer_id ~= cgm.server_peer_id then
         enigma:warning("Only the server is allowed to tell us when a card condition met changes")
@@ -1215,7 +1221,7 @@ enigma:network_register(net.notify_card_condition_met_changed, function(peer_id,
         return
     end
     card.condition_server_met = met
-    card.condition_met = card.condition_server_met and card.condition_local_met
+    set_card_condition_met(card, card.condition_server_met and card.condition_local_met)
 end)
 enigma:network_register(net.notify_card_auto_condition_met_changed, function(peer_id, card_local_id, met)
     if peer_id ~= cgm.server_peer_id then
@@ -1360,13 +1366,6 @@ cgm._update_remote_card_active_durations = function(self, dt)
         _update_card_active_durations_for_cards(peer_data.all_cards, dt)
     end
 end
-
-local set_card_condition_met = function(card, condition_met)
-    if card.condition_met ~= condition_met then
-        card:set_dirty()
-    end
-    card.condition_met = condition_met
-end
 cgm._evaluate_local_card_conditions = function(self)
     if self:unable_to_play() then
         return
@@ -1408,6 +1407,7 @@ cgm._evaluate_local_card_conditions = function(self)
         set_card_condition_met(card, card.condition_local_met and card.condition_server_met)
     end
 end
+local auto_cards_to_trigger = {}
 cgm._evaluate_local_card_autos = function(self)
     if self:unable_to_play() then
         return
@@ -1422,6 +1422,7 @@ cgm._evaluate_local_card_autos = function(self)
             end
         end
     end
+    table.clear(auto_cards_to_trigger)
     for _,card in ipairs(self.local_data.hand) do
         if card.auto_condition_local then
             local success, met = safe(card.auto_condition_local, card)
@@ -1430,6 +1431,9 @@ cgm._evaluate_local_card_autos = function(self)
             card.auto_condition_local_met = true
         end
         card.auto_condition_met = card.auto_condition_server_met and card.auto_condition_local_met
+        if card.auto_condition_met and (card.auto_condition_server or card.auto_condition_local) then
+            table.insert(auto_cards_to_trigger, card)
+        end
     end
 end
 cgm._evaluate_remote_card_conditions = function(self)
@@ -1607,6 +1611,12 @@ cgm.update = function(self, dt, t)
         self:_evaluate_local_card_conditions()
         self:_evaluate_local_card_autos()
 
+        for _,card in ipairs(auto_cards_to_trigger) do
+            if card.can_pay_warpstone then
+                self:play_card(card)
+            end
+        end
+
         if self.is_server then
             self:_evaluate_remote_card_conditions()
             self:_evaluate_remote_card_autos()
@@ -1622,8 +1632,6 @@ cgm.update = function(self, dt, t)
         self:add_card_draw(pull_from_deferred, "level_progress")
 
         self:_update_delayed_function_calls(dt)
-
-    elseif self.game_state == "initializing" then
     end
 end
 

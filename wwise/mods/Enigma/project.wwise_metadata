@@ -4,24 +4,41 @@ aux_buses = [
 banks = {
 	Enigma = {
 		events = [
+			"apple_crunch"
+			"big_slice"
 			"boxing_bell"
 			"channel_end"
 			"channel_start"
 			"cleave"
+			"clock_ticking_fade_in"
+			"clock_ticking_fade_out"
+			"crunch"
 			"curse_confuse"
 			"curse_decrepify"
 			"curse_lifetap"
+			"curse_terror"
+			"deep_breath"
 			"dissonant_bell"
 			"draw_card"
+			"flame_extinguish"
 			"harmonious_bell"
 			"legendary_buff"
+			"legendary_buff_2"
 			"light_bell"
+			"parry_slice"
 			"play_card"
 			"power_down"
 			"power_up"
+			"rumble"
+			"sip_swallow"
 			"slice"
 			"ss_powerup"
+			"time_slowdown"
+			"time_speedup"
+			"tree_chop"
+			"tree_grow"
 			"whoosh"
+			"wisp_sigh"
 		]
 	}
 	Init = {
@@ -33,6 +50,20 @@ buses = [
 	"Master Audio Bus"
 ]
 events = {
+	apple_crunch = {
+		attenuation_max = 0
+		duration_max = 0.417959
+		duration_min = 0.417959
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	big_slice = {
+		attenuation_max = 100
+		duration_max = 1.358367
+		duration_min = 1.358367
+		duration_type = "OneShot"
+		positioning = "3D"
+	}
 	boxing_bell = {
 		attenuation_max = 45
 		duration_max = 1.910658
@@ -61,6 +92,27 @@ events = {
 		duration_type = "OneShot"
 		positioning = "2D"
 	}
+	clock_ticking_fade_in = {
+		attenuation_max = 0
+		duration_max = 4.940045
+		duration_min = 4.940045
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	clock_ticking_fade_out = {
+		attenuation_max = 0
+		duration_max = 3.912562
+		duration_min = 3.912562
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	crunch = {
+		attenuation_max = 0
+		duration_max = 0.348299
+		duration_min = 0.348299
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
 	curse_confuse = {
 		attenuation_max = 0
 		duration_max = 1.718277
@@ -82,6 +134,20 @@ events = {
 		duration_type = "OneShot"
 		positioning = "2D"
 	}
+	curse_terror = {
+		attenuation_max = 0
+		duration_max = 1.625397
+		duration_min = 1.625397
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	deep_breath = {
+		attenuation_max = 0
+		duration_max = 4.294603
+		duration_min = 4.294603
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
 	dissonant_bell = {
 		attenuation_max = 25
 		duration_max = 2.804172
@@ -93,6 +159,13 @@ events = {
 		attenuation_max = 0
 		duration_max = 0.595011
 		duration_min = 0.595011
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	flame_extinguish = {
+		attenuation_max = 0
+		duration_max = 2.217506
+		duration_min = 2.217506
 		duration_type = "OneShot"
 		positioning = "2D"
 	}
@@ -110,10 +183,24 @@ events = {
 		duration_type = "OneShot"
 		positioning = "2D"
 	}
+	legendary_buff_2 = {
+		attenuation_max = 0
+		duration_max = 4.534762
+		duration_min = 4.534762
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
 	light_bell = {
 		attenuation_max = 0
 		duration_max = 2.264717
 		duration_min = 2.264717
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	parry_slice = {
+		attenuation_max = 0
+		duration_max = 1.684059
+		duration_min = 1.684059
 		duration_type = "OneShot"
 		positioning = "2D"
 	}
@@ -138,6 +225,20 @@ events = {
 		duration_type = "OneShot"
 		positioning = "2D"
 	}
+	rumble = {
+		attenuation_max = 0
+		duration_max = 0.8039
+		duration_min = 0.8039
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	sip_swallow = {
+		attenuation_max = 0
+		duration_max = 1.664422
+		duration_min = 1.664422
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
 	slice = {
 		attenuation_max = 12
 		duration_max = 0.754649
@@ -152,10 +253,45 @@ events = {
 		duration_type = "OneShot"
 		positioning = "2D"
 	}
+	time_slowdown = {
+		attenuation_max = 0
+		duration_max = 3.459773
+		duration_min = 3.459773
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	time_speedup = {
+		attenuation_max = 0
+		duration_max = 3.459773
+		duration_min = 3.459773
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	tree_chop = {
+		attenuation_max = 0
+		duration_max = 2.119252
+		duration_min = 2.119252
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	tree_grow = {
+		attenuation_max = 0
+		duration_max = 1.416417
+		duration_min = 1.416417
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
 	whoosh = {
 		attenuation_max = 0
 		duration_max = 0.507937
 		duration_min = 0.507937
+		duration_type = "OneShot"
+		positioning = "2D"
+	}
+	wisp_sigh = {
+		attenuation_max = 0
+		duration_max = 1.886621
+		duration_min = 1.886621
 		duration_type = "OneShot"
 		positioning = "2D"
 	}
