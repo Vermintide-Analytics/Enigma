@@ -720,6 +720,47 @@ local passive_cards = {
             }
         }
     },
+    leaden_boots = {
+        rarity = LEGENDARY,
+        cost = 2,
+        texture = true,
+        on_play_server = function(card)
+            buff:update_stat(card.context.unit, "chance_ignore_blightstorm_damage", 1.0)
+
+            local status = ScriptUnit.extension(card.context.unit, "status_system")
+            if status:is_in_vortex() and status.in_vortex_unit then
+                local vortex_ext = ScriptUnit.has_extension(status.in_vortex_unit, "ai_supplementary_system") and ScriptUnit.extension(status.in_vortex_unit, "ai_supplementary_system")
+                if vortex_ext and vortex_ext._owner_unit then
+                    enigma:execute_unit(vortex_ext._owner_unit, card.context.unit)
+                end
+                card.update_server = function(card, dt)
+                    if not status:is_in_vortex() then
+                        if not card.out_of_vortex_seconds then
+                            card.out_of_vortex_seconds = 0
+                        else
+                            card.out_of_vortex_seconds = card.out_of_vortex_seconds + dt
+                            if card.out_of_vortex_seconds > 2 then
+                                card.update_server = nil
+                                buff:update_stat(card.context.unit, "chance_ignore_blightstormer", 1.0)
+                            end
+                        end
+                    else
+                        card.out_of_vortex_seconds = 0
+                    end
+                end
+            else
+                buff:update_stat(card.context.unit, "chance_ignore_blightstormer", 1.0)
+            end
+        end,
+        sounds_2D = {
+            on_play = "legendary_buff_2"
+        },
+        description_lines = {
+            {
+                format = "base_leaden_boots_description"
+            }
+        },
+    },
     nurgles_brew = {
         rarity = LEGENDARY,
         cost = 2,
@@ -1088,47 +1129,6 @@ local passive_cards = {
                 parameters = { 10 }
             }
         }
-    },
-    leaden_boots = {
-        rarity = LEGENDARY,
-        cost = 2,
-        texture = true,
-        on_play_server = function(card)
-            buff:update_stat(card.context.unit, "chance_ignore_blightstorm_damage", 1.0)
-
-            local status = ScriptUnit.extension(card.context.unit, "status_system")
-            if status:is_in_vortex() and status.in_vortex_unit then
-                local vortex_ext = ScriptUnit.has_extension(status.in_vortex_unit, "ai_supplementary_system") and ScriptUnit.extension(status.in_vortex_unit, "ai_supplementary_system")
-                if vortex_ext and vortex_ext._owner_unit then
-                    enigma:execute_unit(vortex_ext._owner_unit, card.context.unit)
-                end
-                card.update_server = function(card, dt)
-                    if not status:is_in_vortex() then
-                        if not card.out_of_vortex_seconds then
-                            card.out_of_vortex_seconds = 0
-                        else
-                            card.out_of_vortex_seconds = card.out_of_vortex_seconds + dt
-                            if card.out_of_vortex_seconds > 2 then
-                                card.update_server = nil
-                                buff:update_stat(card.context.unit, "chance_ignore_blightstormer", 1.0)
-                            end
-                        end
-                    else
-                        card.out_of_vortex_seconds = 0
-                    end
-                end
-            else
-                buff:update_stat(card.context.unit, "chance_ignore_blightstormer", 1.0)
-            end
-        end,
-        sounds_2D = {
-            on_play = "legendary_buff_2"
-        },
-        description_lines = {
-            {
-                format = "base_leaden_boots_description"
-            }
-        },
     },
     veteran = {
         rarity = EPIC,
