@@ -1470,6 +1470,9 @@ local attack_cards = {
                 enigma:stun_enemy(unit, us, 3)
             end
         end,
+        sounds_2D = {
+            on_play = "punch"
+        },
         description_lines = {
             {
                 format = "base_sucker_punch_description",
@@ -1492,6 +1495,9 @@ local attack_cards = {
             local cost = enigma:random_range_int(0, 2)
             game:set_card_cost(card, cost)
         end,
+        sounds_2D = {
+            on_play = "whoosh_thud_thud"
+        },
         description_lines = {
             {
                 format = "base_thrash_description",
@@ -2601,6 +2607,9 @@ local ability_cards = {
                 buff:update_stat(card.context.unit, "warp_dust_multiplier", card.warp_dust_increase * -1)
             end
         end,
+        sounds_2D = {
+            on_draw = "engine_start"
+        },
         retain_descriptions = {
             {
                 format = "base_spare_engine_retain",
@@ -2678,6 +2687,9 @@ local ability_cards = {
             end
         end,
         ephemeral = true,
+        sounds_2D = {
+            on_draw = "raven_caw"
+        },
         retain_descriptions = {
             {
                 format = "base_the_red_raven_retain",
@@ -2735,6 +2747,9 @@ local ability_cards = {
             end
             return false
         end,
+        sounds_2D = {
+            on_play = "harmonious_bell"
+        },
         description_lines = {
             {
                 format = "base_ubersreik_hero_description"
@@ -2785,6 +2800,9 @@ local ability_cards = {
         condition_local = function(card)
             return enigma:on_ground(card.context.unit)
         end,
+        sounds_2D = {
+            on_play = "deep_whoosh"
+        },
         description_lines = {
             {
                 format = "base_vault_description"
@@ -2849,6 +2867,9 @@ local ability_cards = {
         on_play_local = function(card)
             buff:surge_stat(card.context.unit, "cooldown_regen", card.cooldown_regen_modifier, card.duration)
         end,
+        sounds_2D = {
+            on_play = "deep_breath_distorted"
+        },
         description_lines = {
             {
                 format = "description_cooldown_regen",
@@ -2968,6 +2989,9 @@ local ability_cards = {
             end
             return false
         end,
+        sounds_2D = {
+            on_play = "harmonious_bell"
+        },
         description_lines = {
             {
                 format = "base_willing_sacrifice_description"
@@ -3010,6 +3034,9 @@ local chaos_cards = {
                 buff:update_stat(card.context.unit, "block_cost", card.block_cost_modifier * -1)
             end
         end,
+        sounds_2D = {
+            on_draw = "glass_break"
+        },
         retain_descriptions = {
             {
                 format = "description_block_cost",
@@ -3168,6 +3195,9 @@ local chaos_cards = {
         on_play_server = function(card)
             enigma:force_damage(card.context.unit, 5)
         end,
+        sounds_2D = {
+            on_play = "cabbage_rip"
+        },
         description_lines = {
             {
                 format = "description_take_damage",
@@ -3257,6 +3287,9 @@ local chaos_cards = {
         on_play_server = function(card)
             buff:surge_stat(card.context.unit, "damage_taken", 0.25, card.duration)
         end,
+        sounds_2D = {
+            on_play = "glass_break"
+        },
         description_lines = {
             {
                 format = "description_damage_taken",
