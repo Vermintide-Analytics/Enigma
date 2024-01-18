@@ -497,6 +497,26 @@ enigma.set_taunt_unit = function (self, ai_unit, taunt_unit, taunt_bosses)
         end
     end
 end
+enigma.spawn_orb = function(self, orb_name, owner_player_unit)
+    enigma:spawn_orb_at_unit(orb_name, owner_player_unit, owner_player_unit)
+end
+enigma.spawn_orb_at_unit = function(self, orb_name, owner_player_unit, out_of_unit)
+    local orb_system = Managers.state.entity:system("orb_system")
+    if not orb_system then
+        enigma:warning("Could not spawn orb: "..tostring(orb_name)..", no orb system")
+        return
+    end
+    local player = Managers.player:owner(owner_player_unit)
+    if not player then
+        enigma:warning("Orb owner unit must be a player unit")
+        return
+    end
+    if not out_of_unit then
+        enigma:warning("spawn_orb_at_unit missing \"out_of_unit\"")
+        return
+    end
+    orb_system:spawn_orb(orb_name, player.peer_id, Unit.world_position(out_of_unit, 0), Vector3(0, 0, 1), 2 * math.pi)
+end
 enigma.spawn_pet = function(self, owner_unit, breed_name, template_name, relative_position)
     if not self:is_server() then
         enigma:warning("Only the server can spawn pets")

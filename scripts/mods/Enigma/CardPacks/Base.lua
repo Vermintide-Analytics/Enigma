@@ -136,6 +136,9 @@ local passive_cards = {
         sounds_2D = {
             on_play = "legendary_buff_2"
         },
+        required_resource_packages = {
+            "resource_packages/careers/bw_necromancer"
+        },
         description_lines = {
             {
                 format = "base_bone_host_description",
@@ -1933,6 +1936,9 @@ local ability_cards = {
                 offset = Quaternion.rotate(rotation, offset)
             end
         end,
+        required_resource_packages = {
+            "resource_packages/careers/bw_necromancer"
+        },
         description_lines = {
             {
                 format = "base_grave_legion_description",

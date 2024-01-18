@@ -38,7 +38,9 @@ local cgm = {
         deus = 9
     },
 
-    delayed_function_calls = {}
+    delayed_function_calls = {},
+
+    _resource_packages = {},
 }
 cgm.local_data = nil -- Initialize as table then set to null to shut up the Lua diagnostics complaining about accessing fields from nil
 enigma.managers.game = cgm
@@ -270,8 +272,40 @@ local add_context_functions = function(context)
     end
 end
 
+cgm._load_package_if_not_already_loaded = function(self, package_path)
+    if not package_path or self._resource_packages[package_path] then
+        return
+    end
+    safe(function()
+        enigma:info("Loading requested package: "..tostring(package_path))
+        self._resource_packages[package_path] = "loading"
+        Managers.package:load(package_path, "global", function()
+            self._resource_packages[package_path] = "loaded"
+            if self._start_game_on_all_packages_loaded and self:_all_required_packages_loaded() then
+                self:start_game()
+                self._start_game_on_all_packages_loaded = false
+            end
+        end, true)
+    end)
+end
+cgm._all_required_packages_loaded = function(self)
+    for package_path,status in pairs(self._resource_packages) do
+        if status ~= "loaded" then
+            return false
+        end
+    end
+    return true
+end
+
 cgm._instance_card = function(self, context, card_template)
     local card = card_template:instance(context)
+
+    if card.required_resource_packages then
+        for _,package_path in ipairs(card.required_resource_packages) do
+            self:_load_package_if_not_already_loaded(package_path)
+        end
+    end
+
     if self.is_server and card.init_server then
         safe(card.init_server, card)
     end
@@ -483,7 +517,12 @@ enigma:network_register(net.card_game_init_complete, function(peer_id)
             any_left_to_sync = any_left_to_sync or expecting_sync
         end
         if not any_left_to_sync then
-            cgm:start_game()
+            if cgm:_all_required_packages_loaded() then
+                cgm:start_game()
+            else
+                enigma:info("Delaying game start until all required packages are loaded")
+                cgm._start_game_on_all_packages_loaded = true
+            end
         end
     else
         enigma:info("Received initialization sync complete from peer: "..tostring(peer_id))
@@ -531,7 +570,12 @@ cgm._init_update = function(self, dt)
             enigma:info("Expecting syncs from the above "..tostring(num_others_not_yet_synced).." more peers:")
         else
             enigma:info("ALL PLAYERS HAVE SPAWNED: Since there are no other players that have not already synced with us, starting Enigma now")
-            self:start_game()
+            if self:_all_required_packages_loaded() then
+                self:start_game()
+            else
+                enigma:info("Delaying game start until all required packages are loaded")
+                self._start_game_on_all_packages_loaded = true
+            end
         end
     end
 end
@@ -623,6 +667,8 @@ cgm.end_game = function(self)
     self.broadcast_pacing_intensity_interval = nil
     self.time_until_broadcast_pacing_intensity = nil
     self.delayed_function_calls = {}
+    self._resource_packages = {}
+    self._start_game_on_all_packages_loaded = false
     enigma:unregister_mod_event_callback("update", self, "update")
     enigma.managers.warp:end_game()
     enigma.managers.sound:end_game()
