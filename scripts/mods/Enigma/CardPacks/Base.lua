@@ -2787,7 +2787,7 @@ local ability_cards = {
         end,
         on_play_local = function(card)
             enigma:apply_no_clip(card.context.unit, "enigma_base_vault")
-            enigma:leap_forward(card.context.unit, 7, 7, 6, {
+            enigma:leap_forward(card.context.unit, 7, 7, 8, {
                 finished = function(this, aborted, final_position)
                     enigma:remove_no_clip(card.context.unit, "enigma_base_vault")
                 end
