@@ -2061,7 +2061,7 @@ end)
 -- Events
 cgm.on_game_state_changed = function(self, status, state_name)
     if state_name == "StateLoading" and status == "enter" and Managers.level_transition_handler then
-        if self:is_in_game() and (enigma:traveling_to_inn() or enigma:traveling_to_morris_hub() or enigma:traveling_to_morris_map() or self.debug) then
+        if self:is_in_game() then
             self:end_game()
         end
     elseif state_name == "StateIngame" and status == "enter" and Managers.level_transition_handler then
