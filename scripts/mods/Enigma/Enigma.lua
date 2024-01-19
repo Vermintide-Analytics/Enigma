@@ -63,6 +63,7 @@ dofile("scripts/mods/Enigma/GameLogic/target_selection_utils")
 dofile("scripts/mods/Enigma/GameLogic/player_movement")
 dofile("scripts/mods/Enigma/GameLogic/controlled_unit_templates")
 dofile("scripts/mods/Enigma/GameLogic/ai_commander_extension")
+dofile("scripts/mods/Enigma/GameLogic/bt_teleport_to_commander_action")
 
 
 -- Process all requested network lookup values that card pack mods told us about
