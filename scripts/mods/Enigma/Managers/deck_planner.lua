@@ -44,7 +44,7 @@ dpm.settings = {
         max_cp = dpm.cp[legendary]*1 + dpm.cp[epic]*3 + dpm.cp[rare]*7 + dpm.cp[common]*14, -- 50
     },
     deus = {
-        min_Cards = 6,
+        min_cards = 6,
         max_cards = 15,
         max_cp = dpm.cp[legendary]*1 + dpm.cp[epic]*2 + dpm.cp[rare]*5 + dpm.cp[common]*7, -- 35
     }
