@@ -924,7 +924,7 @@ local passive_cards = {
                         local distance = math.clamp(enigma:distance_between_units(unit, us), max_heal_distance, min_heal_distance)
                         local distance_lerp_value = (distance - max_heal_distance) / range
                         local calculated_heal = math.lerp(max_heal, 0, distance_lerp_value)
-                        enigma:heal(unit, us, calculated_heal)
+                        enigma:heal(unit, calculated_heal, us)
                     end
                 end
             end
