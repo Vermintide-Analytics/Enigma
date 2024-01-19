@@ -98,6 +98,12 @@ EnigmaCardGameHud.update_hand_panel_color = function(self)
 	end
 end
 
+local fizzled_card_glow_color = {
+	255,
+	255,
+	0,
+	0
+}
 local show_played_card_duration = 1.25
 local played_card_grow_duration = 0.2
 EnigmaCardGameHud.update_played_card_display = function(self, dt, t)
@@ -119,7 +125,12 @@ EnigmaCardGameHud.update_played_card_display = function(self, dt, t)
 		width = math.lerp(0, max_played_card_width, ui_manager.time_since_card_played / played_card_grow_duration)
 	end
 
-	card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, "played_card", card_to_display, width, "dirty_hud_ui_played_card", false)
+	local glow = nil
+	glow = false
+	if card_to_display and card_to_display.fizzled then
+		glow = fizzled_card_glow_color
+	end
+	card_ui_common.update_card_display_if_needed(self.ui_renderer, self.ui_scenegraph, self._widgets_by_name, "played_card", card_to_display, width, "dirty_hud_ui_played_card", glow)
 
 end
 

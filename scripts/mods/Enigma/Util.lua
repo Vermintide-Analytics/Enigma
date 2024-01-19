@@ -3,13 +3,13 @@ local enigma = get_mod("Enigma")
 local buff_perk_functions = require("scripts/unit_extensions/default_player_unit/buffs/settings/buff_perk_functions")
 
 -- Table functions
-table.deep_copy = function(tbl, max_depth)
+table.deep_copy = function(tbl, max_depth, exclude_table_keys)
     local inst = table.shallow_copy(tbl)
     if max_depth <= 0 then
         return inst
     end
     for k,v in pairs(tbl) do
-        if type(v) == "table" then
+        if type(v) == "table" and (not exclude_table_keys or not exclude_table_keys[k]) then
             inst[k] = table.deep_copy(v, max_depth-1)
         end
     end

@@ -1329,6 +1329,7 @@ card_ui_common.update_card_display = function(ui_renderer, scenegraph_nodes, wid
 	if has_retain and in_hand then
 		glow_color = playable and GLOW_RETAIN_PLAYABLE or GLOW_RETAIN
 	end
+	glow_color = type(card_glow_override) == "table" and card_glow_override or glow_color
 	card_glow_widget.style.glow.color = glow_color
 	card_glow_widget.style.glow.texture_size[1] = sizes.card_glow_width
 	card_glow_widget.style.glow.texture_size[2] = sizes.card_glow_height

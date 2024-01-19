@@ -62,6 +62,10 @@ local format_playing_card = function(card, remote_peer_id, net_x_cost)
     end
     return output
 end
+local format_fizzling_card = function(card, remote_peer_id)
+    local output = format_card_event_log(card, "FIZZLING", remote_peer_id)
+    return output
+end
 local format_discarding_card = function(card, remote_peer_id)
     return format_card_event_log(card, "DISCARDING", remote_peer_id)
 end
@@ -407,6 +411,7 @@ cgm.init_game = function(self, game_init_data, debug)
             manual = 0,
             auto = 0
         },
+        cards_fizzled = 0,
         cards_discarded = {
             manual = 0,
             auto = 0
@@ -781,26 +786,35 @@ end
 ----------
 -- PLAY --
 ----------
-local handle_card_played = function(context, data, card, play_type, destination_index, net_x_cost)
+local handle_card_played = function(context, data, card, play_type, fizzle, destination_index, net_x_cost)
     local location = card.location
 
-    enigma:info(format_playing_card(card, data.peer_id, net_x_cost))
+    if fizzle then
+        enigma:info(format_fizzling_card(card, data.peer_id))
+    else
+        enigma:info(format_playing_card(card, data.peer_id, net_x_cost))
+    end
 
-    local can_expend_charge = card.charges and card.charges > 1
+    local can_expend_charge = not fizzle and card.charges and card.charges > 1
     if not can_expend_charge then
         remove_card_from_pile(data, card.location, card)
     end
 
-    invoke_card_functions(card, "on_play", context, play_type, net_x_cost)
+    if not fizzle then
+        invoke_card_functions(card, "on_play", context, play_type, net_x_cost)
 
-    card._times_played = card._times_played + 1
-    if card.duration then
-        table.insert(card.active_durations, 1, card.duration)
+        card._times_played = card._times_played + 1
+        if card.duration then
+            table.insert(card.active_durations, 1, card.duration)
+        end
+
+        if card.sounds_3D.on_play then
+            sound:trigger_at_unit(card.sounds_3D.on_play, data.unit)
+        end
+    else
+        invoke_card_functions(card, "on_fizzle", context)
     end
 
-    if card.sounds_3D.on_play then
-        sound:trigger_at_unit(card.sounds_3D.on_play, data.unit)
-    end
     local destination_pile = nil
     local inserted_index = nil
     if can_expend_charge then
@@ -809,11 +823,11 @@ local handle_card_played = function(context, data, card, play_type, destination_
         destination_pile = enigma.CARD_LOCATION.hand
     else
         destination_pile = enigma.CARD_LOCATION.discard_pile
-        if card.ephemeral then
+        if not fizzle and card.ephemeral then
             destination_pile = enigma.CARD_LOCATION.out_of_play_pile
         end
 
-        if card.echo and not card.ephemeral then
+        if not fizzle and card.echo and not card.ephemeral then
             destination_pile = enigma.CARD_LOCATION.draw_pile
             if context == "local" then
                 -- Generate random index to insert (also return that value so we can send it to peers)
@@ -829,50 +843,62 @@ local handle_card_played = function(context, data, card, play_type, destination_
         invoke_card_functions(card, "on_location_changed", context, location, destination_pile)
     end
     
-    invoke_all_card_functions(data, card, "on_any_card_played", context, play_type, net_x_cost)
+    if fizzle then
+        invoke_all_card_functions(data, card, "on_any_card_fizzled", context)
+    else
+        invoke_all_card_functions(data, card, "on_any_card_played", context, play_type, net_x_cost)
+    end
 
     return destination_pile, inserted_index
 end
 local handle_local_card_played = function(card, location, index, skip_warpstone_cost, play_type)
+    local fizzle = play_type ~= "manual" and (card.unplayable or not card.condition_met)
     local final_card_cost, card_cost_modifier = enigma.managers.buff:get_final_warpstone_cost(card)
     if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(final_card_cost, card_cost_modifier) then
         if play_type == "manual" then
             enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
+        else
+            fizzle = true
         end
-        return
     end
     local net_x_cost = nil
     if final_card_cost == "X" then
         final_card_cost = enigma.managers.warp.warpstone
         net_x_cost = final_card_cost - card_cost_modifier
     end
-    if not skip_warpstone_cost then
+    if not skip_warpstone_cost and not fizzle then
         enigma.managers.warp:pay_cost(final_card_cost, "playing "..tostring(card.id))
+    elseif fizzle then
+        enigma:info("Skipping warpstone cost for fizzling "..tostring(card.id))
     else
         enigma:info("Skipping warpstone cost for playing "..tostring(card.id))
     end
     
-    local new_location, inserted_index = handle_card_played("local", cgm.local_data, card, play_type, nil, net_x_cost)
+    local card_snapshot = table.deep_copy(card, 3, { card_pack = true, context = true, mod = true })
+    card_snapshot.fizzled = fizzle
+    local new_location, inserted_index = handle_card_played("local", cgm.local_data, card, play_type, fizzle, nil, net_x_cost)
     if location == enigma.CARD_LOCATION.hand and location ~= new_location then
         enigma.managers.ui.hud_data.hand_indexes_just_removed[index] = true
         enigma.managers.ui.card_mode_ui_data.hand_indexes_just_removed[index] = true
     end
-    if new_location == enigma.CARD_LOCATION.draw_pile then
+    if new_location == enigma.CARD_LOCATION.draw_pile and not fizzle then
         cgm:add_card_cost(card, 1)
     end
-    if card.sounds_2D.on_play then
+    if card.sounds_2D.on_play and not fizzle then
         sound:trigger(card.sounds_2D.on_play)
     end
 
     sound:trigger("play_card")
-    enigma:network_send(net.event_card_played, "others", card.local_id, play_type, inserted_index, net_x_cost)
+    enigma:network_send(net.event_card_played, "others", card.local_id, play_type, fizzle, inserted_index, net_x_cost)
     cgm.statistics.cards_played[play_type] = cgm.statistics.cards_played[play_type] + 1
-    
-    table.insert(enigma.managers.ui.played_cards_queue, card)
+    if fizzle then
+        cgm.statistics.cards_fizzled = cgm.statistics.cards_fizzled + 1
+    end
+    table.insert(enigma.managers.ui.played_cards_queue, card_snapshot)
 
     return true
 end
-enigma:network_register(net.event_card_played, function(peer_id, card_local_id, play_type, destination_index, net_x_cost)
+enigma:network_register(net.event_card_played, function(peer_id, card_local_id, play_type, fizzle, destination_index, net_x_cost)
     local peer_data = cgm.peer_data[peer_id]
     if not peer_data then
         enigma:warning(tostring(peer_id).." TOLD US OF A CARD PLAYED EVENT, BUT WE DON'T HAVE DATA FOR THAT PEER")
@@ -883,7 +909,7 @@ enigma:network_register(net.event_card_played, function(peer_id, card_local_id, 
         enigma:warning("Could not find a card to be played with local ID "..format_card_identification(peer_id, card_local_id))
         return
     end
-    handle_card_played("remote", peer_data, card, play_type, destination_index, net_x_cost)
+    handle_card_played("remote", peer_data, card, play_type, fizzle, destination_index, net_x_cost)
 end)
 cgm._play_card_at_index_from_location = function(self, location, index, skip_warpstone_cost, play_type)
     play_type = play_type or "auto"
@@ -914,20 +940,14 @@ cgm._play_card_at_index_from_location = function(self, location, index, skip_war
         return false, "card_unplayable"
     end
 
-    if not card.condition_met then
-        if play_type == "manual" then
-            enigma:info("Could not play "..card.name..", condition not met")
-        else
-            enigma:debug("Attempted to automatically play "..card.name.." but condition not met")
-        end
+    if not card.condition_met and play_type == "manual" then
+        enigma:info("Could not play "..card.name..", condition not met")
         return false, "card_condition_not_met"
     end
 
     local final_card_cost, card_cost_modifier = enigma.managers.buff:get_final_warpstone_cost(card)
-    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(final_card_cost, card_cost_modifier) then
-        if play_type == "manual" then
-            enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
-        end
+    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(final_card_cost, card_cost_modifier) and play_type == "manual" then
+        enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
         return false, "not_enough_warpstone"
     end
 
