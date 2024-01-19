@@ -105,8 +105,12 @@ local process_prebuilt_deck_registrations = function()
     enigma.queued_prebuilt_decks = nil -- We don't need this anymore, as any decks can now be registered immediately instead of being deferred via the queue
 end
 
+local hud_component_list_definitions_to_append_to = {
+    ["scripts/ui/hud_ui/component_list_definitions/hud_component_list_adventure"] = true,
+    ["scripts/ui/hud_ui/component_list_definitions/hud_component_list_deus"] = true,
+}
 enigma:hook(IngameHud, "_setup_component_definitions", function(func, self, hud_component_list_path)
-    if hud_component_list_path == "scripts/ui/hud_ui/component_list_definitions/hud_component_list_adventure" then
+    if hud_component_list_definitions_to_append_to[hud_component_list_path] then
         return func(self, "scripts/mods/Enigma/hud_component_list_enigma")
     end
     return func(self, hud_component_list_path)
