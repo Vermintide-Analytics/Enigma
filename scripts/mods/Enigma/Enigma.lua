@@ -15,6 +15,7 @@ enigma.mega_resource_start = enigma:get("mega_resource_start")
 -----------------
 
 local mod_event_callbacks = {
+    on_all_mods_loaded = {},
     update = {},
     on_unload = {},
     on_game_state_changed = {},
@@ -178,10 +179,13 @@ local add_test_deck = function()
 end
 
 enigma.on_all_mods_loaded = function()
-
     add_registered_network_lookups()
     process_prebuilt_deck_registrations()
     add_test_deck()
+    
+    for _,v in pairs(mod_event_callbacks.on_all_mods_loaded) do
+        v.executor[v.callback](v.executor)
+    end
 
     enigma:echo("Enigma Version: "..enigma.VERSION)
 end

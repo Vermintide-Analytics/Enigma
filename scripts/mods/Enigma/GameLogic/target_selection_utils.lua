@@ -1,5 +1,36 @@
 local enigma = get_mod("Enigma")
 
+enigma._get_closest_target_with_spillover_score_modifier = function(target_unit, ai_unit, ai_unit_breed, is_horde)
+    local score = 0
+    local custom_buffs = enigma.managers.buff.unit_custom_buffs and enigma.managers.buff.unit_custom_buffs[target_unit]
+    if not custom_buffs then
+        return score
+    end
+
+    score = score - custom_buffs.aggro
+
+    if not ai_unit_breed then
+        return score
+    end
+    local race = ai_unit_breed.race
+    if race == "skaven" then
+        score = score - custom_buffs.aggro_skaven
+    elseif race == "chaos" then
+        score = score - custom_buffs.aggro_chaos
+    elseif race == "beastmen" then
+        score = score - custom_buffs.aggro_beastmen
+    end
+
+    if ai_unit_breed.elite then
+        score = score - custom_buffs.aggro_elite
+    elseif not ai_unit_breed.special and not ai_unit_breed.boss then
+        score = score - custom_buffs.aggro_trash
+    end
+
+	return score
+end
+
+
 local HEALTH_ALIVE = HEALTH_ALIVE
 local unit_knocked_down = AiUtils.unit_knocked_down
 local vector3_distance = Vector3.distance
@@ -49,6 +80,80 @@ local STICKY_AGGRO_RANGE_SQUARED = 5.0625
 local HIGHER_STICKINESS_RANGE_SQUARED = 4
 local DISTANCE_SCORE = 0.25
 local COMBO_TARGET_SCORE = 5
+
+local function _calculate_horde_pick_closest_target_with_spillover_score(ai_unit, target_unit, target_current, previous_attacker, ai_unit_position, breed, perception_previous_attacker_stickyness_value)
+	local target_type = Unit.get_data(target_unit, "target_type")
+	local exceptions = target_type and breed.perception_exceptions and breed.perception_exceptions[target_type]
+
+	if exceptions then
+		return
+	end
+
+	local dogpile_count = 0
+	local disabled_slots_count = 0
+	local all_slots_disabled = false
+	local is_previous_attacker = previous_attacker and previous_attacker == target_unit
+
+	if ScriptUnit.has_extension(target_unit, "ai_slot_system") then
+		local target_slot_extension = ScriptUnit.extension(target_unit, "ai_slot_system")
+
+		if not target_slot_extension.valid_target then
+			return
+		end
+
+		local slot_type = breed.use_slot_type
+		local ai_slot_system = Managers.state.entity:system("ai_slot_system")
+		local total_slots_count = ai_slot_system:total_slots_count(target_unit, slot_type)
+		dogpile_count = ai_slot_system:slots_count(target_unit, slot_type)
+		disabled_slots_count = ai_slot_system:disabled_slots_count(target_unit, slot_type)
+		all_slots_disabled = disabled_slots_count == total_slots_count
+		local status_ext = ScriptUnit.has_extension(target_unit, "status_system")
+		local on_ladder = status_ext and status_ext:get_is_on_ladder()
+
+		if on_ladder then
+			local max_allowed = is_previous_attacker and total_slots_count or total_slots_count - 1
+
+			if dogpile_count > max_allowed then
+				all_slots_disabled = true
+			end
+		end
+	end
+
+	local target_unit_position = POSITION_LOOKUP[target_unit]
+
+	if not target_unit_position then
+		return
+	end
+
+	local distance_sq = Vector3.distance_squared(ai_unit_position, target_unit_position)
+	local aggro_extension = ScriptUnit.extension(target_unit, "aggro_system")
+	local aggro_modifier = aggro_extension.aggro_modifier
+	local is_knocked_down = unit_knocked_down(target_unit)
+
+	if distance_sq < STICKY_AGGRO_RANGE_SQUARED and not is_knocked_down then
+		dogpile_count = math.max(dogpile_count - 4, 0)
+	end
+
+	local stickyness_modifier = breed.target_stickyness_modifier or -5
+
+	if HIGHER_STICKINESS_RANGE_SQUARED < distance_sq then
+		stickyness_modifier = stickyness_modifier * 0.5
+	end
+
+	local score_dogpile = dogpile_count * DOGPILE_SCORE
+	local score_distance = distance_sq * DISTANCE_SCORE
+	local score_stickyness = target_unit == target_current and stickyness_modifier or 0
+	local knocked_down_modifer = is_knocked_down and 5 or 0
+	local previous_attacker_stickyness_value = is_previous_attacker and perception_previous_attacker_stickyness_value or 0
+	local score_disabled_slots = disabled_slots_count * DISABLED_SLOT_SCORE
+	local score_all_slots_disabled = all_slots_disabled and ALL_SLOTS_DISABLED_SCORE or 0
+	local score = score_dogpile + score_distance + score_disabled_slots + score_all_slots_disabled + score_stickyness + previous_attacker_stickyness_value + knocked_down_modifer + aggro_modifier
+
+    -- Enigma Logic
+	score = score + enigma._get_closest_target_with_spillover_score_modifier(target_unit, ai_unit, breed, false)
+
+	return score, distance_sq
+end
 
 local dogpile_score = {
 	[0] = 0,
@@ -260,36 +365,12 @@ local function _calculate_closest_target_with_spillover_score(ai_unit, target_un
 	local score_all_slots_disabled = all_slots_disabled and ALL_SLOTS_DISABLED_SCORE or 0
 	local score = score_dogpile + score_disabled_slots + score_all_slots_disabled + score_distance + score_stickyness + previous_attacker_stickyness_value + knocked_down_modifer + aggro_modifier + target_of_combo_score
 
-    -- Enigma Buff Logic
-    local custom_buffs = enigma.managers.buff.unit_custom_buffs and enigma.managers.buff.unit_custom_buffs[target_unit]
-    if not custom_buffs then
-        return score, distance_sq
-    end
-
-    score = score - custom_buffs.aggro
-
-    local ai_breed = Unit.get_data(ai_unit, "breed")
-    if not ai_breed then
-        return score, distance_sq
-    end
-    local race = ai_breed.race
-    if race == "skaven" then
-        score = score - custom_buffs.aggro_skaven
-    elseif race == "chaos" then
-        score = score - custom_buffs.aggro_chaos
-    elseif race == "beastmen" then
-        score = score - custom_buffs.aggro_beastmen
-    end
-
-    if ai_breed.elite then
-        score = score - custom_buffs.aggro_elite
-    elseif not ai_breed.special and not ai_breed.boss then
-        score = score - custom_buffs.aggro_trash
-    end
+    -- Enigma Logic
+	score = score + enigma._get_closest_target_with_spillover_score_modifier(target_unit, ai_unit, breed, false)
 
 	return score, distance_sq
 end
-enigma:hook_origin(PerceptionUtils, "pick_closest_target_with_spillover", function(ai_unit, blackboard, breed, t)
+local custom_pick_closest_target_with_spillover = function(ai_unit, blackboard, breed, t)
     fassert(ScriptUnit.has_extension(ai_unit, "ai_slot_system"), "Error! Trying to use slot_system perception for non-slot system unit!")
 
 	local detection_radius = nil
@@ -378,7 +459,75 @@ enigma:hook_origin(PerceptionUtils, "pick_closest_target_with_spillover", functi
 	end
 
 	return best_target_unit, distance_to_target_sq
-end)
+end
+local custom_horde_pick_closest_target_with_spillover = function (ai_unit, blackboard, breed, t)
+	fassert(ScriptUnit.has_extension(ai_unit, "ai_slot_system"), "Error! Trying to use slot_system perception for non-slot system unit!")
+
+	local ai_unit_position = POSITION_LOOKUP[ai_unit]
+	local target_current = blackboard.target_unit
+	local best_target_unit = nil
+	local best_score = nil
+	best_score = math.huge
+	local side = blackboard.side
+	local targets = side.AI_TARGET_UNITS
+	local perception_previous_attacker_stickyness_value = breed.perception_previous_attacker_stickyness_value
+	local previous_attacker = blackboard.previous_attacker
+	local distance_to_target_sq = nil
+	local using_override_target = false
+	local override_targets = blackboard.override_targets
+	local valid_players = side.VALID_ENEMY_TARGETS_PLAYERS_AND_BOTS
+	local enemy_units = side.enemy_units_lookup
+
+	for target_unit, end_of_override_t in pairs(override_targets) do
+		local status_extension = ScriptUnit.has_extension(target_unit, "status_system")
+		local is_player = status_extension
+		local is_valid = nil
+		is_valid = is_player and valid_players[target_unit] or enemy_units[target_unit] and HEALTH_ALIVE[target_unit]
+		local status_extension = ScriptUnit.has_extension(target_unit, "status_system")
+
+		if not is_valid or end_of_override_t < t or status_extension and status_extension:is_disabled() then
+			override_targets[target_unit] = nil
+		else
+			local score, distance_sq = nil, nil
+
+			if is_player then
+				score, distance_sq = _calculate_horde_pick_closest_target_with_spillover_score(ai_unit, target_unit, target_current, previous_attacker, ai_unit_position, breed, perception_previous_attacker_stickyness_value)
+			else
+				local target_blackboard = BLACKBOARDS[target_unit]
+				score, distance_sq = get_lean_score(target_blackboard, ai_unit_position, ai_unit, target_unit)
+			end
+
+			if score and score < best_score then
+				best_score = score
+				best_target_unit = target_unit
+				distance_to_target_sq = distance_sq
+				using_override_target = true
+			end
+		end
+	end
+
+	blackboard.using_override_target = using_override_target
+
+	if not using_override_target then
+		best_target_unit, best_score = get_lean_target(blackboard, ai_unit_position, side, ai_unit, false, t, breed.infighting.ignored_breed_filter)
+
+		for i_target, target_unit in ipairs(targets) do
+			local score, distance_sq = _calculate_horde_pick_closest_target_with_spillover_score(ai_unit, target_unit, target_current, previous_attacker, ai_unit_position, breed, perception_previous_attacker_stickyness_value)
+			local is_unwanted = AiUtils.is_unwanted_target(side, target_unit)
+			local is_best_target = not is_unwanted and score and score < best_score
+
+			if is_best_target then
+				best_score = score
+				best_target_unit = target_unit
+				distance_to_target_sq = distance_sq
+			end
+		end
+	end
+
+	return best_target_unit, distance_to_target_sq
+end
+
+-- TODO, account for other PerceptionUtils functions like pick_rat_ogre_target_with_weights and pick_bestigor_target_with_weights
 
 enigma:hook(AISystem, "_update_taunt", function(func, self, t, blackboard)
     if blackboard.indefinite_taunt and blackboard.taunt_unit and Unit.alive(blackboard.taunt_unit) then
@@ -394,3 +543,15 @@ enigma:hook(AiUtils, "is_unwanted_target", function(func, side, enemy_unit)
     end
     return func(side, enemy_unit)
 end)
+
+enigma._hook_perception_utils_on_mods_loaded = function(self)
+	local peregrinaje = get_mod("Peregrinaje")
+	if not peregrinaje then
+		enigma:info("Hooking PerceptionUtils functions because Peregrinaje not enabled")
+		enigma:hook_origin(PerceptionUtils, "pick_closest_target_with_spillover", custom_pick_closest_target_with_spillover)
+		enigma:hook_origin(PerceptionUtils, "horde_pick_closest_target_with_spillover", custom_horde_pick_closest_target_with_spillover)
+	else
+		enigma:info("NOT hooking PerceptionUtils functions because Peregrinaje IS enabled. Peregrinaje should be calling our _get_closest_target_with_spillover_score_modifier function to modify targeting scores")
+	end
+end
+enigma:register_mod_event_callback("on_all_mods_loaded", enigma, "_hook_perception_utils_on_mods_loaded")
