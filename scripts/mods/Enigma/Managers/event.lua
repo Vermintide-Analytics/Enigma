@@ -98,7 +98,10 @@ em._add_card_local_event_callbacks = function(self, card)
     end
     for evt,cb in pairs(card.events_local) do
         if self.events[evt] then
-            self.events[evt][card] = cb
+            if not self.events[evt][card] then
+                self.events[evt][card] = {}
+            end
+            table.insert(self.events[evt][card], cb)
         else
             enigma:warning("Unrecognized game event: "..tostring(evt))
         end
@@ -110,7 +113,10 @@ em._add_card_server_event_callbacks = function(self, card)
     end
     for evt,cb in pairs(card.events_server) do
         if self.events[evt] then
-            self.events[evt][card] = cb
+            if not self.events[evt][card] then
+                self.events[evt][card] = {}
+            end
+            table.insert(self.events[evt][card], cb)
         else
             enigma:warning("Unrecognized game event: "..tostring(evt))
         end
@@ -122,7 +128,10 @@ em._add_card_remote_event_callbacks = function(self, card)
     end
     for evt,cb in pairs(card.events_remote) do
         if self.events[evt] then
-            self.events[evt][card] = cb
+            if not self.events[evt][card] then
+                self.events[evt][card] = {}
+            end
+            table.insert(self.events[evt][card], cb)
         else
             enigma:warning("Unrecognized game event: "..tostring(evt))
         end
@@ -147,11 +156,13 @@ em._invoke_event_callbacks = function(self, event, ...)
         return
     end
     
-    for card,cb in pairs(self.events[event]) do
-        if not cb then
+    for card,cb_table in pairs(self.events[event]) do
+        if not cb_table then
             return
         end
-        cb(card, ...)
+        for _,cb in ipairs(cb_table) do
+            cb(card, ...)
+        end
     end
 end
 
