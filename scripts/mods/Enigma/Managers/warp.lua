@@ -139,6 +139,9 @@ wm.add_warp_dust = function(self, amount, source, raw)
             if custom_buffs and custom_buffs.warp_dust_multiplier then
                 amount = amount * custom_buffs.warp_dust_multiplier
             end
+            if source == "passive" and custom_buffs and custom_buffs.warp_dust_per_second_multiplier then
+                amount = amount * custom_buffs.warp_dust_per_second_multiplier
+            end
         end
     end
 

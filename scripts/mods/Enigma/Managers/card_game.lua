@@ -1630,6 +1630,9 @@ cgm._update_card_draw_gain_rate = function(self)
         if custom_buffs and custom_buffs.card_draw_multiplier then
             rate = rate * custom_buffs.card_draw_multiplier
         end
+        if custom_buffs and custom_buffs.card_draw_per_second_multiplier then
+            rate = rate * custom_buffs.card_draw_per_second_multiplier
+        end
     end
     
     local pacing_intensity = self.pacing_intensity

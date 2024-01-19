@@ -39,6 +39,7 @@ local custom_buff_definitions = {
     attack_card_power_multiplier = 1.0,
     cannot_use_career_skill = 0,
     card_draw_multiplier = 1.0,
+    card_draw_per_second_multiplier = 1.0,
     chance_ignore_assassin = 0,
     chance_ignore_blightstorm_damage = 0,
     chance_ignore_blightstormer = 0,
@@ -53,6 +54,7 @@ local custom_buff_definitions = {
     jump_force = 1.0,
     temporary_healing_received = 1.0,
     warp_dust_multiplier = 1.0,
+    warp_dust_per_second_multiplier = 1.0,
 }
 local builtin_buff_definitions = {
     movement_speed = 1

@@ -2011,6 +2011,8 @@ local ability_cards = {
             multiply_stat("fatigue_regen", 1, effect)
             divide_stat("faster_revive", effect)
             divide_stat("reduced_ranged_charge_time", effect)
+            multiply_stat("card_draw_per_second_multiplier", 0, effect)
+            multiply_stat("warp_dust_per_second_multiplier", 0, effect)
 
             enigma:invoke_delayed(function()
                 card:play_speedup_sound()
@@ -2032,6 +2034,8 @@ local ability_cards = {
                 multiply_stat("fatigue_regen", 1, effect_inv)
                 undivide_stat("faster_revive", effect)
                 undivide_stat("reduced_ranged_charge_time", effect)
+                multiply_stat("card_draw_per_second_multiplier", 0, effect_inv)
+                multiply_stat("warp_dust_per_second_multiplier", 0, effect_inv)
 
                 for _,crystal in ipairs(crystals) do
                     crystal:deactivate()
