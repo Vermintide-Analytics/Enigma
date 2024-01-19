@@ -843,10 +843,9 @@ local handle_card_played = function(context, data, card, play_type, fizzle, dest
         invoke_card_functions(card, "on_location_changed", context, location, destination_pile)
     end
     
+    invoke_all_card_functions(data, card, "on_any_card_played", context, play_type, net_x_cost)
     if fizzle then
         invoke_all_card_functions(data, card, "on_any_card_fizzled", context)
-    else
-        invoke_all_card_functions(data, card, "on_any_card_played", context, play_type, net_x_cost)
     end
 
     return destination_pile, inserted_index
