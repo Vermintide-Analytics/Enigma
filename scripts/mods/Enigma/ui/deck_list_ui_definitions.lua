@@ -15,10 +15,14 @@ local PRETTY_MARGIN = 10
 local DECK_LIST_WIDTH = INNER_WINDOW_WIDTH - PRETTY_MARGIN*2
 local DECK_LIST_HEIGHT = (INNER_WINDOW_HEIGHT - PRETTY_MARGIN*2) * 0.7
 
-local PAGINATION_PANEL_WIDTH = INNER_WINDOW_WIDTH*0.5
+local PAGINATION_PANEL_WIDTH = INNER_WINDOW_WIDTH*0.35
 local PAGINATION_PANEL_HEIGHT = INNER_WINDOW_HEIGHT*0.1
 
-local BUTTON_HEIGHT = 70
+local SMALL_BUTTON_HEIGHT = 40
+local LARGE_BUTTON_HEIGHT = 60
+
+local SMALL_BUTTON_FONT_SIZE = 16
+local LARGE_BUTTON_FONT_SIZE = 24
 
 local scenegraph_definition = {
 	screen = {
@@ -131,31 +135,45 @@ local scenegraph_definition = {
 			10
 		}
 	},
-	start_test_game_button = {
+	create_deck_button = {
 		parent = "inner_window",
 		vertical_alignment = "top",
-		horizontal_alignment = "center",
+		horizontal_alignment = "left",
 		size = {
-			DECK_LIST_WIDTH/2,
-			BUTTON_HEIGHT
+			DECK_LIST_WIDTH/2.5,
+			LARGE_BUTTON_HEIGHT
 		},
 		position = {
-			0,
+			PRETTY_MARGIN*1,
 			PRETTY_MARGIN*-1,
 			1
 		}
 	},
-	create_deck_button = {
+	paste_deck_button = {
 		parent = "inner_window",
 		vertical_alignment = "top",
-		horizontal_alignment = "center",
+		horizontal_alignment = "left",
 		size = {
-			DECK_LIST_WIDTH/2,
-			BUTTON_HEIGHT
+			DECK_LIST_WIDTH/2.5,
+			LARGE_BUTTON_HEIGHT
 		},
 		position = {
-			0,
-			PRETTY_MARGIN*-2 - BUTTON_HEIGHT,
+			PRETTY_MARGIN*1,
+			PRETTY_MARGIN*-2 - LARGE_BUTTON_HEIGHT,
+			1
+		}
+	},
+	start_test_game_button = {
+		parent = "inner_window",
+		vertical_alignment = "top",
+		horizontal_alignment = "right",
+		size = {
+			DECK_LIST_WIDTH/2.5,
+			SMALL_BUTTON_HEIGHT
+		},
+		position = {
+			PRETTY_MARGIN*-1,
+			PRETTY_MARGIN*-1,
 			1
 		}
 	},
@@ -192,8 +210,8 @@ local scenegraph_definition = {
 		vertical_alignment = "center",
 		horizontal_alignment = "left",
 		size = {
-			PAGINATION_PANEL_HEIGHT,
-			PAGINATION_PANEL_HEIGHT
+			LARGE_BUTTON_HEIGHT,
+			LARGE_BUTTON_HEIGHT
 		},
 		position = {
 			0,
@@ -206,8 +224,8 @@ local scenegraph_definition = {
 		vertical_alignment = "center",
 		horizontal_alignment = "right",
 		size = {
-			PAGINATION_PANEL_HEIGHT,
-			PAGINATION_PANEL_HEIGHT
+			LARGE_BUTTON_HEIGHT,
+			LARGE_BUTTON_HEIGHT
 		},
 		position = {
 			0,
@@ -273,9 +291,10 @@ local widgets = {
 			2
 		}
 	}),
-	close_window_button = UIWidgets.create_default_button("close_window_button", scenegraph_definition.close_window_button.size, nil, nil, Localize("interaction_action_close"), 24, nil, "button_detail_04", 34, true),
-	start_test_game_button = UIWidgets.create_default_button("start_test_game_button", scenegraph_definition.start_test_game_button.size, nil, nil, enigma:localize("start_test_game"), 24, nil, nil, nil, true, true),
-	create_deck_button = UIWidgets.create_default_button("create_deck_button", scenegraph_definition.create_deck_button.size, nil, nil, enigma:localize("create_deck"), 24, nil, nil, nil, true, true),
+	close_window_button = UIWidgets.create_default_button("close_window_button", scenegraph_definition.close_window_button.size, nil, nil, Localize("interaction_action_close"), LARGE_BUTTON_FONT_SIZE, nil, "button_detail_04", 34, true),
+	create_deck_button = UIWidgets.create_default_button("create_deck_button", scenegraph_definition.create_deck_button.size, nil, nil, enigma:localize("create_deck"), LARGE_BUTTON_FONT_SIZE, nil, nil, nil, true, true),
+	paste_deck_button = UIWidgets.create_default_button("paste_deck_button", scenegraph_definition.paste_deck_button.size, nil, nil, enigma:localize("paste_deck"), LARGE_BUTTON_FONT_SIZE, nil, nil, nil, true, true),
+	start_test_game_button = UIWidgets.create_default_button("start_test_game_button", scenegraph_definition.start_test_game_button.size, nil, nil, enigma:localize("start_test_game"), SMALL_BUTTON_FONT_SIZE, nil, nil, nil, true, true),
 	deck_list = {
 		scenegraph_id = "deck_list",
 		element = {
@@ -348,8 +367,8 @@ local widgets = {
 			}
 		}
 	},
-	page_left_button = UIWidgets.create_default_button("page_left_button", scenegraph_definition.page_left_button.size, nil, nil, "<-", 24, nil, nil, nil, true, true),
-	page_right_button = UIWidgets.create_default_button("page_right_button", scenegraph_definition.page_right_button.size, nil, nil, "->", 24, nil, nil, nil, true, true),
+	page_left_button = UIWidgets.create_default_button("page_left_button", scenegraph_definition.page_left_button.size, nil, nil, "<-", LARGE_BUTTON_FONT_SIZE, nil, nil, nil, true, true),
+	page_right_button = UIWidgets.create_default_button("page_right_button", scenegraph_definition.page_right_button.size, nil, nil, "->", LARGE_BUTTON_FONT_SIZE, nil, nil, nil, true, true),
 }
 
 local TOTAL_DECK_LIST_ITEMS = 8

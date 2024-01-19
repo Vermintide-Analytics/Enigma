@@ -343,6 +343,17 @@ EnigmaDeckEditorUI._handle_input = function(self, dt, t)
 		enigma.managers.deck_planner:equip_deck_for_current_career_and_game_mode(deck.name)
 		deck_ui_update_needed = true
 	end
+	
+	-- Copy button
+	local copy_deck_button = self._widgets_by_name.copy_deck_button
+	UIWidgetUtils.animate_default_button(copy_deck_button, dt)
+	if copy_deck_button.content.button_hotspot.on_hover_enter then
+		self:play_sound("Play_hud_hover")
+	end
+	if UIUtils.is_button_pressed(copy_deck_button) then
+		self:play_sound("Play_hud_select")
+		enigma.managers.deck_planner:copy_deck_to_clipboard(deck)
+	end
 
 	-- Deck cards
 	for i=1, MAX_CARDS_IN_DECK do
@@ -490,6 +501,9 @@ EnigmaDeckEditorUI.update_deck_info_ui = function(self)
 	local equipped = enigma.managers.deck_planner:equipped_deck() == deck
 	equip_deck_button.content.visible = not equipped
 	equipped_deck_text.content.visible = equipped
+
+	local copy_deck_button = self._widgets_by_name.copy_deck_button
+	copy_deck_button.content.visible = #deck.cards > 0
 end
 
 EnigmaDeckEditorUI.update_deck_cards_ui = function(self)

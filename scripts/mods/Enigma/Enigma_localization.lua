@@ -307,7 +307,10 @@ local loc = {
 
 	-- Deck List
 	create_deck = {
-		en = "Create Deck",
+		en = "New (Empty)",
+	},
+	paste_deck = {
+		en = "New (From Clipboard)"
 	},
 
 	-- Deck Editor
@@ -334,7 +337,10 @@ local loc = {
 	},
 	show_hidden = {
 		en = "Show Hidden"
-	}
+	},
+	copy_deck = {
+		en = "Copy (to Clipboard)"
+	},
 
 }
 

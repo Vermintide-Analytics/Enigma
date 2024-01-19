@@ -26,6 +26,9 @@ EnigmaDeckListUI.init = function(self, ingame_ui_context)
 	self.filtered_decks = {}
 	self.num_pages = 1
 	self.current_page = 1
+	
+	self.check_clipboard_frequency = 0.5
+	self.time_until_check_clipboard = 0.5
 
 	self:create_ui_elements()
 end
@@ -34,6 +37,8 @@ EnigmaDeckListUI.create_ui_elements = function (self)
 	DO_RELOAD = false
 	self.ui_scenegraph = UISceneGraph.init_scenegraph(definitions.scenegraph_definition)
 	self._widgets, self._widgets_by_name = UIUtils.create_widgets(definitions.widgets)
+
+	self.paste_deck_widget = self._widgets_by_name["paste_deck_button"]
 
 	UIRenderer.clear_scenegraph_queue(self.ui_renderer)
 end
@@ -46,6 +51,7 @@ EnigmaDeckListUI.on_enter = function(self, params, offset)
 	ShowCursorStack.push()
 
 	self:update_filtered_decks()
+	self.time_until_check_clipboard = 0
 	
 	self.input_manager:block_device_except_service("deck_list_view", "keyboard", 1)
 	self.input_manager:block_device_except_service("deck_list_view", "mouse", 1)
@@ -64,6 +70,17 @@ EnigmaDeckListUI.on_exit = function(self, params)
 	self.active = false
 end
 
+EnigmaDeckListUI.update_paste_deck_button = function(self, dt)
+	self.time_until_check_clipboard = self.time_until_check_clipboard - dt
+	if self.time_until_check_clipboard <= 0 then
+		local data = Clipboard.get()
+		local disabled = (not data) or (not enigma.managers.deck_planner:is_valid_serialized_deck(tostring(data)))
+		self.paste_deck_widget.content.disable_button = disabled
+
+		self.time_until_check_clipboard = self.time_until_check_clipboard + self.check_clipboard_frequency
+	end
+end
+
 EnigmaDeckListUI.update = function (self, dt, t)
 	if DO_RELOAD then
 		self:create_ui_elements()
@@ -74,6 +91,8 @@ EnigmaDeckListUI.update = function (self, dt, t)
 	if ui_suspended then
 		return
 	end
+
+	self:update_paste_deck_button(dt)
 
 	self:_handle_input(dt, t)
 
@@ -91,7 +110,7 @@ EnigmaDeckListUI._handle_input = function(self, dt, t)
 	local input_service = self:input_service()
 	local input_close_pressed = input_service:get("toggle_menu")
 
-	-- End Test Game Button
+	-- Start Test Game Button
 	local start_test_game_button = self._widgets_by_name.start_test_game_button
 	UIWidgetUtils.animate_default_button(start_test_game_button, dt)
 	if start_test_game_button.content.button_hotspot.on_hover_enter then
@@ -124,6 +143,32 @@ EnigmaDeckListUI._handle_input = function(self, dt, t)
 		else
 			enigma:echo("Failed to create a new deck")
 		end
+	end
+
+	-- Paste Deck Button
+	local paste_deck_button = self._widgets_by_name.paste_deck_button
+	if not paste_deck_button.content.disable_button then
+		UIWidgetUtils.animate_default_button(paste_deck_button, dt)
+		if paste_deck_button.content.button_hotspot.on_hover_enter then
+			self:play_sound("Play_hud_hover")
+		end
+		if UIUtils.is_button_pressed(paste_deck_button) then
+			self:play_sound("Play_hud_select")
+	
+			local new_deck = enigma.managers.deck_planner:create_new_deck_from_clipboard()
+			if not new_deck then
+				enigma:echo("Enigma was unable a new deck from your clipboard")
+				enigma:info(tostring(Clipboard.get()))
+			end
+			if new_deck and new_deck.game_mode ~= enigma:game_mode() then
+				enigma:echo("NOTE: The new deck is not meant for the current game-mode. It will not appear in the current deck list.")
+			end
+			if new_deck then
+				Managers.ui:handle_transition("deck_planner_view", { deck_name = new_deck.name })
+			end
+		end
+	elseif UIUtils.is_button_pressed(paste_deck_button) then
+		enigma:echo("No valid deck in clipboard")
 	end
 
 

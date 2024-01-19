@@ -233,6 +233,20 @@ local scenegraph_definition = {
 			0
 		}
 	},
+	copy_deck_button = {
+		parent = "top_panel",
+		vertical_alignment = "top",
+		horizontal_alignment = "left",
+		size = {
+			WINDOW_WIDTH / 8,
+			TOP_PANEL_HEIGHT / 3
+		},
+		position = {
+			PRETTY_MARGIN*-2 + WINDOW_WIDTH / 8 + 2,
+			PRETTY_MARGIN*-4 - 4 - TOP_PANEL_HEIGHT / 4,
+			1
+		}
+	},
 	deck_avg_cost = {
 		parent = "top_panel",
 		vertical_alignment = "top",
@@ -690,6 +704,7 @@ local widgets = {
 			}
 		}
 	},
+	copy_deck_button = UIWidgets.create_default_button("copy_deck_button", scenegraph_definition.copy_deck_button.size, nil, nil, enigma:localize("copy_deck"), 14, nil, nil, nil, true, true),
 	deck_avg_cost = {
 		scenegraph_id = "deck_avg_cost",
 		element = {

@@ -161,6 +161,17 @@ dpm.notify_players_of_deck_validity = function(self, recipient)
     enigma:network_send(net.sync_deck_validity, recipient, deck_name, self:is_equipped_deck_valid())
 end
 
+dpm.uniquify_deck_name = function(self, name)
+    if not self.decks[name] then
+        return name
+    end
+    local i = 2
+    while self.decks[name..i] do
+        i = i + 1
+    end
+    return name..i
+end
+
 ------------------------
 -- Game mode settings --
 ------------------------
@@ -189,7 +200,7 @@ dpm.create_empty_deck = function(self, name, game_mode, skip_save)
         return
     end
     local new_deck = table.shallow_copy(deck_template)
-    new_deck.name = name
+    new_deck.name = self:uniquify_deck_name(name)
     new_deck.game_mode = game_mode
     new_deck.cards = {}
     new_deck.cp = 0
@@ -580,6 +591,106 @@ dpm.is_equipped_deck_valid = function(self)
     self.game_init_data.deck_name = equipped_deck and equipped_deck.name
     self.game_init_data.is_server = enigma:is_server()
     return valid
+end
+
+
+-------------------
+-- Serialization --
+-------------------
+dpm.serialize_deck = function(self, deck)
+    local card_ids = {}
+    for _,template in ipairs(deck.cards) do
+        if type(template) == "string" then
+            table.insert(card_ids, template)
+        else
+            table.insert(card_ids, template.id)
+        end
+    end
+    local name = deck.name
+    local game_mode = deck.game_mode
+    local cards = table.concat(card_ids, ",")
+    return "["..name..","..game_mode..","..cards.."]"
+end
+dpm.copy_deck_to_clipboard = function(self, deck)
+    if not deck then
+        return false
+    end
+    local data = self:serialize_deck(deck)
+    if not data then
+        return false
+    end
+    Clipboard.put(data)
+    return true
+end
+dpm.copy_editing_deck_to_clipboard = function(self)
+    if not self.editing_deck then
+        enigma:warning("Could not copy the currently editing deck to clipboard, not currently editing a deck")
+        return
+    end
+    self:copy_deck_to_clipboard(self.editing_deck)
+end
+
+dpm.deserialize_deck = function(self, serialized)
+    if type(serialized) ~= "string" then
+        return nil
+    end
+    local trimmed = serialized:trim()
+    if not trimmed:starts_with("[") or not trimmed:ends_with("]") then
+        return nil
+    end
+    trimmed = trimmed:sub(2, #trimmed-1)
+    local parts = trimmed:split(",")
+    if #parts < 3 then
+        return nil
+    end
+    local name = parts[1]
+    local game_mode = parts[2]
+    local templates = {}
+    for i=3,#parts do
+        local id = parts[i]
+        local template = enigma.managers.card_template:get_card_from_id(id)
+        table.insert(templates, template or id)
+        enigma:info("Inserted "..tostring(template and template.id or id).." in deserialized deck: "..tostring(name))
+    end
+    return {
+        name = name,
+        game_mode = game_mode,
+        cards = templates
+    }
+end
+dpm.create_new_deck_from_clipboard = function(self)
+    local data = Clipboard.get()
+    if not data or not self:is_valid_serialized_deck(data) then
+        return false
+    end
+    local deck = self:deserialize_deck(data)
+    if not deck then
+        return false
+    end
+    self:recalculate_cp(deck)
+    deck.name = self:uniquify_deck_name(deck.name)
+    self.decks[deck.name] = deck
+    self:save_decks()
+    return deck
+end
+
+dpm.is_valid_serialized_deck = function(self, serialized)
+    if type(serialized) ~= "string" then
+        return false
+    end
+    local trimmed = serialized:trim()
+    if not trimmed:starts_with("[") or not trimmed:ends_with("]") then
+        return false
+    end
+    trimmed = trimmed:sub(2, #trimmed-1)
+    local parts = trimmed:split(",")
+    if #parts < 3 then
+        return false
+    end
+    if not enigma:is_game_mode_supported(parts[2]) then
+        return false
+    end
+    return true
 end
 
 --------------------
