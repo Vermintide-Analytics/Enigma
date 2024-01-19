@@ -1218,14 +1218,14 @@ local passive_cards = {
         rarity = RARE,
         cost = 2,
         texture = true,
-        crit_power_modifier = 0.05,
+        crit_power_modifier = 0.12,
         on_play_local = function(card)
             buff:update_stat(card.context.unit, "critical_strike_effectiveness", card.crit_power_modifier)
         end,
         description_lines = {
             {
                 format = "description_critical_strike_power",
-                parameters = { 5 }
+                parameters = { 12 }
             }
         }
     },
