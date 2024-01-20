@@ -661,6 +661,7 @@ end
 cgm.end_game = function(self)
     enigma:info("Ending Enigma game")
     enigma:dump(self.statistics, "ENIGMA END-OF-GAME STATISTICS", 5)
+    self.debug = false
     self.game_state = nil
     self.local_data = nil
     self.peer_data = {}
