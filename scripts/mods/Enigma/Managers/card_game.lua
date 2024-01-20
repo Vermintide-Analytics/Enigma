@@ -1286,7 +1286,10 @@ enigma:network_register(net.notify_card_condition_met_changed, function(peer_id,
         enigma:warning("Attempted to set card playable, invalid card local id "..tostring(card_local_id))
         return
     end
+    enigma:info("Previous card server condition met: "..tostring(card.condition_server_met))
     card.condition_server_met = met
+    enigma:info("New card server condition met: "..tostring(card.condition_server_met))
+    enigma:info("Card local condition met: "..tostring(card.condition_local_met))
     set_card_condition_met(card, card.condition_server_met and card.condition_local_met)
 end)
 enigma:network_register(net.notify_card_auto_condition_met_changed, function(peer_id, card_local_id, met)
