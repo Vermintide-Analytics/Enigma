@@ -107,15 +107,48 @@ EnigmaCardModeUI._handle_input = function(self, dt, t)
 		end
 	end
 
-	-- End Test Game Button
-	local end_test_game_button = self._widgets_by_name.end_test_game_button
-	UIWidgetUtils.animate_default_button(end_test_game_button, dt)
-	if end_test_game_button.content.button_hotspot.on_hover_enter then
-		self:play_sound("Play_hud_hover")
-	end
-	if UIUtils.is_button_pressed(end_test_game_button) then
-		self:play_sound("Play_hud_select")
-		enigma:network_send("enigma_dev_game", "all", "end")
+	if enigma.managers.game.debug then
+		-- End Test Game Button
+		local end_test_game_button = self._widgets_by_name.end_test_game_button
+		UIWidgetUtils.animate_default_button(end_test_game_button, dt)
+		if end_test_game_button.content.button_hotspot.on_hover_enter then
+			self:play_sound("Play_hud_hover")
+		end
+		if UIUtils.is_button_pressed(end_test_game_button) then
+			self:play_sound("Play_hud_select")
+			enigma:network_send("enigma_dev_game", "all", "end")
+		end
+
+		-- Warpstone Zero Button
+		local warpstone_zero_button = self._widgets_by_name.test_game_warpstone_zero_button
+		UIWidgetUtils.animate_default_button(warpstone_zero_button, dt)
+		if warpstone_zero_button.content.button_hotspot.on_hover_enter then
+			self:play_sound("Play_hud_hover")
+		end
+		if UIUtils.is_button_pressed(warpstone_zero_button) then
+			self:play_sound("Play_hud_select")
+			enigma.managers.warp:pay_cost(enigma.managers.warp.warpstone, "debug")
+		end
+		-- Warpstone +1 Button
+		local warpstone_plus_one_button = self._widgets_by_name.test_game_warpstone_plus_one_button
+		UIWidgetUtils.animate_default_button(warpstone_plus_one_button, dt)
+		if warpstone_plus_one_button.content.button_hotspot.on_hover_enter then
+			self:play_sound("Play_hud_hover")
+		end
+		if UIUtils.is_button_pressed(warpstone_plus_one_button) then
+			self:play_sound("Play_hud_select")
+			enigma.managers.warp:add_warpstone(1)
+		end
+		-- Warpstone +99 Button
+		local warpstone_plus_hundred_button = self._widgets_by_name.test_game_warpstone_plus_hundred_button
+		UIWidgetUtils.animate_default_button(warpstone_plus_hundred_button, dt)
+		if warpstone_plus_hundred_button.content.button_hotspot.on_hover_enter then
+			self:play_sound("Play_hud_hover")
+		end
+		if UIUtils.is_button_pressed(warpstone_plus_hundred_button) then
+			self:play_sound("Play_hud_select")
+			enigma.managers.warp:add_warpstone(99)
+		end
 	end
 end
 

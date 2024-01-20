@@ -11,7 +11,6 @@ enigma.random_seed = os.clock() * 10000 % 1000
 
 -- DEBUG SETTINGS
 enigma.skip_deck_validity_check = enigma:get("skip_deck_validity_check")
-enigma.mega_resource_start = enigma:get("mega_resource_start")
 -----------------
 
 local mod_event_callbacks = {
@@ -214,13 +213,6 @@ enigma._command_toggle = function(self, args)
             enigma:echo("Turning deck validity check OFF")
         end
         enigma:set("skip_deck_validity_check", not enigma.skip_deck_validity_check, true)
-    elseif toggle_cmd == "mega_resources" then
-        if enigma.mega_resource_start then
-            enigma:echo("Turning mega resource start OFF")
-        else
-            enigma:echo("Turning mega resource start ON")
-        end
-        enigma:set("mega_resource_start", not enigma.mega_resource_start, true)
     elseif toggle_cmd == "noclip" then
         local local_player_unit = enigma:local_player_unit()
         if not local_player_unit then
@@ -329,8 +321,6 @@ enigma.on_setting_changed = function(setting_id)
     if setting_id == "skip_deck_validity_check" then
         enigma.skip_deck_validity_check = enigma:get("skip_deck_validity_check")
         enigma.managers.deck_planner:update_self_equipped_deck_valid()
-    elseif setting_id == "mega_resource_start" then
-        enigma.mega_resource_start = enigma:get("mega_resource_start")
     end
 end
 

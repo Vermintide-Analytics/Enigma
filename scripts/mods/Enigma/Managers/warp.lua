@@ -44,7 +44,7 @@ end
 
 wm.start_game = function(self, game_mode)
     self.game_mode = game_mode
-    self.warpstone = enigma.mega_resource_start and 99 or 0
+    self.warpstone = 0
     self.warp_dust = 0.0
 
     self.statistics = {

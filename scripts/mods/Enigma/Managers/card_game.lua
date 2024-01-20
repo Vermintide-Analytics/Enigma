@@ -372,7 +372,7 @@ cgm.init_game = function(self, game_init_data, debug)
     self.local_data = local_data
     add_context_functions(local_data)
 
-    local_data.available_card_draws = enigma.mega_resource_start and 99 or local_data.available_card_draws
+    local_data.available_card_draws = self.debug and 99 or local_data.available_card_draws
     local_data.deferred_card_draws = 0
 
     if self.is_server then

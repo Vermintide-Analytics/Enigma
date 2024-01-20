@@ -30,6 +30,76 @@ local scenegraph_definition = {
 			1
 		}
 	},
+	test_game_warpstone_panel = {
+		parent = "screen",
+		vertical_alignment = "bottom",
+		horizontal_alignment = "left",
+		size = {
+			410,
+			100
+		},
+		position = {
+			10,
+			10,
+			1
+		}
+	},
+	test_game_warpstone_icon = {
+		parent = "test_game_warpstone_panel",
+		vertical_alignment = "center",
+		horizontal_alignment = "left",
+		size = {
+			80,
+			80
+		},
+		position = {
+			10,
+			0,
+			1
+		}
+	},
+	test_game_warpstone_zero_button = {
+		parent = "test_game_warpstone_panel",
+		vertical_alignment = "center",
+		horizontal_alignment = "left",
+		size = {
+			80,
+			80
+		},
+		position = {
+			110,
+			0,
+			1
+		}
+	},
+	test_game_warpstone_plus_one_button = {
+		parent = "test_game_warpstone_panel",
+		vertical_alignment = "center",
+		horizontal_alignment = "left",
+		size = {
+			80,
+			80
+		},
+		position = {
+			200,
+			0,
+			1
+		}
+	},
+	test_game_warpstone_plus_hundred_button = {
+		parent = "test_game_warpstone_panel",
+		vertical_alignment = "center",
+		horizontal_alignment = "left",
+		size = {
+			110,
+			80
+		},
+		position = {
+			290,
+			0,
+			1
+		}
+	},
 	end_test_game_button = {
 		parent = "screen",
 		vertical_alignment = "bottom",
@@ -76,7 +146,36 @@ local widgets = {
 			},
 		}
 	},
-	end_test_game_button = UIWidgets.create_default_button("end_test_game_button", scenegraph_definition.end_test_game_button.size, nil, nil, enigma:localize("end_test_game"), 34, nil, nil, nil, true, true)
+	test_game_warpstone_icon = {
+		scenegraph_id = "test_game_warpstone_icon",
+		element = {
+			passes = {
+				{
+					pass_type = "texture",
+					texture_id = "icon",
+					style_id = "icon"
+				},
+			}
+		},
+		content = {
+			icon = "enigma_card_warpstone",
+		},
+		style = {
+			icon = {
+				vertical_alignment = "center",
+				horizontal_alignment = "center",
+				texture_size = {
+					80,
+					80
+				},
+				color = Colors.get_color_table_with_alpha("white", 255),
+			},
+		}
+	},
+	test_game_warpstone_zero_button = UIWidgets.create_default_button("test_game_warpstone_zero_button", scenegraph_definition.test_game_warpstone_zero_button.size, nil, nil, "0", 34, nil, nil, nil, true, true),
+	test_game_warpstone_plus_one_button = UIWidgets.create_default_button("test_game_warpstone_plus_one_button", scenegraph_definition.test_game_warpstone_plus_one_button.size, nil, nil, "+1", 34, nil, nil, nil, true, true),
+	test_game_warpstone_plus_hundred_button = UIWidgets.create_default_button("test_game_warpstone_plus_hundred_button", scenegraph_definition.test_game_warpstone_plus_hundred_button.size, nil, nil, "+99", 34, nil, nil, nil, true, true),
+	end_test_game_button = UIWidgets.create_default_button("end_test_game_button", scenegraph_definition.end_test_game_button.size, nil, nil, enigma:localize("end_test_game"), 34, nil, nil, nil, true, true),
 }
 
 card_ui_common.add_hand_display(scenegraph_definition, widgets, "hand_panel", CARD_WIDTH, true)
