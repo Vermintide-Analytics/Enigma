@@ -34,7 +34,7 @@ enigma.in_keep = function(self)
 end
 enigma.in_morris_map = function(self)
     local level_key = Managers.state and Managers.state.game_mode:game_mode_key()
-    return level_key == "dlc_morris_map"
+    return level_key == "map_deus"
 end
 enigma.traveling_to_inn = function(self)
     local level_key = Managers.level_transition_handler and Managers.level_transition_handler:get_current_level_key()
