@@ -108,17 +108,14 @@ local process_prebuilt_deck_registrations = function()
 end
 
 local hud_component_list_definitions_to_append_to = {
-    ["scripts/ui/hud_ui/component_list_definitions/hud_component_list_adventure"] = true,
-    ["scripts/ui/hud_ui/component_list_definitions/hud_component_list_deus"] = true,
-    ["scripts/ui/hud_ui/component_list_definitions/hud_component_list_inn_deus"] = true,
-    ["scripts/mods/Peregrinaje/ui/hud_component_list_deus"] = true,
-    ["scripts/mods/Peregrinaje/ui/hud_component_list_inn_deus"] = true,
+    ["scripts/ui/hud_ui/component_list_definitions/hud_component_list_adventure"] = "scripts/mods/Enigma/ui/hud_component/hud_component_list_adventure",
+    ["scripts/ui/hud_ui/component_list_definitions/hud_component_list_deus"] = "scripts/mods/Enigma/ui/hud_component/hud_component_list_deus",
+    ["scripts/ui/hud_ui/component_list_definitions/hud_component_list_inn_deus"] = "scripts/mods/Enigma/ui/hud_component/hud_component_list_inn_deus",
+    ["scripts/mods/Peregrinaje/ui/hud_component_list_deus"] = "scripts/mods/Enigma/ui/hud_component/Peregrinaje/hud_component_list_deus",
+    ["scripts/mods/Peregrinaje/ui/hud_component_list_inn_deus"] = "scripts/mods/Enigma/ui/hud_component/Peregrinaje/hud_component_list_inn_deus",
 }
 enigma:hook(IngameHud, "_setup_component_definitions", function(func, self, hud_component_list_path)
-    if hud_component_list_definitions_to_append_to[hud_component_list_path] then
-        return func(self, "scripts/mods/Enigma/hud_component_list_enigma")
-    end
-    return func(self, hud_component_list_path)
+    return func(self, hud_component_list_definitions_to_append_to[hud_component_list_path] or hud_component_list_path)
 end)
 
 enigma:command("enigma_dump", "dump some Enigma info to the console", function(manager)

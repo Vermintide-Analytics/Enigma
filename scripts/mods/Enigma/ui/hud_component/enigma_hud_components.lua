@@ -1,8 +1,6 @@
 local enigma = get_mod("Enigma")
 
-local adventure_settings = require("scripts/ui/hud_ui/component_list_definitions/hud_component_list_adventure")
-
-local enigma_components = {
+local components = {
 	{
 		use_hud_scale = true,
 		class_name = "EnigmaDeckPrepHud",
@@ -46,17 +44,10 @@ local enigma_components = {
 	},
 }
 
-local components = {}
-
-table.append(components, adventure_settings.components)
-table.append(components, enigma_components)
-
 local visibility_groups = {}
 
-table.append(visibility_groups, adventure_settings.visibility_groups)
-
-for i = 1, #enigma_components do
-	require(enigma_components[i].filename)
+for i = 1, #components do
+	require(components[i].filename)
 end
 
 return {
