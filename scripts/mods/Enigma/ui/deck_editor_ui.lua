@@ -239,6 +239,10 @@ EnigmaDeckEditorUI.update = function (self, dt, t)
 end
 
 EnigmaDeckEditorUI._handle_input = function(self, dt, t)
+	if enigma.managers.ui.big_card_to_display then
+		return
+	end
+
 	local deck = enigma.managers.deck_planner.editing_deck
 	local cards = deck.cards
 

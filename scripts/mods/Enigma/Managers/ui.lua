@@ -45,6 +45,9 @@ uim.show_big_card = function(self, card, showcase)
 		local id_2 = card.related_cards[2]
 		self.big_card_related_card_1 = enigma.managers.card_template:get_card_from_id(id_1)
 		self.big_card_related_card_2 = enigma.managers.card_template:get_card_from_id(id_2)
+	else
+		self.big_card_related_card_1 = nil
+		self.big_card_related_card_2 = nil
 	end
 end
 
