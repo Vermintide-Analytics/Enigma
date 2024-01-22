@@ -304,6 +304,21 @@ local loc = {
 	type = {
 		en = "Type"
 	},
+	hide_card_selection = {
+		en = "Hide Card Selection"
+	},
+	show_card_selection = {
+		en = "Show Card Selection"
+	},
+	waiting_for_other_players_to_choose_cards = {
+		en = "Waiting for other players to choose cards"
+	},
+	skip = {
+		en = "Skip"
+	},
+	added_card_draw_warpstone_note = {
+		en = "* Additional Card Draw and Warpstone is earned as you progress through the level."
+	},
 
 	-- Deck List
 	create_deck = {

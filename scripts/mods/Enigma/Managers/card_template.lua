@@ -84,18 +84,34 @@ local refresh_card_detail_localization = function(card)
 end
 
 local add_card_instance_functions = function(inst)
-    inst.play = function(card)
+    inst.play = function(card, skip_warpstone_cost, allow_fizzle)
         if card.owner ~= enigma:local_peer_id() then
             enigma:warning("("..card.id..") cannot call card:play from remote context. Must be called by the owner, or use card:request_play instead")
         else
-            return enigma.managers.game:play_card(card)
+            return enigma.managers.game:play_card(card, skip_warpstone_cost, "auto", not allow_fizzle)
         end
     end
-    inst.request_play = function(card)
+    inst.request_play = function(card, skip_warpstone_cost, allow_fizzle)
         if card.owner == enigma:local_peer_id() then
-            return enigma.managers.game:play_card(card)
+            return enigma.managers.game:play_card(card, skip_warpstone_cost, "auto", not allow_fizzle)
         else
-            enigma.managers.game:request_play_card(card)
+            enigma.managers.game:request_play_card(card, skip_warpstone_cost, allow_fizzle)
+        end
+    end
+    inst.play_other_card = function(card, other_card, skip_warpstone_cost, allow_fizzle)
+        if allow_fizzle == nil then
+            allow_fizzle = true
+        end
+        other_card:play(skip_warpstone_cost, allow_fizzle)
+    end
+    inst.request_play_other_card = function(card, other_card, skip_warpstone_cost, allow_fizzle)
+        if allow_fizzle == nil then
+            allow_fizzle = true
+        end
+        if other_card.owner == enigma:local_peer_id() then
+            return enigma.managers.game:play_card(card, skip_warpstone_cost, "auto", not allow_fizzle)
+        else
+            enigma.managers.game:request_play_card(other_card, skip_warpstone_cost, allow_fizzle)
         end
     end
     inst.times_played = function(card)

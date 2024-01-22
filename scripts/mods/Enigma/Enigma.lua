@@ -56,6 +56,7 @@ dofile("scripts/mods/Enigma/Managers/deck_planner")
 dofile("scripts/mods/Enigma/Managers/mod_interaction")
 dofile("scripts/mods/Enigma/Managers/user_interaction")
 dofile("scripts/mods/Enigma/Managers/card_game")
+dofile("scripts/mods/Enigma/Managers/deus")
 dofile("scripts/mods/Enigma/Managers/ui")
 dofile("scripts/mods/Enigma/Managers/debug")
 
@@ -112,6 +113,9 @@ local hud_component_list_definitions_to_append_to = {
     ["scripts/ui/hud_ui/component_list_definitions/hud_component_list_inn_deus"] = "scripts/mods/Enigma/ui/hud_component/hud_component_list_inn_deus",
     ["scripts/mods/Peregrinaje/ui/hud_component_list_deus"] = "scripts/mods/Enigma/ui/hud_component/Peregrinaje/hud_component_list_deus",
     ["scripts/mods/Peregrinaje/ui/hud_component_list_inn_deus"] = "scripts/mods/Enigma/ui/hud_component/Peregrinaje/hud_component_list_inn_deus",
+    
+    ["scripts/ui/hud_ui/component_list_definitions/hud_component_list_map_deus"] = "scripts/mods/Enigma/ui/hud_component/hud_component_list_map_deus",
+    ["scripts/mods/Peregrinaje/ui/hud_component_list_map_deus"] = "scripts/mods/Enigma/ui/hud_component/Peregrinaje/hud_component_list_map_deus"
 }
 enigma:hook(IngameHud, "_setup_component_definitions", function(func, self, hud_component_list_path)
     return func(self, hud_component_list_definitions_to_append_to[hud_component_list_path] or hud_component_list_path)

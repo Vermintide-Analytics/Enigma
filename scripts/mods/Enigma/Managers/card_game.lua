@@ -33,7 +33,7 @@ local cgm = {
 
     data_by_unit = {},
 
-    level_progress_card_draw = {
+    base_level_progress_card_draw = {
         adventure = 15,
         deus = 9
     },
@@ -42,6 +42,7 @@ local cgm = {
 
     _resource_packages = {},
 }
+cgm.level_progress_card_draw = table.clone(cgm.base_level_progress_card_draw)
 cgm.local_data = nil -- Initialize as table then set to null to shut up the Lua diagnostics complaining about accessing fields from nil
 enigma.managers.game = cgm
 
@@ -346,6 +347,11 @@ cgm.init_game = function(self, game_init_data, debug)
     for _,template in ipairs(game_init_data.cards) do
         table.insert(card_ids, template.id)
     end
+    if game_init_data.extra_cards then
+        for _,template in ipairs(game_init_data.extra_cards) do
+            table.insert(card_ids, template.id)
+        end
+    end
     add_chaos_cards_based_on_added_difficulty(card_ids)
     enigma:shuffle(card_ids)
     
@@ -595,6 +601,12 @@ cgm.start_game = function(self)
     self.game_mode = enigma:game_mode()
     
     enigma.managers.sound:start_game()
+
+    if self.game_mode == "deus" then
+        self.level_progress_card_draw.deus = self.level_progress_card_draw.deus + enigma.managers.deus.extra_cards_taken
+        enigma:info("Increased level progress card draw gain by "..tostring(enigma.managers.deus.extra_cards_taken).." for extra cards taken during deus run")
+    end
+
     enigma.managers.warp:start_game(self.game_mode)
     for _,card in ipairs(self.local_data.draw_pile) do
         set_card_can_pay_warpstone(card)
@@ -667,6 +679,7 @@ cgm.end_game = function(self)
     self.peer_data = {}
     self.data_by_unit = {}
     self.is_server = nil
+    self.level_progress_card_draw = table.clone(self.base_level_progress_card_draw)
     self.conflict = nil
     self.pacing = nil
     self.pacing_intensity = nil
@@ -852,7 +865,7 @@ local handle_card_played = function(context, data, card, play_type, fizzle, dest
     return destination_pile, inserted_index
 end
 local handle_local_card_played = function(card, location, index, skip_warpstone_cost, play_type)
-    local fizzle = play_type ~= "manual" and (card.unplayable or not card.condition_met)
+    local fizzle = play_type ~= "manual" and not card.condition_met
     local final_card_cost, card_cost_modifier = enigma.managers.buff:get_final_warpstone_cost(card)
     if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(final_card_cost, card_cost_modifier) then
         if play_type == "manual" then
@@ -911,7 +924,7 @@ enigma:network_register(net.event_card_played, function(peer_id, card_local_id, 
     end
     handle_card_played("remote", peer_data, card, play_type, fizzle, destination_index, net_x_cost)
 end)
-cgm._play_card_at_index_from_location = function(self, location, index, skip_warpstone_cost, play_type)
+cgm._play_card_at_index_from_location = function(self, location, index, skip_warpstone_cost, play_type, fizzle_guard)
     play_type = play_type or "auto"
     if self:unable_to_play() then
         enigma:echo("Cannot play cards at this time")
@@ -940,13 +953,13 @@ cgm._play_card_at_index_from_location = function(self, location, index, skip_war
         return false, "card_unplayable"
     end
 
-    if not card.condition_met and play_type == "manual" then
+    if not card.condition_met and (play_type == "manual" or fizzle_guard) then
         enigma:info("Could not play "..card.name..", condition not met")
         return false, "card_condition_not_met"
     end
 
     local final_card_cost, card_cost_modifier = enigma.managers.buff:get_final_warpstone_cost(card)
-    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(final_card_cost, card_cost_modifier) and play_type == "manual" then
+    if not skip_warpstone_cost and not enigma.managers.warp:can_pay_cost(final_card_cost, card_cost_modifier) and (play_type == "manual" or fizzle_guard) then
         enigma.managers.ui.time_since_warpstone_cost_action_invalid = 0
         return false, "not_enough_warpstone"
     end
@@ -965,7 +978,7 @@ cgm._play_card_at_index_from_location = function(self, location, index, skip_war
     return handle_local_card_played(card, location, index, skip_warpstone_cost, play_type)
 end
 
-cgm.play_card_from_hand = function(self, card_index, skip_warpstone_cost, play_type)
+cgm.play_card_from_hand = function(self, card_index, skip_warpstone_cost, play_type, fizzle_guard)
     play_type = play_type or "auto"
     if not self:is_in_game() then
         if play_type == "auto" then
@@ -982,10 +995,10 @@ cgm.play_card_from_hand = function(self, card_index, skip_warpstone_cost, play_t
         return false, "invalid_card"
     end
 
-    return self:_play_card_at_index_from_location(enigma.CARD_LOCATION.hand, card_index, skip_warpstone_cost, play_type)
+    return self:_play_card_at_index_from_location(enigma.CARD_LOCATION.hand, card_index, skip_warpstone_cost, play_type, fizzle_guard)
 end
 
-cgm.play_card_from_draw_pile = function(self, card_index, skip_warpstone_cost)
+cgm.play_card_from_draw_pile = function(self, card_index, skip_warpstone_cost, fizzle_guard)
     if not self:is_in_game() then
         enigma:warning("Attempted to auto play a card from the draw pile when not in a game")
         return false, "not_in_game"
@@ -999,10 +1012,10 @@ cgm.play_card_from_draw_pile = function(self, card_index, skip_warpstone_cost)
         return false, "invalid_card"
     end
 
-    return self:_play_card_at_index_from_location(enigma.CARD_LOCATION.draw_pile, card_index, skip_warpstone_cost, "auto")
+    return self:_play_card_at_index_from_location(enigma.CARD_LOCATION.draw_pile, card_index, skip_warpstone_cost, "auto", fizzle_guard)
 end
 
-cgm.play_card = function(self, card, skip_warpstone_cost, play_type)
+cgm.play_card = function(self, card, skip_warpstone_cost, play_type, fizzle_guard)
     play_type = play_type or "auto"
     if not card then
         enigma:warning("Tried to play nil card")
@@ -1019,7 +1032,7 @@ cgm.play_card = function(self, card, skip_warpstone_cost, play_type)
         return false, "invalid_card_location"
     end
     local location, index = get_card_location(card)
-    return self:_play_card_at_index_from_location(location, index, skip_warpstone_cost, play_type)
+    return self:_play_card_at_index_from_location(location, index, skip_warpstone_cost, play_type, fizzle_guard)
 end
 
 
@@ -1774,20 +1787,20 @@ cgm.is_in_game = function(self)
 end
 
 -- Utilities
-enigma:network_register(net.request_play_card, function(sender, card_local_id)
+enigma:network_register(net.request_play_card, function(sender, card_local_id, skip_warpstone_cost, allow_fizzle)
     local card = cgm.local_data.all_cards[card_local_id]
     if not card then
         enigma:warning("Received request_play_card with an invalid card local id "..tostring(card_local_id))
         return
     end
-    cgm:play_card(card)
+    cgm:play_card(card, skip_warpstone_cost, "auto", not allow_fizzle)
 end)
-cgm.request_play_card = function(self, card)
+cgm.request_play_card = function(self, card, skip_warpstone_cost, allow_fizzle)
     if not card.owner then
         enigma:warning("Could not determine owner of card to request them to play it")
         return
     end
-    enigma:network_send(net.request_play_card, card.owner, card.local_id)
+    enigma:network_send(net.request_play_card, card.owner, card.local_id, skip_warpstone_cost, allow_fizzle)
 end
 enigma:network_register(net.sync_card_property, function(sender, card_owner_peer_id, card_local_id, property, value)
     local data = nil
@@ -2042,7 +2055,7 @@ reg_hook_safe(GenericStatusExtension, "set_in_vortex", function(self, in_vortex,
 end, "enigma_card_game_set_in_vortex")
 
 cgm.queued_explosions = {}
-reg_hook_safe(StateIngame, "post_update", function(self, dt)
+local handle_queued_explosions = function(dt)
     if #cgm.queued_explosions == 0 then
         return
     end
@@ -2056,6 +2069,9 @@ reg_hook_safe(StateIngame, "post_update", function(self, dt)
         safe(area_damage.create_explosion, area_damage, data.owner_unit, data.position:unbox(), data.rotation:unbox(), data.explosion_template_name, data.scale, data.damage_source, data.attacker_power_level, data.is_critical_strike)
     end
     table.clear(cgm.queued_explosions)
+end
+reg_hook_safe(StateIngame, "post_update", function(self, dt)
+    handle_queued_explosions(dt)
 end, "enigma_card_game_post_update")
 
 

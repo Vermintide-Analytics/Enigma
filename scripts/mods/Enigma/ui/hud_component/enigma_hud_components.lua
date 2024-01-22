@@ -42,6 +42,16 @@ local components = {
 			"dead"
 		}
 	},
+	{
+		use_hud_scale = true,
+		class_name = "EnigmaDeusCardChoiceUI",
+		filename = "scripts/mods/Enigma/ui/deus_card_choice_ui",
+		visibility_groups = {
+			"alive",
+			"dead",
+			"mission_vote"
+		}
+	},
 }
 
 local visibility_groups = {}

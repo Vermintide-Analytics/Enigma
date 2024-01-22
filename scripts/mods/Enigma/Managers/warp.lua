@@ -22,13 +22,14 @@ local wm = {
         special = 10.0,
         boss = 22.0
     },
-    warp_dust_per_level_progress = {
+    base_warp_dust_per_level_progress = {
         adventure = 10000,
         deus = 6000
     },
 
     ranged_damage_warp_dust_multiplier = 1.2,
 }
+wm.warp_dust_per_level_progress = table.clone(wm.base_warp_dust_per_level_progress)
 enigma.managers.warp = wm
 
 wm.get_warpstone = function(self)
@@ -46,6 +47,11 @@ wm.start_game = function(self, game_mode)
     self.game_mode = game_mode
     self.warpstone = 0
     self.warp_dust = 0.0
+
+    if self.game_mode == "deus" then
+        self.warp_dust_per_level_progress.deus = self.warp_dust_per_level_progress.deus + enigma.managers.deus.extra_cards_taken*WARP_DUST_PER_WARPSTONE
+        enigma:info("Increased level progress warpstone gain by "..tostring(enigma.managers.deus.extra_cards_taken).." for extra cards taken during deus run")
+    end
 
     self.statistics = {
         earned_warp_dust = {
@@ -88,6 +94,8 @@ wm.end_game = function(self)
     self.statistics.earned_warp_dust.TOTAL = total_earned_warpdust
     self.statistics.earned_warp_dust.STAGGER_TOTAL = total_stagger_warpdust
     self.statistics.earned_warp_dust.DAMAGE_DEALT_TOTAL = total_damage_warpdust
+    
+    self.warp_dust_per_level_progress = table.clone(self.base_warp_dust_per_level_progress)
 
     enigma:dump(self.statistics, "ENIGMA WARP DUST STATISTICS", 5)
     enigma:unregister_mod_event_callback("update", self, "update")
