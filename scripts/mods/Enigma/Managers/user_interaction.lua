@@ -26,7 +26,7 @@ enigma.card_mode_key_pressed = function(down)
         else
             enigma.card_mode = down
         end
-    elseif down then
+    elseif down and not enigma:in_morris_map() then
         local deck_list_ui = Managers.ui._ingame_ui.views.enigma_deck_list
         local deck_editor_ui = Managers.ui._ingame_ui.views.enigma_deck_editor
         if deck_editor_ui and deck_editor_ui.active or deck_list_ui and deck_list_ui.active then
