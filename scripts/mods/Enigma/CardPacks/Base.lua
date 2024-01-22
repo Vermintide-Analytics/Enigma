@@ -2984,7 +2984,7 @@ local ability_cards = {
         condition_local = function(card)
             local us = card.context.unit
             local our_status = ScriptUnit.extension(us, "status_system")
-            if our_status:is_disabled() then
+            if not our_status or our_status:is_disabled() then
                 return false
             end
             -- At least one ally is disabled
