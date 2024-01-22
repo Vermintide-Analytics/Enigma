@@ -257,6 +257,12 @@ local loc = {
 	played_card_customization_group_title = {
 		en = "Played Card Display"
 	},
+	kill_feed_customization_group_title = {
+		en = "Kill Feed"
+	},
+	deus_coins_customization_group_title = {
+		en = "Chaos Wastes Coin Display"
+	},
 
 	-- UI
 	channeling = {

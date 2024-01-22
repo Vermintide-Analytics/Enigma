@@ -409,6 +409,56 @@ return {
 									},
 								},
 							},
+							{
+								setting_id = "kill_feed_customization_group",
+								type = "group",
+								title = "kill_feed_customization_group_title",
+								sub_widgets = {
+									{
+										setting_id = "kill_feed_offset_vertical",
+										type = "numeric",
+										title = "offset_vertical_title",
+										tooltip = "offset_vertical_description",
+										default_value = -20,
+										range = { -100, 100 },
+										decimals_number = 2
+									},
+									{
+										setting_id = "kill_feed_offset_horizontal",
+										type = "numeric",
+										title = "offset_horizontal_title",
+										tooltip = "offset_horizontal_description",
+										default_value = 0,
+										range = { -100, 100 },
+										decimals_number = 2
+									},
+								},
+							},
+							{
+								setting_id = "deus_coins_customization_group",
+								type = "group",
+								title = "deus_coins_customization_group_title",
+								sub_widgets = {
+									{
+										setting_id = "deus_coins_offset_vertical",
+										type = "numeric",
+										title = "offset_vertical_title",
+										tooltip = "offset_vertical_description",
+										default_value = -20,
+										range = { -100, 100 },
+										decimals_number = 2
+									},
+									{
+										setting_id = "deus_coins_offset_horizontal",
+										type = "numeric",
+										title = "offset_horizontal_title",
+										tooltip = "offset_horizontal_description",
+										default_value = 0,
+										range = { -100, 100 },
+										decimals_number = 2
+									},
+								},
+							},
 						},
 					},
 				},

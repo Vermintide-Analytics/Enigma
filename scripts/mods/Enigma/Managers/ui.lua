@@ -81,6 +81,10 @@ uim.text_input_lost_focus = function(self)
 	uim.enable_chat_ui()
 end
 
+local reg_hook_safe = function(obj, func_name, func, hook_id)
+    enigma.managers.hook:hook_safe("Enigma", obj, func_name, func, hook_id)
+end
+
 uim.transitions = {
     deck_planner_view = function(self, params)
         if params.stop_editing then
@@ -167,6 +171,50 @@ enigma:hook(IngameUI, "setup_views", function(func, self, ingame_ui_context)
     return result
 end)
 
+
+local DEFAULT_KILL_FEED_HORIZONTAL_OFFSET = 0
+local DEFAULT_KILL_FEED_VERTICAL_OFFSET = 0
+local kill_feed_scenegraph_node = nil
+local kill_feed_offset_horizontal = enigma:get("kill_feed_offset_horizontal") * 19.2
+local kill_feed_offset_vertical = enigma:get("kill_feed_offset_vertical") * 10.8
+local update_kill_feed_ui_offset = function()
+	if not kill_feed_scenegraph_node then
+		return
+	end
+	kill_feed_scenegraph_node.position[1] = DEFAULT_KILL_FEED_HORIZONTAL_OFFSET + kill_feed_offset_horizontal
+	kill_feed_scenegraph_node.position[2] = DEFAULT_KILL_FEED_VERTICAL_OFFSET + kill_feed_offset_vertical
+end
+
+local DEFAULT_COIN_UI_HORIZONTAL_OFFSET = 0
+local DEFAULT_COIN_UI_VERTICAL_OFFSET = 0
+local deus_coin_ui_scenegraph_node = nil
+local deus_coin_ui_offset_horizontal = enigma:get("deus_coins_offset_horizontal") * 19.2
+local deus_coin_ui_offset_vertical = enigma:get("deus_coins_offset_vertical") * 10.8
+local update_deus_coin_ui_offset = function()
+	if not deus_coin_ui_scenegraph_node then
+		return
+	end
+	deus_coin_ui_scenegraph_node.position[1] = DEFAULT_COIN_UI_HORIZONTAL_OFFSET + deus_coin_ui_offset_horizontal
+	deus_coin_ui_scenegraph_node.position[2] = DEFAULT_COIN_UI_VERTICAL_OFFSET + deus_coin_ui_offset_vertical
+end
+reg_hook_safe(IngameHud, "_compile_component_list", function(self, ingame_ui_context, component_definitions)
+	local components = self._components
+	if components then
+		if components.PositiveReinforcementUI then
+			kill_feed_scenegraph_node = components.PositiveReinforcementUI.ui_scenegraph.pivot
+			DEFAULT_KILL_FEED_HORIZONTAL_OFFSET = kill_feed_scenegraph_node.position[1]
+			DEFAULT_KILL_FEED_VERTICAL_OFFSET = kill_feed_scenegraph_node.position[2]
+			update_kill_feed_ui_offset()
+		end
+		if components.DeusSoftCurrencyIndicatorUI then
+			deus_coin_ui_scenegraph_node = components.DeusSoftCurrencyIndicatorUI._ui_scenegraph.coin_ui
+			DEFAULT_COIN_UI_HORIZONTAL_OFFSET = deus_coin_ui_scenegraph_node.position[1]
+			DEFAULT_COIN_UI_VERTICAL_OFFSET = deus_coin_ui_scenegraph_node.position[2]
+			update_deus_coin_ui_offset()
+		end
+	end
+end, "enigma_ui_compile_component_list")
+
 -- Events
 uim.update = function(self, dt)
 	self.time_since_draw_pile_action_invalid = self.time_since_draw_pile_action_invalid + dt
@@ -175,6 +223,23 @@ uim.update = function(self, dt)
 	self.time_since_hand_size_action_invalid = self.time_since_hand_size_action_invalid + dt
 end
 enigma:register_mod_event_callback("update", uim, "update")
+
+uim.on_setting_changed = function(self, setting_id)
+	if setting_id == "kill_feed_offset_horizontal" then
+		kill_feed_offset_horizontal = enigma:get(setting_id) * 19.2
+		update_kill_feed_ui_offset()
+	elseif setting_id == "kill_feed_offset_vertical" then
+		kill_feed_offset_vertical = enigma:get(setting_id) * 10.8
+		update_kill_feed_ui_offset()
+	elseif setting_id == "deus_coins_offset_horizontal" then
+		deus_coin_ui_offset_horizontal = enigma:get(setting_id) * 19.2
+		update_deus_coin_ui_offset()
+	elseif setting_id == "deus_coins_offset_vertical" then
+		deus_coin_ui_offset_vertical = enigma:get(setting_id) * 10.8
+		update_deus_coin_ui_offset()
+	end
+end
+enigma:register_mod_event_callback("on_setting_changed", uim, "on_setting_changed")
 
 -- DEBUG
 local function draw_border(gui, pos, size, color, border)
