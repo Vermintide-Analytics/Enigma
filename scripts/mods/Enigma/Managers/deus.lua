@@ -60,7 +60,7 @@ local card_rarity_to_offer_logic = {
     },
     {   -- Do not offer cards before the first level
         match = function(_, _, current_node)
-            return current_node.name == "start"
+            return current_node.level_type == "START"
         end,
         rarity = nil
     },
@@ -176,6 +176,8 @@ dm.on_game_state_changed = function(self, status, state_name)
             end
         end
     elseif state_name == "StateLoading" and status == "enter" then
+        self.waiting_for_other_player_card_choices = nil
+        self.choosing_deus_card = false
         table.clear(self.offered_cards)
     end
 end
