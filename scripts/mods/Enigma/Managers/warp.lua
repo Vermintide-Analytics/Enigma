@@ -101,14 +101,14 @@ wm.end_game = function(self)
     enigma:unregister_mod_event_callback("update", self, "update")
 end
 
-wm.add_warpstone = function(self, amount)
-    local source = "other"
+wm.add_warpstone = function(self, amount, source)
+    source = source or "other"
     local ipart = math.floor(amount)
     local fpart = amount - ipart
 
     local previous_warpstone = self.warpstone
     self.warpstone = self.warpstone + ipart
-    self.statistics.earned_warp_dust[source] = self.statistics.earned_warp_dust[source] - ipart*WARP_DUST_PER_WARPSTONE
+    self.statistics.earned_warp_dust[source] = self.statistics.earned_warp_dust[source] + ipart*WARP_DUST_PER_WARPSTONE
 
     if fpart > 0 then
         self:add_warp_dust(fpart*WARP_DUST_PER_WARPSTONE, source, true)

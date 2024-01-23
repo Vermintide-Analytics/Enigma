@@ -137,7 +137,7 @@ EnigmaCardModeUI._handle_input = function(self, dt, t)
 		end
 		if UIUtils.is_button_pressed(warpstone_plus_one_button) then
 			self:play_sound("Play_hud_select")
-			enigma.managers.warp:add_warpstone(1)
+			enigma.managers.warp:add_warpstone(1, "debug")
 		end
 		-- Warpstone +99 Button
 		local warpstone_plus_hundred_button = self._widgets_by_name.test_game_warpstone_plus_hundred_button
@@ -147,7 +147,7 @@ EnigmaCardModeUI._handle_input = function(self, dt, t)
 		end
 		if UIUtils.is_button_pressed(warpstone_plus_hundred_button) then
 			self:play_sound("Play_hud_select")
-			enigma.managers.warp:add_warpstone(99)
+			enigma.managers.warp:add_warpstone(99, "debug")
 		end
 	end
 end
