@@ -348,7 +348,27 @@ enigma._hit_enemy = function(self, hit_unit, attacker_unit, hit_zone_name, hit_p
     if attacker_unit and type(POSITION_LOOKUP[attacker_unit]) == "userdata" then
         POSITION_LOOKUP[attacker_unit] = Unit.world_position(attacker_unit, 0)
     end
-    DamageUtils.server_apply_hit(Managers.time:time("game"), attacker_unit, hit_unit, hit_zone_name, hit_position, attack_direction, hit_ragdoll_actor, damage_source, power_level, damage_profile, target_index, boost_curve_multiplier, is_critical_strike, can_damage, can_stagger, blocking, shield_breaking_hit, backstab_multiplier, first_hit, total_hits)
+    table.insert(enigma.managers.game.queued_enemy_hits, {
+        attacker_unit = attacker_unit,
+        hit_unit = hit_unit,
+        hit_zone_name = hit_zone_name,
+        hit_position = hit_position,
+        attack_direction = attack_direction,
+        hit_ragdoll_actor = hit_ragdoll_actor,
+        damage_source = damage_source,
+        power_level = power_level,
+        damage_profile = damage_profile,
+        target_index = target_index,
+        boost_curve_multiplier = boost_curve_multiplier,
+        is_critical_strike = is_critical_strike,
+        can_damage = can_damage,
+        can_stagger = can_stagger,
+        blocking = blocking,
+        shield_breaking_hit = shield_breaking_hit,
+        backstab_multiplier = backstab_multiplier,
+        first_hit = first_hit,
+        total_hits = total_hits
+    })
 end
 enigma.hit_enemy = function(self, hit_unit, attacking_player_unit, hit_zone_name, damage_profile, power_multiplier, is_critical_strike, break_shields)
     power_multiplier = power_multiplier or 1
@@ -618,8 +638,16 @@ enigma.stagger_enemy = function(self, hit_unit, unit, distance, impact, directio
     if stagger_type > 0 then
 		local hit_unit_blackboard = BLACKBOARDS[hit_unit]
 
-        local t = Managers.time:time("game")
-		AiUtils.stagger(hit_unit, hit_unit_blackboard, unit, direction, distance, stagger_type, stagger_duration, nil, t)
+        table.insert(enigma.managers.game.queued_enemy_staggers, {
+            unit = hit_unit,
+            blackboard = hit_unit_blackboard,
+            attacker_unit = unit,
+            stagger_direction = direction,
+            stagger_length = distance,
+            stagger_type = stagger_type,
+            stagger_duration = stagger_duration,
+            stagger_animation_scale = nil
+        })
 	end
 end
 enigma.stun_enemy = function(self, hit_unit, unit, duration)
@@ -630,8 +658,16 @@ enigma.stun_enemy = function(self, hit_unit, unit, duration)
 
     local direction = Unit.world_position(hit_unit, 0) - Unit.world_position(unit, 0)
 
-    local t = Managers.time:time("game")
-    AiUtils.stagger(hit_unit, hit_unit_blackboard, unit, direction, 0, 6, duration, nil, t)
+    table.insert(enigma.managers.game.queued_enemy_staggers, {
+        unit = hit_unit,
+        blackboard = hit_unit_blackboard,
+        attacker_unit = unit,
+        stagger_direction = direction,
+        stagger_length = 0,
+        stagger_type = 6,
+        stagger_duration = duration,
+        stagger_animation_scale = nil
+    })
 end
 enigma.unset_taunt_unit = function(self, ai_unit)
 	local blackboard = BLACKBOARDS[ai_unit]

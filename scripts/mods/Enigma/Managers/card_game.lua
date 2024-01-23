@@ -2054,6 +2054,18 @@ reg_hook_safe(GenericStatusExtension, "set_in_vortex", function(self, in_vortex,
     handle_channel_cancelling_status_change(self.unit, in_vortex)
 end, "enigma_card_game_set_in_vortex")
 
+cgm.queued_enemy_hits = {}
+local handle_enemy_hits = function(dt)
+    if #cgm.queued_enemy_hits == 0 then
+        return
+    end
+    local t = Managers.time:time("game")
+    for _,d in ipairs(cgm.queued_enemy_hits) do
+        safe(DamageUtils.server_apply_hit, t, d.attacker_unit, d.hit_unit, d.hit_zone_name, d.hit_position, d.attack_direction, d.hit_ragdoll_actor, d.damage_source, d.power_level, d.damage_profile, d.target_index, d.boost_curve_multiplier, d.is_critical_strike, d.can_damage, d.can_stagger, d.blocking, d.shield_breaking_hit, d.backstab_multiplier, d.first_hit, d.total_hits)
+    end
+    table.clear(cgm.queued_enemy_hits)
+end
+
 cgm.queued_explosions = {}
 local handle_queued_explosions = function(dt)
     if #cgm.queued_explosions == 0 then
@@ -2065,13 +2077,28 @@ local handle_queued_explosions = function(dt)
         table.clear(cgm.queued_explosions)
         return
     end
-    for _,data in ipairs(cgm.queued_explosions) do
-        safe(area_damage.create_explosion, area_damage, data.owner_unit, data.position:unbox(), data.rotation:unbox(), data.explosion_template_name, data.scale, data.damage_source, data.attacker_power_level, data.is_critical_strike)
+    for _,d in ipairs(cgm.queued_explosions) do
+        safe(area_damage.create_explosion, area_damage, d.owner_unit, d.position:unbox(), d.rotation:unbox(), d.explosion_template_name, d.scale, d.damage_source, d.attacker_power_level, d.is_critical_strike)
     end
     table.clear(cgm.queued_explosions)
 end
+
+cgm.queued_enemy_staggers = {}
+local handle_enemy_staggers = function(dt)
+    if #cgm.queued_enemy_staggers == 0 then
+        return
+    end
+    local t = Managers.time:time("game")
+    for _,d in ipairs(cgm.queued_enemy_staggers) do
+        safe(AiUtils.stagger, d.unit, d.blackboard, d.attacker_unit, d.stagger_direction, d.stagger_length, d.stagger_type, d.stagger_duration, d.stagger_animation_scale, t)
+    end
+    table.clear(cgm.queued_enemy_staggers)
+end
+
 reg_hook_safe(StateIngame, "post_update", function(self, dt)
+    handle_enemy_hits(dt)
     handle_queued_explosions(dt)
+    handle_enemy_staggers(dt)
 end, "enigma_card_game_post_update")
 
 
