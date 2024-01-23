@@ -63,6 +63,10 @@ EnigmaCardModeUI.update = function (self, dt, t)
 		self.input_manager:capture_input(ALL_INPUT_METHODS, 1, "card_mode_ui", "card_mode_ui")
 
 		self._widgets_by_name.end_test_game_button.content.visible = enigma.managers.game.debug or false
+		self._widgets_by_name.test_game_warpstone_icon.content.visible = enigma.managers.game.debug or false
+		self._widgets_by_name.test_game_warpstone_zero_button.content.visible = enigma.managers.game.debug or false
+		self._widgets_by_name.test_game_warpstone_plus_one_button.content.visible = enigma.managers.game.debug or false
+		self._widgets_by_name.test_game_warpstone_plus_hundred_button.content.visible = enigma.managers.game.debug or false
 
 	elseif cached_card_mode and not enigma.card_mode then
 		-- on exit
