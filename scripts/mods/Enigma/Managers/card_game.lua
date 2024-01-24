@@ -9,6 +9,9 @@ local net = {
     card_game_init_begin = "card_game_init_begin",
     card_game_init_card = "card_game_init_card",
     card_game_init_complete = "card_game_init_complete",
+    card_game_sync_begin = "card_game_sync_begin",
+    card_game_sync_card = "card_game_sync_card",
+    card_game_sync_complete = "card_game_sync_complete",
     sync_players_and_units_set = "sync_players_and_units_set",
     event_card_drawn = "event_card_drawn",
     event_card_played = "event_card_played",
@@ -30,6 +33,7 @@ local net = {
 local cgm = {
     local_data = {},
     peer_data = {},
+    deactivated_peer_data = {},
 
     data_by_unit = {},
 
@@ -431,7 +435,151 @@ cgm.init_game = function(self, game_init_data, debug)
     enigma:register_mod_event_callback("update", self, "_init_update")
 end
 
-enigma:network_register(net.card_game_init_begin, function(peer_id, deck_name, num_cards_in_deck)
+local network_card_location_lookup = {
+    [enigma.CARD_LOCATION.draw_pile] = 1,
+    [enigma.CARD_LOCATION.hand] = 2,
+    [enigma.CARD_LOCATION.discard_pile] = 3,
+    [enigma.CARD_LOCATION.out_of_play_pile] = 4,
+    [1] = enigma.CARD_LOCATION.draw_pile,
+    [2] = enigma.CARD_LOCATION.hand,
+    [3] = enigma.CARD_LOCATION.discard_pile,
+    [4] = enigma.CARD_LOCATION.out_of_play_pile,
+}
+cgm._sync_out_game_data = function(self, peer, data)
+    local rpc_name_prefix = "card_game_init_"
+    if data and data ~= self.local_data then
+        rpc_name_prefix = "card_game_sync_"
+        enigma:info("Syncing another player's own data out, most likely a case of them reconnecting")
+    else
+        data = self.local_data
+        enigma:info("Syncing out our own data")
+    end
+    peer = peer or "others"
+    enigma:info("Attempting to send RPCs "..rpc_name_prefix.."* to: "..tostring(peer))
+    enigma:network_send(rpc_name_prefix.."begin", peer, self.local_data.deck_name, #data.draw_pile, #data.hand, #data.discard_pile, #data.out_of_play_pile)
+    for location,location_id in pairs(network_card_location_lookup) do
+        if type(location) == "string" then
+            for i,card in ipairs(self.local_data[location]) do
+                enigma:network_send(rpc_name_prefix.."card", peer, location_id, i, card.id)
+            end
+        end
+    end
+    enigma:network_send(rpc_name_prefix.."complete", peer)
+end
+
+enigma:network_register(net.card_game_sync_begin, function(peer_id, deck_name, num_cards_draw_pile, num_cards_hand, num_cards_discard_pile, num_cards_out_of_play_pile)
+    local local_peer_id = enigma:local_peer_id()
+    local local_data = {
+        deck_name = deck_name,
+
+        all_cards = {},
+        next_card_local_id = 1,
+
+        draw_pile = {},
+        hand = {},
+        discard_pile = {},
+        out_of_play_pile = {},
+
+        active_duration_cards = {},
+
+        peer_id = local_peer_id,
+    }
+    add_context_functions(local_data)
+
+    cgm.local_data = local_data
+    in_progress_game_init_syncs[local_peer_id] = {
+        draw_pile = {},
+        hand = {},
+        discard_pile = {},
+        out_of_play_pile = {}
+    }
+    for i=1,num_cards_draw_pile do
+        in_progress_game_init_syncs[local_peer_id].draw_pile[i] = true
+    end
+    for i=1,num_cards_hand do
+        in_progress_game_init_syncs[local_peer_id].hand[i] = true
+    end
+    for i=1,num_cards_discard_pile do
+        in_progress_game_init_syncs[local_peer_id].discard_pile[i] = true
+    end
+    for i=1,num_cards_out_of_play_pile do
+        in_progress_game_init_syncs[local_peer_id].out_of_play_pile[i] = true
+    end
+    local_data.card_sync_total_cards = num_cards_draw_pile + num_cards_hand + num_cards_discard_pile + num_cards_out_of_play_pile
+end)
+enigma:network_register(net.card_game_sync_card, function(peer_id, location_id, index, card_id, card_local_id)
+    local local_peer_id = enigma:local_peer_id()
+    local location = network_card_location_lookup[location_id]
+    local in_progress_sync_data = in_progress_game_init_syncs[local_peer_id][location]
+    if not in_progress_sync_data then
+        enigma:warning("Received card_game_sync_card before receiving card_game_sync_begin from server!")
+        return
+    end
+    if not in_progress_sync_data[index] then
+        enigma:warning("Received card_game_sync_card in pile: "..tostring(location).." at an index higher than the number of cards they told us we have!")
+        return
+    end
+
+    in_progress_sync_data[index] = {
+        id = card_id,
+        local_id = card_local_id
+    }
+end)
+enigma:network_register(net.card_game_sync_complete, function(peer_id)
+    local local_data = cgm.local_data
+    local in_progress_sync_data = in_progress_game_init_syncs[peer_id]
+    if not in_progress_sync_data then
+        enigma:warning("Received card_game_sync_complete for before receiving card_game_sync_begin from them!")
+        return
+    end
+
+    local card_manager = enigma.managers.card_template
+    for location,card_ids_in_location in pairs(in_progress_sync_data) do
+        for _,card_data in ipairs(card_ids_in_location) do
+            local id = card_data.id
+            local local_id = card_data.local_id
+            local card_template = card_manager:get_card_from_id(id)
+            local card = cgm:_instance_card(local_data, card_template)
+            card.local_id = local_id
+    
+            table.insert(local_data[location], card)
+        end
+    end
+    local_data.next_card_local_id = local_data.card_sync_total_cards + 1
+    local_data.card_sync_total_cards = nil
+
+    enigma:info("local_data set after reconnect")
+    enigma:dump(local_data, "NEW LOCAL DATA", 0)
+
+    in_progress_game_init_syncs[peer_id] = nil
+
+    if cgm.game_state == "syncing" then
+        if cgm.expecting_sync_from_peers[peer_id] then
+            cgm.expecting_sync_from_peers[peer_id] = false
+            enigma:info("Received initialization sync complete from peer: "..tostring(peer_id))
+        elseif cgm.expecting_sync_from_peers[peer_id] == false then
+            enigma:warning("Received DUPLICATE initialization sync complete from peer: "..tostring(peer_id))
+        end
+        local any_left_to_sync = false
+        for _,expecting_sync in pairs(cgm.expecting_sync_from_peers) do
+            any_left_to_sync = any_left_to_sync or expecting_sync
+        end
+        if not any_left_to_sync then
+            if cgm:_all_required_packages_loaded() then
+                cgm:start_game()
+            else
+                enigma:info("Delaying game start until all required packages are loaded")
+                cgm._start_game_on_all_packages_loaded = true
+            end
+        end
+    else
+        enigma:info("Received initialization sync complete from peer: "..tostring(peer_id))
+        enigma:info("We have not reached our point of syncing out yet, but that is ok!")
+    end
+end)
+
+
+enigma:network_register(net.card_game_init_begin, function(peer_id, deck_name, num_cards_draw_pile, num_cards_hand, num_cards_discard_pile, num_cards_out_of_play_pile)
     local peer_data = {
         deck_name = deck_name,
 
@@ -459,19 +607,34 @@ enigma:network_register(net.card_game_init_begin, function(peer_id, deck_name, n
     end
 
     cgm.peer_data[peer_id] = peer_data
-    in_progress_game_init_syncs[peer_id] = {}
-    for i=1,num_cards_in_deck do
-        in_progress_game_init_syncs[peer_id][i] = true
+    in_progress_game_init_syncs[peer_id] = {
+        draw_pile = {},
+        hand = {},
+        discard_pile = {},
+        out_of_play_pile = {}
+    }
+    for i=1,num_cards_draw_pile do
+        in_progress_game_init_syncs[peer_id].draw_pile[i] = true
+    end
+    for i=1,num_cards_hand do
+        in_progress_game_init_syncs[peer_id].hand[i] = true
+    end
+    for i=1,num_cards_discard_pile do
+        in_progress_game_init_syncs[peer_id].discard_pile[i] = true
+    end
+    for i=1,num_cards_out_of_play_pile do
+        in_progress_game_init_syncs[peer_id].out_of_play_pile[i] = true
     end
 end)
-enigma:network_register(net.card_game_init_card, function(peer_id, index, card_id)
-    local in_progress_sync_data = in_progress_game_init_syncs[peer_id]
+enigma:network_register(net.card_game_init_card, function(peer_id, location_id, index, card_id)
+    local location = network_card_location_lookup[location_id]
+    local in_progress_sync_data = in_progress_game_init_syncs[peer_id][location]
     if not in_progress_sync_data then
         enigma:warning("Received card_game_init_card for "..tostring(peer_id).." before receiving card_game_init_begin from them!")
         return
     end
     if not in_progress_sync_data[index] then
-        enigma:warning("Received card_game_init_card for "..tostring(peer_id).."at an index higher than the number of cards they told us they have!")
+        enigma:warning("Received card_game_init_card for "..tostring(peer_id).." in pile: "..tostring(location).." at an index higher than the number of cards they told us they have!")
         return
     end
 
@@ -487,23 +650,19 @@ enigma:network_register(net.card_game_init_complete, function(peer_id)
 
     local missing_packs = {}
     local card_manager = enigma.managers.card_template
-    local primordial_cards = {}
-    for _,card_id in ipairs(in_progress_sync_data) do
-        local card_template = card_manager:get_card_from_id(card_id)
-        if not card_template then
-            table.insert(peer_data.draw_pile, card_id)
-            local missing_pack = card_manager:get_pack_id_from_card_id(card_id)
-            if missing_pack then
-                table.insert(missing_packs, missing_pack)
+    for location,card_ids_in_location in pairs(in_progress_sync_data) do
+        for _,card_id in ipairs(card_ids_in_location) do
+            local card_template = card_manager:get_card_from_id(card_id)
+            if not card_template then
+                local missing_pack = card_manager:get_pack_id_from_card_id(card_id)
+                if missing_pack then
+                    table.insert(missing_packs, missing_pack)
+                end
             end
+            local card = cgm:_instance_card(peer_data, card_template)
+    
+            table.insert(peer_data[location], card)
         end
-        local card = cgm:_instance_card(peer_data, card_template)
-
-        table.insert(card.primordial and primordial_cards or peer_data.draw_pile, card)
-    end
-
-    for _,card in ipairs(primordial_cards) do
-        table.insert(peer_data.draw_pile, card)
     end
 
     if #missing_packs > 0 then
@@ -570,12 +729,7 @@ cgm._init_update = function(self, dt)
             end
         end
         
-        enigma:info("Attempting to send RPC sync_card_game_init_data")
-        enigma:network_send(net.card_game_init_begin, "others", self.local_data.deck_name, #self.local_data.deck_card_ids)
-        for i,card_id in ipairs(self.local_data.deck_card_ids) do
-            enigma:network_send(net.card_game_init_card, "others", i, card_id)
-        end
-        enigma:network_send(net.card_game_init_complete, "others")
+        self:_sync_out_game_data()
 
         if num_others_not_yet_synced > 0 then
             enigma:info("Expecting syncs from the above "..tostring(num_others_not_yet_synced).." more peers:")
@@ -677,6 +831,7 @@ cgm.end_game = function(self)
     self.game_state = nil
     self.local_data = nil
     self.peer_data = {}
+    self.deactivated_peer_data = {}
     self.data_by_unit = {}
     self.is_server = nil
     self.level_progress_card_draw = table.clone(self.base_level_progress_card_draw)
@@ -1923,6 +2078,9 @@ enigma._sync_card_game_property = function(self, peer_id, property)
 end
 
 -- Hooks
+local reg_prehook_safe = function(obj, func_name, func, hook_id)
+    enigma.managers.hook:prehook_safe("Enigma", obj, func_name, func, hook_id)
+end
 local reg_hook_safe = function(obj, func_name, func, hook_id)
     enigma.managers.hook:hook_safe("Enigma", obj, func_name, func, hook_id)
 end
@@ -2126,6 +2284,18 @@ enigma:hook_safe(BTStaggerAction, "run", function(self, unit, blackboard, t, dt)
     end
 end)
 
+reg_hook_safe(PartyManager, "remove_peer_from_party", function(self, peer_id, local_player_id, party_id)
+    if cgm.peer_data and cgm.peer_data[peer_id] then
+        cgm.deactivated_peer_data[peer_id] = cgm.peer_data[peer_id]
+        cgm.peer_data[peer_id] = nil
+    end
+end)
+
+reg_prehook_safe(GameNetworkManager, "_hot_join_sync", function(peer_id)
+    if cgm:is_in_game() and cgm.is_server and cgm.deactivated_peer_data[peer_id] then
+        cgm:_sync_out_game_data(peer_id, cgm.deactivated_peer_data[peer_id])
+    end
+end)
 
 -- Events
 cgm.on_game_state_changed = function(self, status, state_name)
