@@ -70,6 +70,9 @@ end
 enigma.is_peer_local = function(self, peer_id)
     return peer_id == self:local_peer_id()
 end
+enigma.difficulty = function(self)
+    return Managers.state and Managers.state.difficulty and Managers.state.difficulty:get_difficulty()
+end
 
 -- Retrieve Unit/Player data
 local monster_breeds = {

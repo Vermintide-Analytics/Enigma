@@ -170,6 +170,21 @@ end
 
 local add_card_type_specific_properties = function(inst)
     if inst.card_type == enigma.CARD_TYPE.attack then
+        if not inst.difficulty_scaling then
+            inst.difficulty_scaling = {}
+        end
+        if not inst.difficulty_scaling.power_multiplier then
+            inst.difficulty_scaling.power_multiplier = {
+                easy = 1,           -- N/A
+                normal = 1,         -- Recruit
+                hard = 1.5,         -- Veteran
+                harder = 2.2,       -- Champion
+                hardest = 3.3,      -- Legend
+                cataclysm = 5.4,    -- Cataclysm
+                cataclysm_2 = 6.4,  -- Cataclysm 2
+                cataclysm_3 = 7.4,  -- Cataclysm 3
+            }
+        end
         inst.power_multiplier = 1
         inst.hit_enemy = function(card, hit_unit, attacking_player_unit, hit_zone_name, damage_profile, power_multiplier, is_critical_strike, break_shields)
             power_multiplier = power_multiplier * card.power_multiplier
@@ -186,6 +201,24 @@ local add_card_type_specific_properties = function(inst)
                 damage = damage * custom_buffs.attack_card_power_multiplier
             end
             enigma:force_damage(unit, damage, damager, damage_source)
+        end
+    end
+end
+
+local apply_difficulty_scaling = function(inst)
+    if type(inst.difficulty_scaling) ~= "table" then
+        return
+    end
+
+    local difficulty = enigma:difficulty()
+
+    for prop_name,scaling_lut in pairs(inst.difficulty_scaling) do
+        if type(prop_name) == "string" and type(scaling_lut) == "table" and type(inst[prop_name]) == "number" then
+            local scaling = scaling_lut[difficulty] or 1
+            inst[prop_name] = inst[prop_name] * scaling
+            enigma:info(prop_name.." on "..tostring(inst.id).." scaled by "..scaling.." based on difficulty")
+        else
+            enigma:warning("Invalid use of \"difficulty_scaling\" property on card: "..tostring(inst.id))
         end
     end
 end
@@ -331,6 +364,7 @@ local template_template = {
         end
         add_card_instance_functions(inst)
         add_card_type_specific_properties(inst)
+        apply_difficulty_scaling(inst)
         return inst
     end,
 }

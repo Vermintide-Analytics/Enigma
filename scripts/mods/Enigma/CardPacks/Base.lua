@@ -1238,6 +1238,7 @@ local attack_cards = {
         texture = true,
         min_quakes = 2,
         max_quakes = 4,
+        damage_amount = 3, -- 4 quakes will kill a gor, but not a stormvermin
         quake_effects = function(card)
             local us = card.context.unit
             sound:trigger_at_unit("rumble", us)
@@ -1247,7 +1248,7 @@ local attack_cards = {
             local us = card.context.unit
             local nearby_ai_units = enigma:get_ai_units_around_unit(us, 4)
             for _,unit in ipairs(nearby_ai_units) do
-                card:damage(unit, 10, us)
+                card:damage(unit, card.damage_amount, us)
                 enigma:stun_enemy(unit, us, 0.1)
             end
             card:quake_effects()
@@ -1281,7 +1282,7 @@ local attack_cards = {
             local us = card.context.unit
             local enemy = card.last_blocked_unit
             if Unit.alive(us) and Unit.alive(enemy) then
-                card:hit_enemy(enemy, us, nil, DamageProfileTemplates.medium_pointy_smiter_flat_1h, 3)
+                card:hit_enemy(enemy, us, nil, DamageProfileTemplates.medium_pointy_smiter_flat_1h, 2.25)
             end
         end,
         update_local = function(card, dt)
@@ -1331,7 +1332,7 @@ local attack_cards = {
             local us = card.context.unit
             local nearby_ai_units = enigma:get_ai_units_around_unit(us, 6)
             for _,unit in ipairs(nearby_ai_units) do
-                card:hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_slashing_linesman, 5)
+                card:hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_slashing_linesman, 3)
             end
         end,
         sounds_3D = {
@@ -1349,6 +1350,7 @@ local attack_cards = {
         texture = true,
         min_quakes = 4,
         max_quakes = 7,
+        damage_amount = 5, -- 6 quakes will kill raiders, but not chaos warriors
         quake_effects = function(card)
             local us = card.context.unit
             sound:trigger_at_unit("rumble", us)
@@ -1358,7 +1360,7 @@ local attack_cards = {
             local us = card.context.unit
             local nearby_ai_units = enigma:get_ai_units_around_unit(us, 7)
             for _,unit in ipairs(nearby_ai_units) do
-                card:damage(unit, 18, us)
+                card:damage(unit, card.damage_amount, us)
                 enigma:stun_enemy(unit, us, 0.1)
             end
             card:quake_effects()
@@ -1465,11 +1467,12 @@ local attack_cards = {
         rarity = COMMON,
         cost = 0,
         texture = true,
+        damage_amount = 6, -- Enough to kill an ungor or slave rat, nothing else
         on_play_server = function(card)
             local us = card.context.unit
             local ai_units_to_stab = enigma:get_ai_units_in_front_of_unit(us, 2.5, 60)
             for _,unit in ipairs(ai_units_to_stab) do
-                card:hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_blunt_tank, 1)
+                card:damage(unit, card.damage_amount, us)
                 enigma:stun_enemy(unit, us, 3)
             end
         end,
@@ -1491,7 +1494,7 @@ local attack_cards = {
             local us = card.context.unit
             local nearby_ai_units = enigma:get_ai_units_around_unit(us, 2.5)
             for _,unit in ipairs(nearby_ai_units) do
-                card:hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_blunt_tank, 8)
+                card:hit_enemy(unit, us, nil, DamageProfileTemplates.heavy_blunt_tank, 5)
             end
         end,
         on_draw_local = function(card)
