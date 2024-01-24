@@ -2678,25 +2678,29 @@ local ability_cards = {
     },
     the_red_raven = {
         rarity = LEGENDARY,
-        cost = 5,
+        cost = 0,
         texture = true,
-        card_draw_multiplier_modifier = -0.30,
-        draw_additional = true,
+        duplicate_card_chance = 0.50,
+        card_draw_multiplier_modifier = -0.50,
+        on_any_card_played_local = function(card, played_card)
+            if card:is_in_hand() and enigma:test_chance(card.duplicate_card_chance) then
+                local id = played_card.id
+                local new_card = game:shuffle_new_card_into_draw_pile(id)
+                if not new_card then
+                    enigma:warning("Could not shuffle copy of "..tostring(id).." into draw pile")
+                    return
+                end
+                played_card:copy_to(new_card)
+                new_card.ephemeral = true
+                enigma:info("The Red Raven shuffled new copy of "..tostring(id).." into draw pile")
+                sound:trigger("raven_caw")
+            end
+        end,
         on_location_changed_local = function(card, old, new)
             if new == enigma.CARD_LOCATION.hand then
                 buff:update_stat(card.context.unit, "card_draw_multiplier", card.card_draw_multiplier_modifier)
             elseif old == enigma.CARD_LOCATION.hand then
                 buff:update_stat(card.context.unit, "card_draw_multiplier", card.card_draw_multiplier_modifier * -1)
-            end
-        end,
-        on_any_card_drawn_local = function(card, drawn_card)
-            if card:is_in_hand() and drawn_card ~= card then
-                if card.draw_additional then
-                    card.draw_additional = false -- Don't trigger ourselves from this additional card draw
-                    game:draw_card()
-                else
-                    card.draw_additional = true
-                end
             end
         end,
         ephemeral = true,
@@ -2706,10 +2710,11 @@ local ability_cards = {
         retain_descriptions = {
             {
                 format = "base_the_red_raven_retain",
+                parameters = { 50 }
             },
             {
                 format = "description_card_draw",
-                parameters = { -30 }
+                parameters = { -50 }
             },
         }
     },

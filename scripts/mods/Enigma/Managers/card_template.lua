@@ -166,6 +166,9 @@ local add_card_instance_functions = function(inst)
         self.dirty_hud_ui_played_card = true
         self.dirty_card_mode_ui = true
     end
+    inst.copy_to = function(self, other_card)
+        return enigma.managers.game:_copy_card(self, other_card)
+    end
 end
 
 local add_card_type_specific_properties = function(inst)

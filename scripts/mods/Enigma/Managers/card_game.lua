@@ -335,6 +335,32 @@ cgm._instance_card = function(self, context, card_template)
     return card
 end
 
+local card_properties_to_exclude_from_copy = {
+    id = true,
+    local_id = true,
+    location = true,
+    times_played = true,
+}
+local exclude_card_property_from_copying = function(card, property_name)
+    local property_type = type(card[property_name])
+    return property_type == "function" or property_type == "table" or card_properties_to_exclude_from_copy[property_name]
+end
+cgm._copy_card = function(self, source, target)
+    if not source.local_id then
+        enigma:warning("Cannot copy card, source is not a card instance")
+        return
+    end
+    if not target.local_id then
+        enigma:warning("Cannot copy card, target is not a card instance")
+        return
+    end
+    for property_name,value in pairs(source) do
+        if not exclude_card_property_from_copying(source, property_name) then
+            target[property_name] = value
+        end
+    end
+end
+
 local in_progress_game_init_syncs
 cgm.init_game = function(self, game_init_data, debug)
     enigma:info("Initializing Enigma game")

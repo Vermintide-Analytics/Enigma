@@ -656,7 +656,7 @@ return {
         en = "The Red Raven"
     },
     base_the_red_raven_retain = {
-        en = "Whenever you draw a card, draw another for free"
+        en = "Whenever you play a card, %i%% chance to shuffle a copy of it into your deck.\nGive the copy Ephemeral"
     },
 
     base_ubersreik_hero = {
