@@ -2961,23 +2961,25 @@ local ability_cards = {
             end
 
             local players_and_bots = enigma:player_and_bot_units()
-            local ally_status = nil
+            local ally_unit = nil
+            local ally_status
             for _,unit in ipairs(players_and_bots) do
                 if unit ~= us then -- Skip ourselves
                     local status = ScriptUnit.extension(unit, "status_system")
                     if status:is_knocked_down() or status:get_is_ledge_hanging() then
+                        ally_unit = unit
                         ally_status = status
                     end
                 end
             end
-            if not ally_status then
+            if not ally_unit then
                 enigma:warning("Willing Sacrifice could not find a disabled ally to free")
                 return
             end
             if ally_status:is_knocked_down() then
-                ally_status:set_knocked_down(false)
+                StatusUtils.set_revived_network(ally_unit, true, us)
             elseif ally_status:get_is_ledge_hanging() then
-                ally_status:set_pulled_up(true, us)
+                StatusUtils.set_pulled_up_network(ally_unit, true, us)
             end
             our_status:set_knocked_down(true)
         end,
