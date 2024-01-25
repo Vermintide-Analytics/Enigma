@@ -1,6 +1,6 @@
 local enigma = get_mod("Enigma")
 
-enigma.VERSION = "1.0"
+enigma.VERSION = "1.1"
 
 Wwise.load_bank("wwise/mods/Enigma/Enigma")
 
