@@ -339,7 +339,8 @@ local card_properties_to_exclude_from_copy = {
     id = true,
     local_id = true,
     location = true,
-    times_played = true,
+    _times_drawn = true,
+    _times_played = true,
 }
 local exclude_card_property_from_copying = function(card, property_name)
     local property_type = type(card[property_name])
@@ -747,8 +748,10 @@ end
 -- DRAW --
 ----------
 local handle_card_drawn = function(context, data)
-    local card = table.remove(data.draw_pile)
+    local card = data.draw_pile[#data.draw_pile]
+    remove_card_from_pile(data, enigma.CARD_LOCATION.draw_pile, card)
     enigma:info(format_drawing_card(card, data.peer_id))
+    card._times_drawn = card._times_drawn + 1
     invoke_card_functions(card, "on_draw", context)
     add_card_to_pile(data, enigma.CARD_LOCATION.hand, card)
     if cgm.is_server and card.on_location_changed_server then
@@ -841,9 +844,9 @@ local handle_card_played = function(context, data, card, play_type, fizzle, dest
     end
 
     if not fizzle then
+        card._times_played = card._times_played + 1
         invoke_card_functions(card, "on_play", context, play_type, net_x_cost)
 
-        card._times_played = card._times_played + 1
         if card.duration then
             table.insert(card.active_durations, 1, card.duration)
         end

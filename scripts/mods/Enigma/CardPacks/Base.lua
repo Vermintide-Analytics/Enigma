@@ -1034,7 +1034,7 @@ local passive_cards = {
             end
         end,
         on_play_local = function(card)
-            if card:times_played() < 1 then
+            if card:times_played() == 1 then
                 card.time_until_next_effect = card.effect_interval
             end
         end,
@@ -3093,16 +3093,12 @@ local chaos_cards = {
         times_drawn = 0,
         damage_per_draw = 5,
         texture = true,
-        on_draw_server = function(card)
-            card.times_drawn = card.times_drawn + 1
-        end,
         on_draw_local = function(card)
-            card.times_drawn = card.times_drawn + 1
-            card.description_lines[1].parameters[2] = card.damage_per_draw * card.times_drawn
+            card.description_lines[1].parameters[2] = card.damage_per_draw * card:times_drawn()
             card:set_dirty()
         end,
         on_play_server = function(card)
-            enigma:force_damage(card.context.unit, card.damage_per_draw * card.times_drawn)
+            enigma:force_damage(card.context.unit, card.damage_per_draw * card:times_drawn())
         end,
         description_lines = {
             {

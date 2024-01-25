@@ -114,6 +114,9 @@ local add_card_instance_functions = function(inst)
             enigma.managers.game:request_play_card(other_card, skip_warpstone_cost, allow_fizzle)
         end
     end
+    inst.times_drawn = function(card)
+        return card._times_drawn
+    end
     inst.times_played = function(card)
         return card._times_played
     end
@@ -361,6 +364,7 @@ local template_template = {
         inst.auto_condition_met = inst.auto_condition_server_met and inst.auto_condition_local_met
 
         inst.context = context
+        inst._times_drawn = 0
         inst._times_played = 0
         if self.duration then
             inst.active_durations = {}
