@@ -3150,8 +3150,8 @@ local chaos_cards = {
             end
             card.time_until_damage = card.time_until_damage - dt
             if card.time_until_damage <= 0 then
-                enigma:force_damage(card.context.unit, 1)
                 card.time_until_damage = card.damage_interval
+                enigma:force_damage(card.context.unit, 1)
             end
         end,
         retain_descriptions = {

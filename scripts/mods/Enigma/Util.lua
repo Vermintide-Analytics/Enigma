@@ -328,10 +328,12 @@ enigma.force_damage = function(self, unit, damage, damager, damage_source)
     damager = damager or unit
     damage_source = damage_source or "life_tap"
 
-    -- attacked_unit, attacker_unit, original_damage_amount, hit_zone_name, damage_type, hit_position, damage_direction,
-    -- damage_source, hit_ragdoll_actor, source_attacker_unit, buff_attack_type, hit_react_type, is_critical_strike,
-    -- added_dot, first_hit, total_hits, backstab_multiplier, skip_buffs
-    DamageUtils.add_damage_network(unit, damager, damage, "full", "forced", Unit.world_position(unit, 0), Vector3.up(), damage_source, nil, damager, "n/a", "light", false, false, false, 1, 1, true)
+    table.insert(enigma.managers.game.queued_damage, {
+        unit = unit,
+        damager = damager,
+        damage = damage,
+        damage_source = damage_source
+    })
 end
 enigma.heal = function(self, unit, heal, healer, heal_type)
     if not self:is_server() then

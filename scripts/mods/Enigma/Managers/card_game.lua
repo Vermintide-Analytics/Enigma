@@ -2080,6 +2080,20 @@ reg_hook_safe(GenericStatusExtension, "set_in_vortex", function(self, in_vortex,
     handle_channel_cancelling_status_change(self.unit, in_vortex)
 end, "enigma_card_game_set_in_vortex")
 
+cgm.queued_damage = {}
+local handle_damage_instances = function(dt)
+    if #cgm.queued_damage == 0 then
+        return
+    end
+    for _,d in ipairs(cgm.queued_damage) do
+        -- attacked_unit, attacker_unit, original_damage_amount, hit_zone_name, damage_type, hit_position, damage_direction,
+        -- damage_source, hit_ragdoll_actor, source_attacker_unit, buff_attack_type, hit_react_type, is_critical_strike,
+        -- added_dot, first_hit, total_hits, backstab_multiplier, skip_buffs
+        safe(DamageUtils.add_damage_network, d.unit, d.damager, d.damage, "full", "forced", Unit.world_position(d.unit, 0), Vector3.up(), d.damage_source, nil, d.damager, "n/a", "light", false, false, false, 1, 1, true)
+    end
+    table.clear(cgm.queued_damage)
+end
+
 cgm.queued_enemy_hits = {}
 local handle_enemy_hits = function(dt)
     if #cgm.queued_enemy_hits == 0 then
@@ -2122,6 +2136,7 @@ local handle_enemy_staggers = function(dt)
 end
 
 reg_hook_safe(StateIngame, "post_update", function(self, dt)
+    handle_damage_instances(dt)
     handle_enemy_hits(dt)
     handle_queued_explosions(dt)
     handle_enemy_staggers(dt)
