@@ -264,6 +264,66 @@ local loc = {
 		en = "Chaos Wastes Coin Display"
 	},
 
+	gamepad_settings_group_title = {
+		en = "Controller Settings"
+	},
+	gamepad_settings_group_description = {
+		en = "Settings to customize how to play Enigma with a controller"
+	},
+	gamepad_card_mode_button_title = {
+		en = "Toggle Card Mode"
+	},
+	play_gamepad_buttons_group_title = {
+		en = "Play Card Buttons"
+	},
+	play_gamepad_buttons_group_description = {
+		en = "Controller buttons to play cards from your hand"
+	},
+
+	gamepad_button_a = {
+		en = "A / X"
+	},
+	gamepad_button_b = {
+		en = "B / O"
+	},
+	gamepad_button_x = {
+		en = "X / Square"
+	},
+	gamepad_button_y = {
+		en = "Y / Triangle"
+	},
+	gamepad_button_d_pad_down = {
+		en = "Down (D-Pad)"
+	},
+	gamepad_button_d_pad_right = {
+		en = "Right (D-Pad)"
+	},
+	gamepad_button_d_pad_left = {
+		en = "Left (D-Pad)"
+	},
+	gamepad_button_d_pad_up = {
+		en = "Up (D-Pad)"
+	},
+	gamepad_button_left_stick_press = {
+		en = "Left Stick (Press)"
+	},
+	gamepad_button_right_stick_press = {
+		en = "Right Stick (Press)"
+	},
+	gamepad_button_left_bumper = {
+		en = "Left Button"
+	},
+	gamepad_button_right_bumper = {
+		en = "Right Button"
+	},
+	gamepad_button_left_trigger = {
+		en = "Left Trigger"
+	},
+	gamepad_button_right_trigger = {
+		en = "Right Trigger"
+	},
+
+
 	-- UI
 	channeling = {
 		en = "Channeling..."

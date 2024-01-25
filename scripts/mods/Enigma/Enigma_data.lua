@@ -11,6 +11,27 @@ local vertical_anchor_options = {
 	{ text = "bottom", value = "bottom" },
 }
 
+local gamepad_button_options = {
+	{ text = "gamepad_button_a", value = "confirm_press" },
+	{ text = "gamepad_button_b", value = "back" },
+	{ text = "gamepad_button_x", value = "special_1_press" },
+	{ text = "gamepad_button_y", value = "refresh_press" },
+	
+	{ text = "gamepad_button_d_pad_down", value = "move_down_raw" },
+	{ text = "gamepad_button_d_pad_right", value = "move_right_raw" },
+	{ text = "gamepad_button_d_pad_left", value = "move_left_raw" },
+	{ text = "gamepad_button_d_pad_up", value = "move_up_raw" },
+
+	{ text = "gamepad_button_left_stick_press", value = "left_stick_press" },
+	{ text = "gamepad_button_right_stick_press", value = "right_stick_press" },
+
+	{ text = "gamepad_button_left_bumper", value = "cycle_previous" },
+	{ text = "gamepad_button_right_bumper", value = "cycle_next" },
+
+	{ text = "gamepad_button_left_trigger", value = "trigger_cycle_previous" },
+	{ text = "gamepad_button_right_trigger", value = "trigger_cycle_next" },
+}
+
 return {
 	name = "Enigma",
 	description = enigma:localize("mod_description"),
@@ -196,7 +217,72 @@ return {
 								default_value = {}
 							},
 						}
-					}
+					},
+					{
+						setting_id = "gamepad_settings_group",
+						type = "group",
+						title = "gamepad_settings_group_title",
+						description = "gamepad_settings_group_description",
+						sub_widgets = {
+							{
+								setting_id = "gamepad_card_mode_button",
+								type = "dropdown",
+								title = "gamepad_card_mode_button_title",
+								default_value = "left_stick_press",
+								options = table.clone(gamepad_button_options)
+							},
+							{
+								setting_id = "gamepad_draw_card_button",
+								type = "dropdown",
+								title = "draw_card_hotkey_title",
+								default_value = "move_down_raw",
+								options = table.clone(gamepad_button_options)
+							},
+							{
+								setting_id = "play_gamepad_buttons_group",
+								type = "group",
+								title = "play_gamepad_buttons_group_title",
+								description = "play_gamepad_buttons_group_description",
+								sub_widgets = {
+									{
+										setting_id = "gamepad_play_1_button",
+										type = "dropdown",
+										title = "card_1_title",
+										default_value = "confirm_press",
+										options = table.clone(gamepad_button_options)
+									},
+									{
+										setting_id = "gamepad_play_2_button",
+										type = "dropdown",
+										title = "card_2_title",
+										default_value = "special_1_press",
+										options = table.clone(gamepad_button_options)
+									},
+									{
+										setting_id = "gamepad_play_3_button",
+										type = "dropdown",
+										title = "card_3_title",
+										default_value = "refresh_press",
+										options = table.clone(gamepad_button_options)
+									},
+									{
+										setting_id = "gamepad_play_4_button",
+										type = "dropdown",
+										title = "card_4_title",
+										default_value = "back",
+										options = table.clone(gamepad_button_options)
+									},
+									{
+										setting_id = "gamepad_play_5_button",
+										type = "dropdown",
+										title = "card_5_title",
+										default_value = "cycle_next",
+										options = table.clone(gamepad_button_options)
+									},
+								}
+							},
+						}
+					},
 				}
 			},
 			{
