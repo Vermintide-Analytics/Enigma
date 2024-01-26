@@ -2219,6 +2219,7 @@ local ability_cards = {
                 end
             end,
         },
+        primordial = true,
         sounds_2D = {
             on_play = "boxing_bell"
         },
