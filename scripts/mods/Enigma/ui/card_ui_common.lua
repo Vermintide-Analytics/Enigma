@@ -1542,6 +1542,67 @@ card_ui_common.add_hand_display = function(scenegraph_defs, widget_defs, scenegr
 	end
 end
 
+local add_controller_prompts_to_hand_display = function(scenegraph_defs, widget_defs, scenegraph_parent_id, card_width, enable_hotspots)
+	local sizes = calculate_card_sizes(card_width)
+	local card_height = sizes.card_height
+	local vertical_offset = card_height * 0.65
+	
+	for i=1,5 do
+		local controller_prompt_id = "card_"..i.."_controller_prompt"
+		scenegraph_defs[controller_prompt_id] = {
+			parent = scenegraph_parent_id,
+			vertical_alignment = "center",
+			horizontal_alignment = "center",
+			size = {
+				50,
+				50
+			},
+			position = {
+				0,
+				vertical_offset,
+				10
+			}
+		}
+
+		widget_defs[controller_prompt_id] = {
+			scenegraph_id = controller_prompt_id,
+			element = {
+				passes = {
+					{
+						pass_type = "texture",
+						texture_id = "prompt",
+						style_id = "prompt"
+					},
+				}
+			},
+			content = {
+				prompt = enigma.managers.ui.gamepad_button_texture_data.confirm_press.texture_xbone,
+				visible = false
+			},
+			style = {
+				prompt = {
+					texture_size = {
+						50,
+						50
+					},
+					vertical_alignment = "center",
+					horizontal_alignment = "center",
+					offset = {
+						0,
+						0,
+						1
+					},
+				},
+			}
+		}
+	end
+end
+
+card_ui_common.add_hand_display_with_controller_prompts = function(scenegraph_defs, widget_defs, scenegraph_parent_id, card_width, enable_hotspots)
+	card_ui_common.add_hand_display(scenegraph_defs, widget_defs, scenegraph_parent_id, card_width, enable_hotspots)
+	add_controller_prompts_to_hand_display(scenegraph_defs, widget_defs, scenegraph_parent_id, card_width, enable_hotspots)
+end
+
 card_ui_common.update_hand_display = function(ui_renderer, scenegraph_nodes, widgets_by_name, card_width, card_margin, hand_ui_data, card_dirty_property_name)
 	local hand = enigma.managers.game.local_data.hand
 	local hand_size = #hand
@@ -1563,6 +1624,15 @@ card_ui_common.update_hand_display = function(ui_renderer, scenegraph_nodes, wid
 
 		local current_horizontal_position = card_scenegraph_node.position[1]
 		card_scenegraph_node.position[1] = math.lerp(current_horizontal_position, desired_horizontal_position, 0.1)
+
+		local controller_prompt_id = "card_"..i.."_controller_prompt"
+		local controller_prompt_node = scenegraph_nodes[controller_prompt_id]
+		if controller_prompt_node then
+			local controller_prompt_widget = widgets_by_name[controller_prompt_id]
+			controller_prompt_node.position[1] = math.lerp(current_horizontal_position, desired_horizontal_position, 0.1)
+			controller_prompt_widget.content.visible = type(card) == "table" and controller_prompt_widget.content.gamepad_active
+		end
+
 		desired_horizontal_position = desired_horizontal_position + card_margin + card_width
 	end
 end

@@ -25,7 +25,25 @@ EnigmaCardModeUI.init = function(self, parent, ingame_ui_context)
 	self.input_manager:map_device_to_service("card_mode_ui", "keyboard")
 	self.input_manager:map_device_to_service("card_mode_ui", "mouse")
 
+	enigma:unregister_mod_event_callback("on_setting_changed", self, "on_setting_changed")
+	enigma:register_mod_event_callback("on_setting_changed", self, "on_setting_changed")
+
 	self:create_ui_elements()
+end
+
+EnigmaCardModeUI.destroy = function(self)
+	enigma.unregister_mod_event_callback("on_setting_changed", self, "on_setting_changed")
+end
+
+EnigmaCardModeUI.update_controller_button_prompts = function(self)
+	for i=1,5 do
+		local button = enigma:get("gamepad_play_"..i.."_button")
+		local controller_prompt_widget = self._widgets_by_name["card_"..i.."_controller_prompt"]
+		local prompt_data = enigma.managers.ui.gamepad_button_texture_data[button]
+		controller_prompt_widget.content.prompt = UISettings.use_ps4_input_icons and prompt_data.texture_ps4 or prompt_data.texture_xbone
+		controller_prompt_widget.style.prompt.texture_size[1] = prompt_data.size[1]
+		controller_prompt_widget.style.prompt.texture_size[2] = prompt_data.size[2]
+	end
 end
 
 EnigmaCardModeUI.create_ui_elements = function (self)
@@ -38,6 +56,8 @@ EnigmaCardModeUI.create_ui_elements = function (self)
 			widget.cached_card = 1
 		end
 	end
+
+	self:update_controller_button_prompts()
 
 	UIRenderer.clear_scenegraph_queue(self.ui_renderer)
 end
@@ -67,6 +87,12 @@ EnigmaCardModeUI.update = function (self, dt, t)
 		self._widgets_by_name.test_game_warpstone_zero_button.content.visible = enigma.managers.game.debug or false
 		self._widgets_by_name.test_game_warpstone_plus_one_button.content.visible = enigma.managers.game.debug or false
 		self._widgets_by_name.test_game_warpstone_plus_hundred_button.content.visible = enigma.managers.game.debug or false
+
+		local gamepad_active = Managers.input and Managers.input:is_device_active("gamepad")
+		for i=1,5 do
+			local gamepad_button_prompt_id = "card_"..i.."_controller_prompt"
+			self._widgets_by_name[gamepad_button_prompt_id].content.gamepad_active = gamepad_active
+		end
 
 	elseif cached_card_mode and not enigma.card_mode then
 		-- on exit
@@ -167,4 +193,17 @@ end
 
 EnigmaCardModeUI.play_sound = function (self, event)
 	WwiseWorld.trigger_event(self.wwise_world, event)
+end
+
+EnigmaCardModeUI.on_setting_changed = function(self, setting_id)
+	local any_gamepad_button_updated = false
+	for i=1,5 do
+		local play_card_setting_id = "gamepad_play_"..i.."_button"
+		if setting_id == play_card_setting_id then
+			any_gamepad_button_updated = true
+		end
+	end
+	if any_gamepad_button_updated then
+		self:update_controller_button_prompts()
+	end
 end

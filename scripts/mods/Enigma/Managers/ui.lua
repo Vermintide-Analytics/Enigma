@@ -34,6 +34,83 @@ local uim = {
 
 	time_since_card_played = 0,
 	played_cards_queue = {},
+
+	gamepad_button_texture_data = {
+		confirm_press = {
+			size = { 34, 34 },
+			texture_xbone = "xbone_button_icon_a",
+			texture_ps4 = "ps4_button_icon_cross"
+		},
+		back = {
+			size = { 34, 34 },
+			texture_xbone = "xbone_button_icon_b",
+			texture_ps4 = "ps4_button_icon_circle"
+		},
+		special_1_press = {
+			size = { 34, 34 },
+			texture_xbone = "xbone_button_icon_x",
+			texture_ps4 = "ps4_button_icon_square"
+		},
+		refresh_press = {
+			size = { 34, 34 },
+			texture_xbone = "xbone_button_icon_y",
+			texture_ps4 = "ps4_button_icon_triangle"
+		},
+
+		move_down_raw = {
+			size = { 33, 33 },
+			texture_xbone = "xbone_button_icon_d_pad_down",
+			texture_ps4 = "ps4_button_icon_d_pad_down"
+		},
+		move_right_raw = {
+			size = { 33, 33 },
+			texture_xbone = "xbone_button_icon_d_pad_right",
+			texture_ps4 = "ps4_button_icon_d_pad_right"
+		},
+		move_left_raw = {
+			size = { 33, 33 },
+			texture_xbone = "xbone_button_icon_d_pad_left",
+			texture_ps4 = "ps4_button_icon_d_pad_left"
+		},
+		move_up_raw = {
+			size = { 33, 33 },
+			texture_xbone = "xbone_button_icon_d_pad_up",
+			texture_ps4 = "ps4_button_icon_d_pad_up"
+		},
+		
+		left_stick_press = {
+			size = { 32, 33 },
+			texture_xbone = "xbone_button_icon_left_stick",
+			texture_ps4 = "ps4_button_icon_left_stick"
+		},
+		right_stick_press = {
+			size = { 32, 33 },
+			texture_xbone = "xbone_button_icon_right_stick",
+			texture_ps4 = "ps4_button_icon_right_stick"
+		},
+		
+		cycle_previous = {
+			size = { 36, 26 },
+			texture_xbone = "xbone_button_icon_lb",
+			texture_ps4 = "ps4_button_icon_l1"
+		},
+		cycle_next = {
+			size = { 36, 26 },
+			texture_xbone = "xbone_button_icon_rb",
+			texture_ps4 = "ps4_button_icon_r1"
+		},
+		
+		trigger_cycle_previous = {
+			size = { 38, 33 },
+			texture_xbone = "xbone_button_icon_lt",
+			texture_ps4 = "ps4_button_icon_l2"
+		},
+		trigger_cycle_next = {
+			size = { 38, 33 },
+			texture_xbone = "xbone_button_icon_rt",
+			texture_ps4 = "ps4_button_icon_r2"
+		},
+	},
 }
 enigma.managers.ui = uim
 

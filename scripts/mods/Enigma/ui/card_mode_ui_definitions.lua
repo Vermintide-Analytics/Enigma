@@ -178,7 +178,7 @@ local widgets = {
 	end_test_game_button = UIWidgets.create_default_button("end_test_game_button", scenegraph_definition.end_test_game_button.size, nil, nil, enigma:localize("end_test_game"), 34, nil, nil, nil, true, true),
 }
 
-card_ui_common.add_hand_display(scenegraph_definition, widgets, "hand_panel", CARD_WIDTH, true)
+card_ui_common.add_hand_display_with_controller_prompts(scenegraph_definition, widgets, "hand_panel", CARD_WIDTH, true)
 
 return {
 	scenegraph_definition = scenegraph_definition,
