@@ -40,6 +40,7 @@ banks = {
 			"sip_swallow"
 			"slice"
 			"ss_powerup"
+			"thunderclap"
 			"time_slowdown"
 			"time_speedup"
 			"tree_chop"
@@ -283,11 +284,11 @@ events = {
 		positioning = "2D"
 	}
 	rumble = {
-		attenuation_max = 0
+		attenuation_max = 12
 		duration_max = 0.8039
 		duration_min = 0.8039
 		duration_type = "OneShot"
-		positioning = "2D"
+		positioning = "3D"
 	}
 	sip_swallow = {
 		attenuation_max = 0
@@ -309,6 +310,13 @@ events = {
 		duration_min = 2.217506
 		duration_type = "OneShot"
 		positioning = "2D"
+	}
+	thunderclap = {
+		attenuation_max = 12
+		duration_max = 2.33873
+		duration_min = 2.33873
+		duration_type = "OneShot"
+		positioning = "3D"
 	}
 	time_slowdown = {
 		attenuation_max = 0

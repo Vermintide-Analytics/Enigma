@@ -2667,6 +2667,9 @@ local ability_cards = {
             game:draw_card()
         end,
         echo = true,
+        sounds_3D = {
+            on_play = "thunderclap"
+        },
         description_lines = {
             {
                 format = "base_stupefy_description",

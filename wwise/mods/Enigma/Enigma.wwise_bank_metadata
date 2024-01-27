@@ -36,6 +36,7 @@ events = [
 	"sip_swallow"
 	"slice"
 	"ss_powerup"
+	"thunderclap"
 	"time_slowdown"
 	"time_speedup"
 	"tree_chop"
