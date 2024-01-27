@@ -40,6 +40,6 @@ grenade_no_ff.explosion.no_friendly_fire = true
 new_template("grenade_no_ff", grenade_no_ff)
 
 local grenade_no_ff_scaled_x3 = table.clone(templates.grenade)
-grenade_no_ff.explosion.no_friendly_fire = true
+grenade_no_ff_scaled_x3.explosion.no_friendly_fire = true
 simple_scale_template(grenade_no_ff_scaled_x3, 3)
 new_template("grenade_no_ff_scaled_x3", grenade_no_ff_scaled_x3)
