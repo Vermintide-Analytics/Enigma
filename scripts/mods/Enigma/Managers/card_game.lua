@@ -2178,8 +2178,7 @@ cgm.on_game_state_changed = function(self, status, state_name)
             self:end_game()
         end
     elseif state_name == "StateIngame" and status == "enter" and Managers.level_transition_handler then
-        local in_dev_game = enigma.managers.game:is_in_game() and enigma.managers.game.debug
-        if in_dev_game or (not enigma:in_keep() and not enigma:in_morris_map()) then
+        if not enigma:in_keep() and not enigma:in_morris_map() then
             local game_init_data = enigma.managers.deck_planner.game_init_data
             self:init_game(game_init_data)
         end
