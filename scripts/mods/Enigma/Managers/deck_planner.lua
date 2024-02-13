@@ -780,6 +780,7 @@ dpm.on_equipped_decks_loaded = function(self, info)
         end
     end
     self:update_self_equipped_deck_valid()
+    enigma.managers.ui.deck_prep_dirty = true
 end
 
 dpm.load_save_data = function(self)
