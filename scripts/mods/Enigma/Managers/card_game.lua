@@ -418,6 +418,7 @@ cgm.init_game = function(self, game_init_data, debug)
     end
 
     self.furthest_level_progress = 0
+    self.auto_draw_cards = enigma:get("auto_draw_cards")
 
     local card_manager = enigma.managers.card_template
     local primordial_cards = {}
@@ -1709,6 +1710,15 @@ cgm._update_delayed_function_calls = function(self, dt)
     end
 end
 
+cgm._update_auto_draw = function(self, dt)
+    if self.local_data.available_card_draws < 1 or
+        #self.local_data.draw_pile < 1 or
+        #self.local_data.hand > 4 then
+        return
+    end
+    self:draw_card(true)
+end
+
 cgm.update = function(self, dt, t)
     if self.game_state == "in_progress" then
 
@@ -1746,6 +1756,10 @@ cgm.update = function(self, dt, t)
         self:add_card_draw(pull_from_deferred, "level_progress")
 
         self:_update_delayed_function_calls(dt)
+
+        if self.auto_draw_cards then
+            self:_update_auto_draw(dt)
+        end
     end
 end
 
@@ -2186,6 +2200,12 @@ cgm.on_game_state_changed = function(self, status, state_name)
 end
 enigma:register_mod_event_callback("on_game_state_changed", cgm, "on_game_state_changed")
 
+cgm.on_setting_changed = function(self, setting_id)
+    if setting_id == "auto_draw_cards" then
+        self.auto_draw_cards = enigma:get(setting_id)
+    end
+end
+enigma:register_mod_event_callback("on_setting_changed", cgm, "on_setting_changed")
 
 -- Debug
 cgm.dump = function(self)

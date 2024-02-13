@@ -16,6 +16,11 @@ enigma.draw_card_hotkey_pressed = function()
     enigma.managers.game:draw_card(true)
 end
 
+enigma.toggle_auto_draw_cards_hotkey_pressed = function()
+    if forbid_keybinds() then return end
+    enigma.managers.game.auto_draw_cards = not enigma.managers.game.auto_draw_cards
+end
+
 enigma.card_mode_key_pressed = function(down)
     if forbid_keybinds() then return end
     if enigma.managers.game:is_in_game() then

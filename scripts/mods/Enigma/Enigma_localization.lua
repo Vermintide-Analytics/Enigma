@@ -106,6 +106,12 @@ local loc = {
 	added_difficulty_description = {
 		en = "Increase the difficulty of your game by inserting Chaos cards into your deck at the beginning of a game.\nAt 0, no Chaos cards will be added.\nAt 10, expect 2 or 3 cards which will almost always be Rare or Common.\nAt 100, expect to see at least 15 cards added, with several of them being Epic or Legendary."
 	},
+	auto_draw_cards_title = {
+		en = "Auto-Draw Cards"
+	},
+	auto_draw_cards_description = {
+		en = "If enabled, cards will automatically be drawn as soon as possible."
+	},
 	hotkeys_group_title = {
 		en = "Hotkeys",
 	},
@@ -117,6 +123,12 @@ local loc = {
 	},
 	draw_card_hotkey_title = {
 		en = "Draw Card",
+	},
+	toggle_auto_draw_cards_hotkey_title = {
+		en = "Toggle Auto-Draw",
+	},
+	toggle_auto_draw_cards_hotkey_description = {
+		en = "Toggle whether or not cards are automatically drawn as soon as possible.\nNote: This does not change the \"Auto-Draw Cards\" setting. Each mission will start auto-drawing cards or not based on that setting.",
 	},
 	card_mode_show_mode_title = {
 		en = "Hold/Toggle Card Mode"

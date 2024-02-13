@@ -48,6 +48,13 @@ return {
 				decimals_number = 0
 			},
 			{
+				setting_id = "auto_draw_cards",
+				type = "checkbox",
+				title = "auto_draw_cards_title",
+				tooltip = "auto_draw_cards_description",
+				default_value = false
+			},
+			{
 				setting_id = "hotkeys_group",
 				type = "group",
 				title = "hotkeys_group_title",
@@ -90,6 +97,17 @@ return {
 						keybind_trigger = "pressed",
 						keybind_type = "function_call",
 						function_name = "draw_card_hotkey_pressed",
+						default_value = {}
+					},
+					{
+						setting_id = "toggle_auto_draw_cards_hotkey",
+						type = "keybind",
+						title = "toggle_auto_draw_cards_hotkey_title",
+						tooltip = "toggle_auto_draw_cards_hotkey_description",
+						keybind_global = true,
+						keybind_trigger = "pressed",
+						keybind_type = "function_call",
+						function_name = "toggle_auto_draw_cards_hotkey_pressed",
 						default_value = {}
 					},
 					{
