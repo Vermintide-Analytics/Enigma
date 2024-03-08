@@ -51,7 +51,7 @@ end
 enigma.game_mode = function(self)
     local level_key = self:level_key()
     local game_mode_key
-    if level_key == "inn_level" then
+    if level_key and level_key:find("inn_level") then
         game_mode_key = "adventure"
     elseif level_key == "morris_hub" or level_key == "dlc_morris_map" then
         game_mode_key = "deus"

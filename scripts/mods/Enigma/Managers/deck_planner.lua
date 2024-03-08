@@ -505,9 +505,10 @@ dpm.equip_deck = function(self, deck_name, game_mode, career_name, skip_save)
 end
 
 dpm.equip_deck_for_current_career_and_game_mode = function(self, deck_name, skip_save)
+    -- This logic is almost a duplicate of enigma:game_mode() but it excludes the Chaos Wastes map level
     local level_key = enigma:level_key()
     local game_mode
-    if level_key == "inn_level" then
+    if level_key:find("inn_level") then
         game_mode = "adventure"
     elseif level_key == "morris_hub" then
         game_mode = "deus"
